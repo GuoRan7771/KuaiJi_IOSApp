@@ -1,0 +1,283 @@
+/* General */
+"ok" = "OK";
+"cancel" = "Cancel";
+"done" = "Done";
+"save" = "Save";
+"delete" = "Delete";
+"edit" = "Edit";
+"close" = "Close";
+"add" = "Add";
+"all" = "All";
+
+/* Tab Bar */
+"tab.ledgers" = "Ledgers";
+"tab.friends" = "Friends";
+"tab.settings" = "Settings";
+
+/* Ledger List */
+"ledgers.title" = "Shared Ledgers";
+"ledgers.pageTitle" = "Ledgers";
+"ledgers.new" = "New";
+"ledgers.recentUpdates" = "Recent Updates";
+"ledgers.memberCount" = "%d members";
+"ledgers.outstanding" = "Outstanding %@";
+
+/* Create Ledger */
+"createLedger.title" = "New Ledger";
+"createLedger.ledgerInfo" = "Ledger Info";
+"createLedger.ledgerName" = "Ledger Name";
+"createLedger.currency" = "Currency";
+"createLedger.members" = "Members (must include yourself)";
+"createLedger.selectFriends" = "Select Friends";
+"createLedger.selectedCount" = "%d selected (including you)";
+"createLedger.create" = "Create";
+"createLedger.me" = "Me";
+
+/* Ledger Details */
+"ledger.totalSpent" = "Total Spent";
+"ledger.members" = "Members";
+"ledger.netAmount" = "Net Amount";
+"ledger.addExpense" = "Add Expense";
+"ledger.viewRecords" = "View Records";
+"ledger.generatePlan" = "Generate Minimum Transfer Plan";
+"ledger.member" = "Member %@";
+"ledger.balances" = "Net Balances";
+
+/* Add Expense */
+"expense.title" = "New Expense";
+"expense.basicInfo" = "Basic Info";
+"expense.purpose" = "Purpose";
+"expense.purposePlaceholder" = "e.g.: Dinner / Taxi";
+"expense.date" = "Date";
+"expense.amount" = "Amount";
+"expense.category" = "Category";
+"expense.participants" = "Participants: %@";
+"expense.noMembers" = "No members";
+"expense.splitMethod" = "Split Method";
+"expense.preview" = "Payment Preview";
+
+/* Split Methods */
+"split.meAllAA" = "I Pay · Everyone Split";
+"split.meAllAA.desc" = "I paid, everyone splits equally (including me)";
+"split.otherAllAA" = "Other Pays · Everyone Split";
+"split.otherAllAA.desc" = "Someone else paid, everyone splits equally";
+"split.meTreat" = "I Treat";
+"split.meTreat.desc" = "I'm treating, no split needed";
+"split.otherTreat" = "Other Treats";
+"split.otherTreat.desc" = "Someone else is treating, no split needed";
+"split.helpPay" = "Pay For Someone";
+"split.helpPay.desc" = "One person pays for another, beneficiary owes the full amount";
+"split.payer" = "Payer";
+"split.selectPayer" = "Select Payer";
+"split.beneficiary" = "Beneficiary";
+"split.selectBeneficiary" = "Select Beneficiary (who is being paid for)";
+"split.addOtherMembers" = "⚠️ Please add other members first";
+
+/* Categories */
+"category.food" = "Food";
+"category.transport" = "Transport";
+"category.accommodation" = "Accommodation";
+"category.entertainment" = "Entertainment";
+"category.utilities" = "Utilities";
+"category.other" = "Other";
+
+/* Settlement */
+"settlement.title" = "Settlement Plan";
+"settlement.currentNet" = "Current Net";
+"settlement.minTransfers" = "Minimum Transfers";
+"settlement.allSettled" = "All Settled";
+"settlement.transfer" = "%@ → %@";
+
+/* Records */
+"records.title" = "Transaction Records";
+"records.empty" = "No records yet";
+"records.emptyDesc" = "Records will appear here after adding expenses";
+
+/* Friends */
+"friends.title" = "Friends";
+"friends.add" = "Add";
+"friends.info" = "Friend Info";
+"friends.name" = "Name";
+"friends.currency" = "Currency";
+"friends.selectAvatar" = "Select Avatar";
+"friends.addTitle" = "Add Friend";
+"friends.editTitle" = "Edit Friend";
+
+/* Settings */
+"settings.title" = "Settings";
+"settings.language" = "Language";
+"settings.languageLabel" = "Language";
+"settings.languageDesc" = "Tap to change language in System Settings";
+"settings.about" = "About";
+"settings.guide" = "Introduction";
+"settings.contactMe" = "Contact Me";
+"settings.clearData" = "Clear All Data";
+"settings.clearDataWarning" = "This will permanently delete all ledgers, expenses, friends and your personal profile, and cannot be undone";
+"settings.confirmDelete" = "Confirm Delete";
+"settings.deleteMessage" = "This will permanently delete all data (including personal profile) and cannot be undone. You will need to set up your profile again after deletion. Continue?";
+
+/* Language Options */
+"language.system" = "System";
+"language.chinese" = "中文 (简体)";
+"language.english" = "English";
+"language.french" = "Français";
+
+/* Contact Page */
+"contact.author" = "Guo";
+"contact.email" = "rwg184849@gmail.com";
+
+/* Onboarding */
+"onboarding.title" = "Set Up Your Profile";
+"onboarding.description" = "First-time setup requires your personal information\nThis information will be permanently saved on your device";
+"onboarding.nameSection" = "Name";
+"onboarding.namePlaceholder" = "Enter your name or nickname";
+"onboarding.nameFooter" = "Used to identify you in ledgers (required)";
+"onboarding.currencySection" = "Currency";
+"onboarding.currencyPicker" = "Select Currency";
+"onboarding.currencyFooter" = "Set your most commonly used currency";
+"onboarding.avatarSection" = "Select Avatar";
+"onboarding.currentAvatar" = "Current Avatar";
+"onboarding.avatarFooter" = "Choose an Emoji as your avatar";
+"onboarding.allEmojis" = "All Emojis";
+"onboarding.startButton" = "Get Started";
+"onboarding.completeFooter" = "Complete setup to use the app";
+"onboarding.errorTitle" = "Please Enter Name";
+"onboarding.errorMessage" = "Name cannot be empty, please enter your name or nickname";
+
+/* Profile */
+"profile.title" = "Personal Profile";
+"profile.edit" = "Edit Profile";
+"profile.viewInfo" = "Tap to view or edit your personal information";
+"profile.name" = "Name";
+"profile.namePlaceholder" = "Name";
+"profile.nameFooter" = "Your name or nickname";
+"profile.currency" = "Currency";
+"profile.currencyPicker" = "Currency";
+"profile.avatar" = "Avatar";
+"profile.currentAvatar" = "Current Avatar";
+"profile.avatarFooter" = "Choose an Emoji as your avatar";
+"profile.userIdLabel" = "ID: %@";
+"profile.currencyLabel" = "Currency: %@";
+
+/* QR Code */
+"qrcode.myTitle" = "My QR Code";
+"qrcode.scanInstruction" = "Have your friend scan this QR code to add you";
+"qrcode.scannerTitle" = "Scan QR Code";
+"qrcode.scannerInstruction" = "Place the QR code within the frame";
+"qrcode.scanError" = "Scan Failed";
+"qrcode.invalidFormat" = "Unrecognizable QR code format";
+"qrcode.cannotAddSelf" = "Cannot add yourself as a friend";
+"qrcode.alertTitle" = "Notice";
+"qrcode.cameraError" = "Cannot access camera";
+"qrcode.cameraInitError" = "Camera initialization failed";
+"qrcode.cameraInputError" = "Cannot add camera input";
+"qrcode.metadataOutputError" = "Cannot add metadata output";
+
+/* Friend Menu */
+"friendMenu.manualInput" = "Manually Enter Friend Info";
+"friendMenu.myQRCode" = "My QR Code";
+"friendMenu.scanQRCode" = "Scan QR Code";
+
+/* Ledger Cards */
+"ledger.card.totalExpenses" = "Total Expenses";
+"ledger.card.memberExpenses" = "Member Expenses";
+"ledger.card.recentRecords" = "Recent Records";
+"ledger.card.allButton" = "All";
+"ledger.card.noRecords" = "No records yet";
+"ledger.card.memberTotalSpent" = "Total Spent";
+"ledger.card.viewTransferPlan" = "View Transfer Plan";
+"ledger.card.clearBalances" = "Clear Balances";
+
+/* Clear Balances */
+"clearBalances.confirmTitle" = "Confirm Clear";
+"clearBalances.confirmMessage" = "Transfer records will be generated based on the current transfer plan. All member balances will be zeroed. Confirm that offline transfers have been completed?";
+"clearBalances.confirmButton" = "Confirm Clear";
+
+/* All Members */
+"allMembers.title" = "All Member Expenses";
+"allMembers.totalSpent" = "Total Spent";
+
+/* Expense Validation */
+"expense.validation.minAmount" = "Amount must be greater than %@, and each person must share at least 0.01";
+"expense.optionalFields" = "Purpose, date, and category are optional. Default values will be used if not filled";
+
+/* Default Values */
+"default.unknown" = "Unknown";
+"default.unknownMember" = "Unknown Member";
+"default.untitledExpense" = "Untitled Expense";
+"default.preview" = "Preview";
+"default.newLedger" = "New Ledger";
+"default.clearBalanceTransfer" = "Settlement Transfer: %@ → %@";
+"default.clearBalanceNote" = "Automatically generated settlement record based on transfer plan";
+
+/* Data Sync */
+"sync.title" = "Nearby Devices Sync";
+"sync.menuTitle" = "Nearby Devices Sync";
+"sync.importantWarning" = "⚠️ Important Warning";
+"sync.warningTitle" = "Sync Warning";
+"sync.warningMessage" = "⚠️ Sync will hard merge all expense records\nPlease ensure each expense is recorded on only one device\nDuplicate records will cause accounting errors and cannot be auto-deduplicated\n\nRecommendation: Confirm with friends who recorded which expenses before syncing";
+"sync.warningConfirm" = "I Understand, Continue";
+"sync.warningConfirmNoRemind" = "I Understand, Don't Remind Again";
+"sync.warning1" = "Sync will hard merge all expense records";
+"sync.warning2" = "Please ensure each expense is recorded on only one device";
+"sync.warning3" = "Duplicate records will cause accounting errors";
+"sync.warning4" = "Cannot auto-deduplicate after sync";
+"sync.recommendation" = "Recommendation: Confirm with friends who recorded which expenses before syncing";
+"sync.status" = "Connection Status";
+"sync.discovering" = "Discovering nearby devices";
+"sync.notStarted" = "Not started";
+"sync.connectedDevices" = "%d devices connected";
+"sync.nearbyDevices" = "Nearby Devices";
+"sync.noDevicesFound" = "No devices found";
+"sync.connect" = "Connect";
+"sync.startDiscovery" = "Start Discovery";
+"sync.stopDiscovery" = "Stop Discovery";
+"sync.startSync" = "Start Sync";
+"sync.confirmStart" = "I Understand, Start Sync";
+"sync.resultTitle" = "Sync Result";
+"sync.result.addedLedgers" = "Added ledgers: %d";
+"sync.result.updatedLedgers" = "Updated ledgers: %d";
+"sync.result.addedExpenses" = "Added expenses: %d";
+"sync.result.addedFriends" = "Added friends: %d";
+"sync.result.errors" = "Errors: %d";
+"sync.result.noUpdates" = "No updates";
+"sync.deviceAvailable" = "Available";
+"sync.deviceConnected" = "Connected";
+"sync.currentDevice" = "Current Device";
+"sync.shareLedger" = "📡 Share Ledger";
+"sync.completed" = "Sync Completed";
+"sync.waitingResponse" = "Data sent to %d device(s)\nWaiting for response...";
+"sync.bidirectionalComplete" = "Bidirectional Sync Completed";
+"sync.receivedFrom" = "Received from %@:";
+"sync.sentBack" = "Auto sent back local data";
+"sync.sendBackError" = "⚠️ Send back failed: %@";
+"sync.errorPreparing" = "Failed to prepare sync data";
+"sync.errorEncoding" = "Failed to encode data";
+"sync.errorInvalidData" = "Received invalid data format";
+
+/* Welcome Guide */
+"guide.welcome.title" = "Welcome to KuaiJi";
+"guide.welcome.desc" = "Simple & elegant shared ledger\nAA billing, auto settlement & device sync";
+"guide.friends.title" = "Step 1: Add Friends";
+"guide.friends.desc" = "Go to Friends tab, tap ➕ to add friends\n\nRecommend using QR code scanning\nRequired for ledger sync feature";
+"guide.ledger.title" = "Step 2: Create Ledger";
+"guide.ledger.desc" = "Think of each ledger as expense records for a period\nLike 'A Trip' or 'Weekend Dinner'\n\nEach ledger tracks independently";
+"guide.sync.title" = "Step 3: Sync Ledger";
+"guide.sync.desc" = "Tap 📡 icon on Ledger page\nConnect to nearby friends' devices\n\nAuto sync all related ledgers\nAuto add new friends from ledgers";
+"guide.privacy.title" = "Absolute Privacy";
+"guide.privacy.desc" = "✓ Data stored only on your device\n✓ No registration, no cloud server\n✓ Peer-to-peer sync via Bluetooth/WiFi\n\nYour data, your control";
+"guide.skip" = "Skip";
+"guide.next" = "Next";
+"guide.previous" = "Previous";
+"guide.start" = "Get Started";
+"guide.scanQRCode" = "Scan QR Code";
+"guide.becomeFriends" = "Become Friends";
+"guide.exampleTrip" = "A Trip";
+"guide.exampleDinner" = "Dinner AA";
+"guide.yourDevice" = "Your Device";
+"guide.friendDevice" = "Friend's Device";
+"guide.localStorage" = "Local Storage";
+"guide.noServer" = "No Server";
+"guide.fullyPrivate" = "Fully Private";
+
+

@@ -1,0 +1,283 @@
+/* Général */
+"ok" = "OK";
+"cancel" = "Annuler";
+"done" = "Terminé";
+"save" = "Enregistrer";
+"delete" = "Supprimer";
+"edit" = "Modifier";
+"close" = "Fermer";
+"add" = "Ajouter";
+"all" = "Tout";
+
+/* Barre d'onglets */
+"tab.ledgers" = "Comptes";
+"tab.friends" = "Amis";
+"tab.settings" = "Réglages";
+
+/* Liste des Comptes */
+"ledgers.title" = "Comptes Partagés";
+"ledgers.pageTitle" = "Comptes";
+"ledgers.new" = "Nouveau";
+"ledgers.recentUpdates" = "Récents";
+"ledgers.memberCount" = "%d membres";
+"ledgers.outstanding" = "En attente %@";
+
+/* Créer un compte */
+"createLedger.title" = "Nouveau Compte";
+"createLedger.ledgerInfo" = "Infos du Compte";
+"createLedger.ledgerName" = "Nom du Compte";
+"createLedger.currency" = "Devise";
+"createLedger.members" = "Membres (vous devez être inclus)";
+"createLedger.selectFriends" = "Sélectionner des Amis";
+"createLedger.selectedCount" = "%d sélectionné(s) (vous inclus)";
+"createLedger.create" = "Créer";
+"createLedger.me" = "Moi";
+
+/* Détails du compte */
+"ledger.totalSpent" = "Total Dépensé";
+"ledger.members" = "Membres";
+"ledger.netAmount" = "Montant Net";
+"ledger.addExpense" = "Ajouter une Dépense";
+"ledger.viewRecords" = "Voir les Transactions";
+"ledger.generatePlan" = "Générer Plan de Transfert Minimum";
+"ledger.member" = "Membre %@";
+"ledger.balances" = "Soldes Nets";
+
+/* Ajouter une dépense */
+"expense.title" = "Nouvelle Dépense";
+"expense.basicInfo" = "Infos de Base";
+"expense.purpose" = "Objet";
+"expense.purposePlaceholder" = "ex: Dîner / Taxi";
+"expense.date" = "Date";
+"expense.amount" = "Montant";
+"expense.category" = "Catégorie";
+"expense.participants" = "Participants: %@";
+"expense.noMembers" = "Aucun membre";
+"expense.splitMethod" = "Méthode de Partage";
+"expense.preview" = "Aperçu des Paiements";
+
+/* Méthodes de partage */
+"split.meAllAA" = "Je Paie · Tout le Monde Partage";
+"split.meAllAA.desc" = "J'ai payé, tout le monde partage (moi inclus)";
+"split.otherAllAA" = "Autre Paie · Tout le Monde Partage";
+"split.otherAllAA.desc" = "Quelqu'un d'autre a payé, tout le monde partage";
+"split.meTreat" = "J'Offre";
+"split.meTreat.desc" = "J'offre, pas de partage nécessaire";
+"split.otherTreat" = "Autre Offre";
+"split.otherTreat.desc" = "Quelqu'un d'autre offre, pas de partage nécessaire";
+"split.helpPay" = "Payer Pour Quelqu'un";
+"split.helpPay.desc" = "Une personne paie pour une autre, le bénéficiaire doit le montant total";
+"split.payer" = "Payeur";
+"split.selectPayer" = "Sélectionner le Payeur";
+"split.beneficiary" = "Bénéficiaire";
+"split.selectBeneficiary" = "Sélectionner le Bénéficiaire (la personne pour qui on paie)";
+"split.addOtherMembers" = "⚠️ Veuillez d'abord ajouter d'autres membres";
+
+/* Catégories */
+"category.food" = "Nourriture";
+"category.transport" = "Transport";
+"category.accommodation" = "Hébergement";
+"category.entertainment" = "Divertissement";
+"category.utilities" = "Quotidien";
+"category.other" = "Autre";
+
+/* Règlement */
+"settlement.title" = "Plan de Règlement";
+"settlement.currentNet" = "Net Actuel";
+"settlement.minTransfers" = "Transferts Minimums";
+"settlement.allSettled" = "Tout Réglé";
+"settlement.transfer" = "%@ → %@";
+
+/* Transactions */
+"records.title" = "Historique des Transactions";
+"records.empty" = "Aucune transaction";
+"records.emptyDesc" = "Les transactions apparaîtront ici après avoir ajouté des dépenses";
+
+/* Amis */
+"friends.title" = "Amis";
+"friends.add" = "Ajouter";
+"friends.info" = "Infos de l'Ami";
+"friends.name" = "Nom";
+"friends.currency" = "Devise";
+"friends.selectAvatar" = "Choisir un Avatar";
+"friends.addTitle" = "Ajouter un Ami";
+"friends.editTitle" = "Modifier l'Ami";
+
+/* Réglages */
+"settings.title" = "Réglages";
+"settings.language" = "Langue";
+"settings.languageLabel" = "Langue";
+"settings.languageDesc" = "Appuyez pour changer la langue dans les Réglages Système";
+"settings.about" = "À Propos";
+"settings.guide" = "Introduction";
+"settings.contactMe" = "Me Contacter";
+"settings.clearData" = "Effacer Toutes les Données";
+"settings.clearDataWarning" = "Ceci supprimera définitivement tous les comptes, dépenses, amis et votre profil personnel, et ne peut pas être annulé";
+"settings.confirmDelete" = "Confirmer la Suppression";
+"settings.deleteMessage" = "Ceci supprimera définitivement toutes les données (y compris le profil personnel) et ne peut pas être annulé. Vous devrez reconfigurer votre profil après la suppression. Continuer?";
+
+/* Options de langue */
+"language.system" = "Système";
+"language.chinese" = "中文 (简体)";
+"language.english" = "English";
+"language.french" = "Français";
+
+/* Page de contact */
+"contact.author" = "Guo";
+"contact.email" = "rwg184849@gmail.com";
+
+/* Configuration initiale */
+"onboarding.title" = "Configurer votre Profil";
+"onboarding.description" = "La première utilisation nécessite vos informations personnelles\nCes informations seront enregistrées de manière permanente sur votre appareil";
+"onboarding.nameSection" = "Nom";
+"onboarding.namePlaceholder" = "Entrez votre nom ou surnom";
+"onboarding.nameFooter" = "Utilisé pour vous identifier dans les comptes (obligatoire)";
+"onboarding.currencySection" = "Devise";
+"onboarding.currencyPicker" = "Sélectionner la Devise";
+"onboarding.currencyFooter" = "Définissez votre devise la plus utilisée";
+"onboarding.avatarSection" = "Sélectionner l'Avatar";
+"onboarding.currentAvatar" = "Avatar Actuel";
+"onboarding.avatarFooter" = "Choisissez un Emoji comme avatar";
+"onboarding.allEmojis" = "Tous les Emojis";
+"onboarding.startButton" = "Commencer";
+"onboarding.completeFooter" = "Terminez la configuration pour utiliser l'application";
+"onboarding.errorTitle" = "Veuillez Entrer un Nom";
+"onboarding.errorMessage" = "Le nom ne peut pas être vide, veuillez entrer votre nom ou surnom";
+
+/* Profil */
+"profile.title" = "Profil Personnel";
+"profile.edit" = "Modifier le Profil";
+"profile.viewInfo" = "Appuyez pour voir ou modifier vos informations personnelles";
+"profile.name" = "Nom";
+"profile.namePlaceholder" = "Nom";
+"profile.nameFooter" = "Votre nom ou surnom";
+"profile.currency" = "Devise";
+"profile.currencyPicker" = "Devise";
+"profile.avatar" = "Avatar";
+"profile.currentAvatar" = "Avatar Actuel";
+"profile.avatarFooter" = "Choisissez un Emoji comme avatar";
+"profile.userIdLabel" = "ID: %@";
+"profile.currencyLabel" = "Devise: %@";
+
+/* Code QR */
+"qrcode.myTitle" = "Mon Code QR";
+"qrcode.scanInstruction" = "Demandez à votre ami de scanner ce code QR pour vous ajouter";
+"qrcode.scannerTitle" = "Scanner le Code QR";
+"qrcode.scannerInstruction" = "Placez le code QR dans le cadre";
+"qrcode.scanError" = "Échec du Scan";
+"qrcode.invalidFormat" = "Format de code QR non reconnu";
+"qrcode.cannotAddSelf" = "Impossible de vous ajouter vous-même comme ami";
+"qrcode.alertTitle" = "Avis";
+"qrcode.cameraError" = "Impossible d'accéder à la caméra";
+"qrcode.cameraInitError" = "Échec de l'initialisation de la caméra";
+"qrcode.cameraInputError" = "Impossible d'ajouter l'entrée de la caméra";
+"qrcode.metadataOutputError" = "Impossible d'ajouter la sortie de métadonnées";
+
+/* Menu Amis */
+"friendMenu.manualInput" = "Entrer Manuellement les Infos de l'Ami";
+"friendMenu.myQRCode" = "Mon Code QR";
+"friendMenu.scanQRCode" = "Scanner le Code QR";
+
+/* Cartes du Compte */
+"ledger.card.totalExpenses" = "Total des Dépenses";
+"ledger.card.memberExpenses" = "Dépenses des Membres";
+"ledger.card.recentRecords" = "Transactions Récentes";
+"ledger.card.allButton" = "Tout";
+"ledger.card.noRecords" = "Aucune transaction";
+"ledger.card.memberTotalSpent" = "Total Dépensé";
+"ledger.card.viewTransferPlan" = "Voir le Plan de Transfert";
+"ledger.card.clearBalances" = "Effacer les Soldes";
+
+/* Effacer les Soldes */
+"clearBalances.confirmTitle" = "Confirmer l'Effacement";
+"clearBalances.confirmMessage" = "Des enregistrements de transfert seront générés selon le plan de transfert actuel. Tous les soldes des membres seront remis à zéro. Confirmer que les transferts hors ligne ont été effectués?";
+"clearBalances.confirmButton" = "Confirmer l'Effacement";
+
+/* Tous les Membres */
+"allMembers.title" = "Toutes les Dépenses des Membres";
+"allMembers.totalSpent" = "Total Dépensé";
+
+/* Validation des Dépenses */
+"expense.validation.minAmount" = "Le montant doit être supérieur à %@, et chaque personne doit partager au moins 0,01";
+"expense.optionalFields" = "L'objet, la date et la catégorie sont facultatifs. Les valeurs par défaut seront utilisées si non remplies";
+
+/* Valeurs par Défaut */
+"default.unknown" = "Inconnu";
+"default.unknownMember" = "Membre Inconnu";
+"default.untitledExpense" = "Dépense Sans Titre";
+"default.preview" = "Aperçu";
+"default.newLedger" = "Nouveau Compte";
+"default.clearBalanceTransfer" = "Transfert de Règlement: %@ → %@";
+"default.clearBalanceNote" = "Enregistrement de règlement généré automatiquement selon le plan de transfert";
+
+/* Synchronisation de Données */
+"sync.title" = "Synchronisation des Appareils à Proximité";
+"sync.menuTitle" = "Synchronisation des Appareils à Proximité";
+"sync.importantWarning" = "⚠️ Avertissement Important";
+"sync.warningTitle" = "Avertissement de Synchronisation";
+"sync.warningMessage" = "⚠️ La synchronisation fusionnera toutes les dépenses\nAssurez-vous que chaque dépense n'est enregistrée que sur un seul appareil\nLes enregistrements dupliqués causeront des erreurs comptables et ne peuvent pas être dédupliqués automatiquement\n\nRecommandation: Confirmer avec vos amis qui a enregistré quelles dépenses avant de synchroniser";
+"sync.warningConfirm" = "Je Comprends, Continuer";
+"sync.warningConfirmNoRemind" = "Je Comprends, Ne Plus Rappeler";
+"sync.warning1" = "La synchronisation fusionnera toutes les dépenses";
+"sync.warning2" = "Assurez-vous que chaque dépense n'est enregistrée que sur un seul appareil";
+"sync.warning3" = "Les enregistrements dupliqués causeront des erreurs comptables";
+"sync.warning4" = "Impossible de dédupliquer automatiquement après la synchronisation";
+"sync.recommendation" = "Recommandation: Confirmer avec vos amis qui a enregistré quelles dépenses avant de synchroniser";
+"sync.status" = "État de Connexion";
+"sync.discovering" = "Recherche d'appareils à proximité";
+"sync.notStarted" = "Pas encore démarré";
+"sync.connectedDevices" = "%d appareils connectés";
+"sync.nearbyDevices" = "Appareils à Proximité";
+"sync.noDevicesFound" = "Aucun appareil trouvé";
+"sync.connect" = "Connecter";
+"sync.startDiscovery" = "Démarrer la Recherche";
+"sync.stopDiscovery" = "Arrêter la Recherche";
+"sync.startSync" = "Démarrer la Synchronisation";
+"sync.confirmStart" = "Je Comprends, Démarrer la Synchronisation";
+"sync.resultTitle" = "Résultat de la Synchronisation";
+"sync.result.addedLedgers" = "Comptes ajoutés: %d";
+"sync.result.updatedLedgers" = "Comptes mis à jour: %d";
+"sync.result.addedExpenses" = "Dépenses ajoutées: %d";
+"sync.result.addedFriends" = "Amis ajoutés: %d";
+"sync.result.errors" = "Erreurs: %d";
+"sync.result.noUpdates" = "Aucune mise à jour";
+"sync.deviceAvailable" = "Disponible";
+"sync.deviceConnected" = "Connecté";
+"sync.currentDevice" = "Appareil Actuel";
+"sync.shareLedger" = "📡 Partager le Compte";
+"sync.completed" = "Synchro Terminée";
+"sync.waitingResponse" = "Données envoyées à %d appareil(s)\nEn attente de réponse...";
+"sync.bidirectionalComplete" = "Synchro Bidirectionnelle Terminée";
+"sync.receivedFrom" = "Reçu de %@:";
+"sync.sentBack" = "Données locales renvoyées automatiquement";
+"sync.sendBackError" = "⚠️ Échec du renvoi: %@";
+"sync.errorPreparing" = "Échec de la préparation des données";
+"sync.errorEncoding" = "Échec de l'encodage des données";
+"sync.errorInvalidData" = "Format de données reçues invalide";
+
+/* Guide de Bienvenue */
+"guide.welcome.title" = "Bienvenue à KuaiJi";
+"guide.welcome.desc" = "Compte partagé simple & élégant\nFacturation AA, règlement auto & synchro";
+"guide.friends.title" = "Étape 1: Ajouter Amis";
+"guide.friends.desc" = "Aller à l'onglet Amis, appuyez sur ➕\n\nRecommandé: scan de code QR\nRequis pour la synchro de compte";
+"guide.ledger.title" = "Étape 2: Créer Compte";
+"guide.ledger.desc" = "Considérez chaque compte comme des dépenses d'une période\nComme 'Un Voyage' ou 'Dîner'\n\nChaque compte suit indépendamment";
+"guide.sync.title" = "Étape 3: Synchro Compte";
+"guide.sync.desc" = "Appuyez sur l'icône 📡 sur la page Compte\nConnectez aux appareils d'amis\n\nSynchro auto de tous les comptes liés\nAjout auto de nouveaux amis";
+"guide.privacy.title" = "Confidentialité Absolue";
+"guide.privacy.desc" = "✓ Données stockées uniquement sur votre appareil\n✓ Pas d'inscription, pas de serveur cloud\n✓ Synchro P2P via Bluetooth/WiFi\n\nVos données, votre contrôle";
+"guide.skip" = "Passer";
+"guide.next" = "Suivant";
+"guide.previous" = "Précédent";
+"guide.start" = "Commencer";
+"guide.scanQRCode" = "Scanner QR";
+"guide.becomeFriends" = "Devenir Amis";
+"guide.exampleTrip" = "Un Voyage";
+"guide.exampleDinner" = "Dîner AA";
+"guide.yourDevice" = "Votre Appareil";
+"guide.friendDevice" = "Appareil Ami";
+"guide.localStorage" = "Stockage Local";
+"guide.noServer" = "Pas de Serveur";
+"guide.fullyPrivate" = "Totalement Privé";
+
+

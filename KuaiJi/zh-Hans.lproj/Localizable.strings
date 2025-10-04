@@ -1,0 +1,281 @@
+/* 通用 */
+"ok" = "确定";
+"cancel" = "取消";
+"done" = "完成";
+"save" = "保存";
+"delete" = "删除";
+"edit" = "编辑";
+"close" = "关闭";
+"add" = "添加";
+"all" = "全部";
+
+/* Tab Bar */
+"tab.ledgers" = "账本";
+"tab.friends" = "朋友";
+"tab.settings" = "设置";
+
+/* 账本列表 */
+"ledgers.title" = "共享账本";
+"ledgers.pageTitle" = "账本";
+"ledgers.new" = "新建";
+"ledgers.recentUpdates" = "最近更新";
+"ledgers.memberCount" = "成员 %d";
+"ledgers.outstanding" = "待结算 %@";
+
+/* 创建账本 */
+"createLedger.title" = "新建账本";
+"createLedger.ledgerInfo" = "账本信息";
+"createLedger.ledgerName" = "账本名称";
+"createLedger.currency" = "常用货币";
+"createLedger.members" = "参与成员（必须包含自己）";
+"createLedger.selectFriends" = "选择朋友";
+"createLedger.selectedCount" = "已选择 %d 人（包含自己）";
+"createLedger.create" = "创建";
+"createLedger.me" = "我";
+
+/* 账本详情 */
+"ledger.totalSpent" = "总支出";
+"ledger.members" = "成员";
+"ledger.netAmount" = "净额";
+"ledger.addExpense" = "添加支出";
+"ledger.viewRecords" = "查看流水";
+"ledger.generatePlan" = "生成最少转账方案";
+"ledger.member" = "成员 %@";
+"ledger.balances" = "净额";
+
+/* 添加支出 */
+"expense.title" = "新增支出";
+"expense.basicInfo" = "基本信息";
+"expense.purpose" = "用途";
+"expense.purposePlaceholder" = "如：晚餐 / 打车";
+"expense.date" = "日期";
+"expense.amount" = "金额";
+"expense.category" = "分类";
+"expense.participants" = "参与人：%@";
+"expense.noMembers" = "暂无成员";
+"expense.splitMethod" = "分账方式";
+"expense.preview" = "应付预览";
+
+/* 分账方式 */
+"split.meAllAA" = "我付·所有人AA";
+"split.meAllAA.desc" = "我支付的钱由所有人平均分摊（包括我自己）";
+"split.otherAllAA" = "别人付·所有人AA";
+"split.otherAllAA.desc" = "其他人支付的钱由所有人平均分摊";
+"split.meTreat" = "我请客";
+"split.meTreat.desc" = "我请客，不需要他人分摊";
+"split.otherTreat" = "别人请客";
+"split.otherTreat.desc" = "其他人请客，我不需要分摊";
+"split.helpPay" = "谁帮谁付";
+"split.helpPay.desc" = "一人帮另一人垫付，被帮付的人承担全部费用";
+"split.payer" = "付款人";
+"split.selectPayer" = "选择付款人";
+"split.beneficiary" = "受益人";
+"split.selectBeneficiary" = "选择受益人（被帮付的人）";
+"split.addOtherMembers" = "⚠️ 请先添加其他分账成员";
+
+/* 分类 */
+"category.food" = "餐饮";
+"category.transport" = "交通";
+"category.accommodation" = "住宿";
+"category.entertainment" = "娱乐";
+"category.utilities" = "日常";
+"category.other" = "其他";
+
+/* 结算 */
+"settlement.title" = "结算方案";
+"settlement.currentNet" = "当前净额";
+"settlement.minTransfers" = "最少转账";
+"settlement.allSettled" = "所有人已结清";
+"settlement.transfer" = "%@ → %@";
+
+/* 流水记录 */
+"records.title" = "流水记录";
+"records.empty" = "暂无流水记录";
+"records.emptyDesc" = "添加支出后会在这里显示";
+
+/* 朋友 */
+"friends.title" = "朋友";
+"friends.add" = "添加";
+"friends.info" = "朋友信息";
+"friends.name" = "姓名";
+"friends.currency" = "常用货币";
+"friends.selectAvatar" = "选择头像";
+"friends.addTitle" = "添加朋友";
+"friends.editTitle" = "编辑朋友";
+
+/* 设置 */
+"settings.title" = "设置";
+"settings.language" = "语言";
+"settings.languageLabel" = "语言";
+"settings.languageDesc" = "点击前往系统设置更改语言";
+"settings.about" = "关于";
+"settings.guide" = "简介";
+"settings.contactMe" = "联系我";
+"settings.clearData" = "抹掉所有记录";
+"settings.clearDataWarning" = "此操作将永久删除所有账本、支出记录、朋友信息和您的个人资料，且无法恢复";
+"settings.confirmDelete" = "确认删除";
+"settings.deleteMessage" = "此操作将永久删除所有数据（包括个人资料），且无法恢复。删除后需要重新设置个人信息才能使用。确定要继续吗？";
+
+/* 语言选项 */
+"language.system" = "跟随系统";
+"language.chinese" = "中文 (简体)";
+"language.english" = "English";
+"language.french" = "Français";
+
+/* 联系页面 */
+"contact.author" = "Guo";
+"contact.email" = "rwg184849@gmail.com";
+
+/* 首次设置 */
+"onboarding.title" = "设置个人资料";
+"onboarding.description" = "首次使用需要设置您的个人信息\n这些信息将永久保存在您的设备上";
+"onboarding.nameSection" = "姓名";
+"onboarding.namePlaceholder" = "请输入姓名或昵称";
+"onboarding.nameFooter" = "用于在账本中识别您的身份（必填）";
+"onboarding.currencySection" = "常用货币";
+"onboarding.currencyPicker" = "选择常用货币";
+"onboarding.currencyFooter" = "设置您最常使用的货币类型";
+"onboarding.avatarSection" = "选择头像";
+"onboarding.currentAvatar" = "当前头像";
+"onboarding.avatarFooter" = "从 Emoji 中选择一个喜欢的头像";
+"onboarding.allEmojis" = "全部 Emoji";
+"onboarding.startButton" = "开始使用";
+"onboarding.completeFooter" = "完成设置后方可使用应用";
+"onboarding.errorTitle" = "请输入姓名";
+"onboarding.errorMessage" = "姓名不能为空，请输入您的姓名或昵称";
+
+/* 个人资料 */
+"profile.title" = "个人资料";
+"profile.edit" = "编辑个人资料";
+"profile.viewInfo" = "点击查看或编辑您的个人信息";
+"profile.name" = "姓名";
+"profile.namePlaceholder" = "姓名";
+"profile.nameFooter" = "您的姓名或昵称";
+"profile.currency" = "常用货币";
+"profile.currencyPicker" = "常用货币";
+"profile.avatar" = "头像";
+"profile.currentAvatar" = "当前头像";
+"profile.avatarFooter" = "从 Emoji 中选择一个喜欢的头像";
+"profile.userIdLabel" = "ID: %@";
+"profile.currencyLabel" = "常用货币：%@";
+
+/* 二维码 */
+"qrcode.myTitle" = "我的二维码";
+"qrcode.scanInstruction" = "让朋友扫描此二维码添加你";
+"qrcode.scannerTitle" = "扫描二维码";
+"qrcode.scannerInstruction" = "将二维码放入框内";
+"qrcode.scanError" = "扫描失败";
+"qrcode.invalidFormat" = "无法识别的二维码格式";
+"qrcode.cannotAddSelf" = "无法添加自己为朋友";
+"qrcode.alertTitle" = "提示";
+"qrcode.cameraError" = "无法访问相机";
+"qrcode.cameraInitError" = "相机初始化失败";
+"qrcode.cameraInputError" = "无法添加相机输入";
+"qrcode.metadataOutputError" = "无法添加元数据输出";
+
+/* 朋友菜单 */
+"friendMenu.manualInput" = "手动输入朋友信息";
+"friendMenu.myQRCode" = "我的二维码";
+"friendMenu.scanQRCode" = "扫描二维码";
+
+/* 账本页面卡片 */
+"ledger.card.totalExpenses" = "总支出";
+"ledger.card.memberExpenses" = "成员支出";
+"ledger.card.recentRecords" = "最近流水";
+"ledger.card.allButton" = "全部";
+"ledger.card.noRecords" = "暂无流水记录";
+"ledger.card.memberTotalSpent" = "总支出";
+"ledger.card.viewTransferPlan" = "查看转账方案";
+"ledger.card.clearBalances" = "一键清账";
+
+/* 清账功能 */
+"clearBalances.confirmTitle" = "确认清账";
+"clearBalances.confirmMessage" = "将根据当前转账方案生成转账记录，清账后所有成员净额归零。确认已完成线下转账？";
+"clearBalances.confirmButton" = "确认清账";
+
+/* 所有成员页面 */
+"allMembers.title" = "所有成员支出";
+"allMembers.totalSpent" = "总支出";
+
+/* 支出验证 */
+"expense.validation.minAmount" = "金额必须大于 %@，且每人至少需分摊 0.01";
+"expense.optionalFields" = "用途、日期和分类为可选项，未填写将使用默认值";
+
+/* 默认值 */
+"default.unknown" = "未知";
+"default.unknownMember" = "未知成员";
+"default.untitledExpense" = "未命名支出";
+"default.preview" = "预览";
+"default.newLedger" = "新账本";
+"default.clearBalanceTransfer" = "清账转账：%@ → %@";
+"default.clearBalanceNote" = "根据转账方案自动生成的清账记录";
+
+/* 数据同步 */
+"sync.title" = "附近设备同步";
+"sync.menuTitle" = "附近设备同步";
+"sync.importantWarning" = "⚠️ 重要警告";
+"sync.warningTitle" = "同步警告";
+"sync.warningMessage" = "⚠️ 同步会硬合并所有支出记录\n请确保同一笔支出仅在一台设备上记录\n重复记录会导致账目错误且无法自动去重\n\n建议：同步前与朋友确认谁记录了哪些支出";
+"sync.warning1" = "同步会硬合并所有支出记录";
+"sync.warning2" = "请确保同一笔支出仅在一台设备上记录";
+"sync.warning3" = "重复记录会导致账目错误";
+"sync.warning4" = "同步后无法自动去重";
+"sync.recommendation" = "建议：同步前与朋友确认谁记录了哪些支出";
+"sync.status" = "连接状态";
+"sync.discovering" = "正在搜索附近设备";
+"sync.notStarted" = "未开始搜索";
+"sync.connectedDevices" = "已连接 %d 台设备";
+"sync.nearbyDevices" = "附近的设备";
+"sync.noDevicesFound" = "未发现设备";
+"sync.connect" = "连接";
+"sync.startDiscovery" = "开始搜索设备";
+"sync.stopDiscovery" = "停止搜索";
+"sync.startSync" = "开始同步";
+"sync.confirmStart" = "我已知晓，开始同步";
+"sync.resultTitle" = "同步结果";
+"sync.result.addedLedgers" = "新增账本: %d";
+"sync.result.updatedLedgers" = "更新账本: %d";
+"sync.result.addedExpenses" = "新增支出: %d";
+"sync.result.addedFriends" = "新增朋友: %d";
+"sync.result.errors" = "错误: %d";
+"sync.result.noUpdates" = "无更新";
+"sync.deviceAvailable" = "可用";
+"sync.deviceConnected" = "已连接";
+"sync.currentDevice" = "当前设备";
+"sync.shareLedger" = "📡 共享账本";
+"sync.completed" = "同步完成";
+"sync.waitingResponse" = "已发送数据到 %d 台设备\n正在等待接收对方数据...";
+"sync.bidirectionalComplete" = "双向同步完成";
+"sync.receivedFrom" = "从 %@ 接收：";
+"sync.sentBack" = "已自动回传本地数据";
+"sync.sendBackError" = "⚠️ 回传数据失败: %@";
+"sync.errorPreparing" = "准备同步数据失败";
+"sync.errorEncoding" = "编码数据失败";
+"sync.errorInvalidData" = "接收到的数据格式错误";
+
+/* 欢迎引导 */
+"guide.welcome.title" = "欢迎使用快记";
+"guide.welcome.desc" = "简洁优雅的多人共享账本\n支持 AA 分账、自动结算和设备同步";
+"guide.friends.title" = "第一步：添加朋友";
+"guide.friends.desc" = "前往「朋友」页面，点击右上角 ➕ 添加好友\n\n推荐使用二维码扫码添加\n这样才能使用账本同步功能哦";
+"guide.ledger.title" = "第二步：创建账本";
+"guide.ledger.desc" = "把每个账本理解为一段时间的消费记录\n比如「一次旅行」「周末聚餐」\n\n每个账本独立记账，互不干扰";
+"guide.sync.title" = "第三步：同步账本";
+"guide.sync.desc" = "点击账本页左上角 📡 图标\n连接附近好友设备，开始同步\n\n系统会自动同步所有相关账本\n并自动添加账本中的新朋友";
+"guide.privacy.title" = "绝对隐私安全";
+"guide.privacy.desc" = "✓ 数据仅保存在您的设备本地\n✓ 无需注册，无需云服务器\n✓ 仅通过蓝牙/WiFi 点对点同步\n\n您的数据，完全由您掌控";
+"guide.skip" = "跳过";
+"guide.next" = "下一步";
+"guide.previous" = "上一步";
+"guide.start" = "开始使用";
+"guide.scanQRCode" = "扫码添加";
+"guide.becomeFriends" = "成为好友";
+"guide.exampleTrip" = "一次旅行";
+"guide.exampleDinner" = "聚餐 AA";
+"guide.yourDevice" = "你的设备";
+"guide.friendDevice" = "好友设备";
+"guide.localStorage" = "本地存储";
+"guide.noServer" = "无需服务器";
+"guide.fullyPrivate" = "完全私密";
+
+
