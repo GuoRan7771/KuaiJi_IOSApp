@@ -108,6 +108,10 @@
 "settings.language" = "Langue";
 "settings.languageLabel" = "Langue";
 "settings.languageDesc" = "Appuyez pour changer la langue dans les Réglages Système";
+"settings.quickActionSection" = "Actions Rapides";
+"settings.defaultLedger" = "Compte par Défaut";
+"settings.defaultLedgerNone" = "Non Défini";
+"settings.defaultLedgerDesc" = "Appuyez longuement sur l'icône de l'application pour ajouter rapidement une dépense au compte par défaut";
 "settings.about" = "À Propos";
 "settings.guide" = "Introduction";
 "settings.contactMe" = "Me Contacter";
@@ -115,6 +119,9 @@
 "settings.clearDataWarning" = "Ceci supprimera définitivement tous les comptes, dépenses, amis et votre profil personnel, et ne peut pas être annulé";
 "settings.confirmDelete" = "Confirmer la Suppression";
 "settings.deleteMessage" = "Ceci supprimera définitivement toutes les données (y compris le profil personnel) et ne peut pas être annulé. Vous devrez reconfigurer votre profil après la suppression. Continuer?";
+
+/* Actions Rapides */
+"quickAction.addExpense" = "Ajout Rapide";
 
 /* Options de langue */
 "language.system" = "Système";

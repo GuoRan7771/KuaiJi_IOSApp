@@ -108,6 +108,10 @@
 "settings.language" = "Language";
 "settings.languageLabel" = "Language";
 "settings.languageDesc" = "Tap to change language in System Settings";
+"settings.quickActionSection" = "Quick Actions";
+"settings.defaultLedger" = "Default Ledger";
+"settings.defaultLedgerNone" = "Not Set";
+"settings.defaultLedgerDesc" = "Long press app icon to quickly add expense to default ledger";
 "settings.about" = "About";
 "settings.guide" = "Introduction";
 "settings.contactMe" = "Contact Me";
@@ -115,6 +119,9 @@
 "settings.clearDataWarning" = "This will permanently delete all ledgers, expenses, friends and your personal profile, and cannot be undone";
 "settings.confirmDelete" = "Confirm Delete";
 "settings.deleteMessage" = "This will permanently delete all data (including personal profile) and cannot be undone. You will need to set up your profile again after deletion. Continue?";
+
+/* Quick Actions */
+"quickAction.addExpense" = "Quick Add";
 
 /* Language Options */
 "language.system" = "System";

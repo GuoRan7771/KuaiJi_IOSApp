@@ -1,0 +1,11 @@
+/* 
+  InfoPlist.strings
+  KuaiJi (Chinese Simplified)
+*/
+
+/* 相机权限 */
+"NSCameraUsageDescription" = "需要使用相机扫描二维码以添加朋友";
+
+/* 本地网络权限 */
+"NSLocalNetworkUsageDescription" = "需要访问本地网络以发现附近设备并同步账本数据";
+

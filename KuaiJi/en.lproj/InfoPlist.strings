@@ -1,0 +1,11 @@
+/* 
+  InfoPlist.strings
+  KuaiJi (English)
+*/
+
+/* Camera Permission */
+"NSCameraUsageDescription" = "Camera access is needed to scan QR codes for adding friends";
+
+/* Local Network Permission */
+"NSLocalNetworkUsageDescription" = "Local network access is needed to discover nearby devices and sync ledger data";
+

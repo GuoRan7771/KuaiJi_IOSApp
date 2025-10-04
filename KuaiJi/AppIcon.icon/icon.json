@@ -6,101 +6,24 @@
         {
           "blend-mode" : "multiply",
           "fill" : "automatic",
-          "glass-specializations" : [
-            {
-              "appearance" : "light",
-              "value" : true
-            }
-          ],
-          "image-name" : "未命名作品-3 2.png",
-          "name" : "未命名作品-3 2",
-          "position-specializations" : [
-            {
-              "value" : {
-                "scale" : 1,
-                "translation-in-points" : [
-                  0,
-                  0
-                ]
-              }
-            },
-            {
-              "idiom" : "square",
-              "value" : {
-                "scale" : 1,
-                "translation-in-points" : [
-                  0,
-                  0
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "fill" : {
-            "solid" : "display-p3:0.94280,0.51562,0.19027,1.00000"
-          },
-          "glass-specializations" : [
-            {
-              "appearance" : "light",
-              "value" : true
-            }
-          ],
-          "image-name" : "未命名作品-2 2.png",
-          "name" : "未命名作品-2 2",
-          "position-specializations" : [
-            {
-              "value" : {
-                "scale" : 1,
-                "translation-in-points" : [
-                  0,
-                  0
-                ]
-              }
-            },
-            {
-              "idiom" : "square",
-              "value" : {
-                "scale" : 1,
-                "translation-in-points" : [
-                  0,
-                  0
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "fill" : "automatic",
-          "glass-specializations" : [
-            {
-              "appearance" : "light",
-              "value" : true
-            }
-          ],
           "image-name" : "未命名作品-1 2.png",
           "name" : "未命名作品-1 2",
           "position-specializations" : [
             {
-              "value" : {
-                "scale" : 1,
-                "translation-in-points" : [
-                  0,
-                  0
-                ]
-              }
-            },
-            {
               "idiom" : "square",
               "value" : {
-                "scale" : 1,
+                "scale" : 1.05,
                 "translation-in-points" : [
-                  0,
-                  0
+                  1.1368683772161603e-13,
+                  1.1368683772161603e-13
                 ]
               }
             }
           ]
+        },
+        {
+          "image-name" : "未命名作品-2 2.png",
+          "name" : "未命名作品-2 2"
         }
       ],
       "shadow" : {

@@ -130,6 +130,10 @@ enum L {
     static let settingsLanguage = "settings.language"
     static let settingsLanguageLabel = "settings.languageLabel"
     static let settingsLanguageDesc = "settings.languageDesc"
+    static let settingsQuickActionSection = "settings.quickActionSection"
+    static let settingsDefaultLedger = "settings.defaultLedger"
+    static let settingsDefaultLedgerNone = "settings.defaultLedgerNone"
+    static let settingsDefaultLedgerDesc = "settings.defaultLedgerDesc"
     static let settingsAbout = "settings.about"
     static let settingsGuide = "settings.guide"
     static let settingsContactMe = "settings.contactMe"
@@ -137,6 +141,9 @@ enum L {
     static let settingsClearDataWarning = "settings.clearDataWarning"
     static let settingsConfirmDelete = "settings.confirmDelete"
     static let settingsDeleteMessage = "settings.deleteMessage"
+    
+    // Quick Actions
+    static let quickActionAddExpense = "quickAction.addExpense"
     
     // 语言选项
     static let languageSystem = "language.system"

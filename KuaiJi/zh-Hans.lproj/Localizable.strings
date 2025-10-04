@@ -108,6 +108,10 @@
 "settings.language" = "语言";
 "settings.languageLabel" = "语言";
 "settings.languageDesc" = "点击前往系统设置更改语言";
+"settings.quickActionSection" = "快速操作";
+"settings.defaultLedger" = "默认账本";
+"settings.defaultLedgerNone" = "未设置";
+"settings.defaultLedgerDesc" = "长按应用图标可快速进入默认账本的记账界面";
 "settings.about" = "关于";
 "settings.guide" = "简介";
 "settings.contactMe" = "联系我";
@@ -115,6 +119,9 @@
 "settings.clearDataWarning" = "此操作将永久删除所有账本、支出记录、朋友信息和您的个人资料，且无法恢复";
 "settings.confirmDelete" = "确认删除";
 "settings.deleteMessage" = "此操作将永久删除所有数据（包括个人资料），且无法恢复。删除后需要重新设置个人信息才能使用。确定要继续吗？";
+
+/* Quick Actions */
+"quickAction.addExpense" = "快速记账";
 
 /* 语言选项 */
 "language.system" = "跟随系统";
@@ -242,7 +249,7 @@
 "sync.deviceAvailable" = "可用";
 "sync.deviceConnected" = "已连接";
 "sync.currentDevice" = "当前设备";
-"sync.shareLedger" = "📡 共享账本";
+"sync.shareLedger" = "共享账本";
 "sync.completed" = "同步完成";
 "sync.waitingResponse" = "已发送数据到 %d 台设备\n正在等待接收对方数据...";
 "sync.bidirectionalComplete" = "双向同步完成";

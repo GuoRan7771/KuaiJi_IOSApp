@@ -1738,6 +1738,7 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
     @State private var showingClearDataAlert = false
     @State private var showingProfileEdit = false
     @State private var showingGuide = false
+    @State private var selectedLedgerId: UUID?
 
     var body: some View {
         Form {
@@ -1800,6 +1801,28 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                     .foregroundStyle(.secondary)
             }
             
+            // 快速记账默认账本设置
+            Section {
+                Picker(L.settingsDefaultLedger.localized, selection: $selectedLedgerId) {
+                    Text(L.settingsDefaultLedgerNone.localized)
+                        .tag(nil as UUID?)
+                    
+                    ForEach(rootViewModel.ledgerSummaries, id: \.id) { ledger in
+                        Text(ledger.name)
+                            .tag(ledger.id as UUID?)
+                    }
+                }
+                .onChangeCompat(of: selectedLedgerId) {
+                    appState.setDefaultLedgerId(selectedLedgerId)
+                }
+            } header: {
+                Text(L.settingsQuickActionSection.localized)
+            } footer: {
+                Text(L.settingsDefaultLedgerDesc.localized)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            
             Section(L.settingsAbout.localized) {
                 Button {
                     showingGuide = true
@@ -1845,6 +1868,10 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
             }
         }
         .navigationTitle(L.settingsTitle.localized)
+        .onAppear {
+            // 初始化选中的账本ID
+            selectedLedgerId = appState.getDefaultLedgerId()
+        }
         .sheet(isPresented: $showingContactSheet) {
             ContactView()
                 .presentationDetents([.large])
@@ -2071,6 +2098,7 @@ struct ContentView: View {
     @StateObject private var listViewModel: LedgerListScreenModel
     @StateObject private var friendViewModel: FriendListScreenModel
     @StateObject private var settingsViewModel: SettingsScreenModel
+    @EnvironmentObject var appState: AppState
 
     init(viewModel: AppRootViewModel) {
         self.viewModel = viewModel
@@ -2096,8 +2124,11 @@ struct ContentView: View {
 struct LedgerNavigator: View {
     @ObservedObject var rootViewModel: AppRootViewModel
     @ObservedObject var listViewModel: LedgerListScreenModel
+    @EnvironmentObject var appState: AppState
     @State private var showingCreateLedger = false
     @State private var showingShareLedger = false
+    @State private var quickActionLedger: LedgerSummaryViewData?
+    @State private var showQuickExpenseForm = false
 
     var body: some View {
         NavigationStack {
@@ -2125,7 +2156,42 @@ struct LedgerNavigator: View {
                 .sheet(isPresented: $showingShareLedger) {
                     NearbyDevicesHost(rootViewModel: rootViewModel)
                 }
+                .sheet(isPresented: $showQuickExpenseForm) {
+                    if let ledger = quickActionLedger {
+                        ExpenseFormHost(rootViewModel: rootViewModel, ledgerId: ledger.id)
+                    }
+                }
+                .onChangeCompat(of: appState.quickActionLedgerId) {
+                    handleQuickAction()
+                }
         }
+    }
+    
+    private func handleQuickAction() {
+        guard let ledgerId = appState.quickActionLedgerId else {
+            print("⚠️ quickActionLedgerId 为空")
+            return
+        }
+        
+        print("🔍 处理 Quick Action，账本ID: \(ledgerId.uuidString)")
+        print("📋 可用账本: \(rootViewModel.ledgerSummaries.map { "\($0.name) (\($0.id.uuidString))" }.joined(separator: ", "))")
+        
+        guard let summary = rootViewModel.ledgerSummaries.first(where: { $0.id == ledgerId }) else {
+            print("❌ 找不到账本 summary")
+            appState.quickActionLedgerId = nil
+            return
+        }
+        
+        print("✅ 找到账本: \(summary.name)")
+        
+        // 清除 Quick Action 状态
+        appState.quickActionLedgerId = nil
+        
+        // 打开记账表单
+        quickActionLedger = summary
+        showQuickExpenseForm = true
+        
+        print("✅ 已设置打开记账表单")
     }
 }
 
@@ -2367,10 +2433,7 @@ struct LedgerOverviewView<Model: LedgerOverviewViewModelProtocol>: View {
                 // 第二栏：成员支出
                 memberExpensesCard
                 
-                // 第三栏：净额
-                balanceList
-                
-                // 第四栏：流水记录
+                // 第三栏：流水记录
                 recentRecordsCard
                 
                 // 第五栏：转账方案
@@ -2456,38 +2519,6 @@ struct LedgerOverviewView<Model: LedgerOverviewViewModelProtocol>: View {
         .background(RoundedRectangle(cornerRadius: 12).fill(Color.secondary.opacity(0.1)))
     }
 
-    private var balanceList: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(L.ledgerBalances.localized)
-                .font(.headline)
-            ForEach(viewModel.balances) { balance in
-                if let member = viewModel.member(for: balance.id) {
-                    NavigationLink(value: member) {
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text(balance.userName)
-                                Text(balance.amountDisplay)
-                                    .font(.subheadline)
-                                    .foregroundStyle(balance.isPositive ? Color.green : Color.red)
-                            }
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .accessibilityLabel("\(balance.userName) 净额 \(balance.amountDisplay)")
-                } else {
-                    HStack {
-                        Text(balance.userName)
-                        Spacer()
-                        Text(balance.amountDisplay)
-                    }
-                }
-            }
-        }
-    }
-    
     // 第三栏：最近流水
     private var recentRecordsCard: some View {
         VStack(alignment: .leading, spacing: 12) {
