@@ -223,6 +223,8 @@
 "sync.importantWarning" = "⚠️ 重要警告";
 "sync.warningTitle" = "同步警告";
 "sync.warningMessage" = "⚠️ 同步会硬合并所有支出记录\n请确保同一笔支出仅在一台设备上记录\n重复记录会导致账目错误且无法自动去重\n\n建议：同步前与朋友确认谁记录了哪些支出";
+"sync.warningConfirm" = "我已知晓，继续";
+"sync.warningConfirmNoRemind" = "我已知晓，不再提醒";
 "sync.warning1" = "同步会硬合并所有支出记录";
 "sync.warning2" = "请确保同一笔支出仅在一台设备上记录";
 "sync.warning3" = "重复记录会导致账目错误";
