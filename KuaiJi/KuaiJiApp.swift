@@ -9,6 +9,25 @@ import SwiftUI
 import SwiftData
 import Combine
 
+private enum QuickActionType: String {
+    case quickAddExpense = "com.kuaiji.quickAddExpense"
+}
+
+private enum DeepLinkParser {
+    static let scheme = "kuaiji"
+
+    static func quickAction(for url: URL) -> QuickActionType? {
+        guard url.scheme?.lowercased() == scheme else { return nil }
+        let candidate = (url.host ?? url.pathComponents.dropFirst().first)?.lowercased()
+        switch candidate {
+        case "quickaddexpense", "quick-add-expense":
+            return .quickAddExpense
+        default:
+            return nil
+        }
+    }
+}
+
 @main
 struct KuaiJiApp: App {
     @StateObject private var rootViewModel = AppRootViewModel()
@@ -89,9 +108,19 @@ struct KuaiJiApp: App {
                         appState.handleQuickAction(shortcutItem.type)
                     }
                 }
+                
+                // 启动时检查快捷指令触发
+                appState.processPendingShortcutTriggers()
             }
             .onOpenURL { url in
-                // 处理自定义 URL Scheme（如果需要）
+                if let action = DeepLinkParser.quickAction(for: url) {
+                    print("🔗 通过 URL Scheme 收到动作: \(action.rawValue)")
+                    ShortcutBridge.requestQuickAdd()
+                    appState.processPendingShortcutTriggers()
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                appState.processPendingShortcutTriggers()
             }
         }
         .modelContainer(sharedModelContainer)
@@ -160,10 +189,20 @@ class AppState: ObservableObject {
     /// 处理 Quick Action
     func handleQuickAction(_ type: String) {
         print("🚀 收到 Quick Action: \(type)")
-        if type == "com.kuaiji.quickAddExpense" {
+        if type == QuickActionType.quickAddExpense.rawValue {
             let ledgerId = getDefaultLedgerId()
             print("📱 设置 quickActionLedgerId: \(ledgerId?.uuidString ?? "nil")")
             quickActionLedgerId = ledgerId
+        }
+    }
+
+    /// 处理来自快捷指令的挂起请求
+    func processPendingShortcutTriggers() {
+        if ShortcutBridge.consumeQuickAddRequest() {
+            print("🔐 收到快捷指令 Quick Add 请求")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                self.handleQuickAction(QuickActionType.quickAddExpense.rawValue)
+            }
         }
     }
     
@@ -189,7 +228,7 @@ class AppState: ObservableObject {
         }
         
         let quickAddAction = UIApplicationShortcutItem(
-            type: "com.kuaiji.quickAddExpense",
+            type: QuickActionType.quickAddExpense.rawValue,
             localizedTitle: L.quickActionAddExpense.localized,
             localizedSubtitle: ledger.name,
             icon: UIApplicationShortcutIcon(systemImageName: "plus.circle.fill")
