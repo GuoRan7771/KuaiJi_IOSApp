@@ -10,13 +10,13 @@
 "all" = "全部";
 
 /* Tab Bar */
-"tab.ledgers" = "账本";
+"tab.ledgers" = "共享账本";
 "tab.friends" = "朋友";
 "tab.settings" = "设置";
 
 /* 账本列表 */
 "ledgers.title" = "共享账本";
-"ledgers.pageTitle" = "账本";
+"ledgers.pageTitle" = "共享账本";
 "ledgers.new" = "新建";
 "ledgers.recentUpdates" = "最近更新";
 "ledgers.memberCount" = "成员 %d";

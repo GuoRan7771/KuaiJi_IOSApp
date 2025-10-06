@@ -10,13 +10,13 @@
 "all" = "Tout";
 
 /* Barre d'onglets */
-"tab.ledgers" = "Comptes";
+"tab.ledgers" = "Comptes Partagés";
 "tab.friends" = "Amis";
 "tab.settings" = "Réglages";
 
 /* Liste des Comptes */
 "ledgers.title" = "Comptes Partagés";
-"ledgers.pageTitle" = "Comptes";
+"ledgers.pageTitle" = "Comptes Partagés";
 "ledgers.new" = "Nouveau";
 "ledgers.recentUpdates" = "Récents";
 "ledgers.memberCount" = "%d membres";

@@ -10,13 +10,13 @@
 "all" = "All";
 
 /* Tab Bar */
-"tab.ledgers" = "Ledgers";
+"tab.ledgers" = "Shared Ledgers";
 "tab.friends" = "Friends";
 "tab.settings" = "Settings";
 
 /* Ledger List */
 "ledgers.title" = "Shared Ledgers";
-"ledgers.pageTitle" = "Ledgers";
+"ledgers.pageTitle" = "Shared Ledgers";
 "ledgers.new" = "New";
 "ledgers.recentUpdates" = "Recent Updates";
 "ledgers.memberCount" = "%d members";

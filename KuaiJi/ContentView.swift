@@ -227,6 +227,7 @@ protocol LedgerOverviewViewModelProtocol: ObservableObject {
     var members: [MemberSummaryViewData] { get }
     var memberExpenses: [MemberExpenseViewData] { get }
     var records: [LedgerRecordViewData] { get }
+    var transferPlan: [TransferRecordViewData] { get }
     func refresh()
     func member(for userId: UUID) -> MemberSummaryViewData?
     func deleteExpense(at offsets: IndexSet)
@@ -835,6 +836,7 @@ final class LedgerOverviewScreenModel: ObservableObject, LedgerOverviewViewModel
     @Published private(set) var members: [MemberSummaryViewData]
     @Published private(set) var memberExpenses: [MemberExpenseViewData]
     @Published private(set) var records: [LedgerRecordViewData]
+    @Published private(set) var transferPlan: [TransferRecordViewData]
 
     private weak var root: AppRootViewModel?
     private let ledgerId: UUID
@@ -849,6 +851,7 @@ final class LedgerOverviewScreenModel: ObservableObject, LedgerOverviewViewModel
         self.records = root.ledgerRecords(ledgerId: ledgerId)
         self.ledger = root.ledgerDetailData(ledgerId: ledgerId, filters: initialFilters)
         self.balances = root.netBalancesViewData(ledgerId: ledgerId, filters: initialFilters)
+        self.transferPlan = root.transferPlanViewData(ledgerId: ledgerId, filters: initialFilters)
         self.memberExpenses = Self.computeMemberExpenses(root: root, ledgerId: ledgerId)
 
         root.$friends
@@ -871,6 +874,7 @@ final class LedgerOverviewScreenModel: ObservableObject, LedgerOverviewViewModel
         guard let root else { return }
         ledger = root.ledgerDetailData(ledgerId: ledgerId, filters: filters)
         balances = root.netBalancesViewData(ledgerId: ledgerId, filters: filters)
+        transferPlan = root.transferPlanViewData(ledgerId: ledgerId, filters: filters)
         refreshMembers()
         refreshRecords()
         memberExpenses = Self.computeMemberExpenses(root: root, ledgerId: ledgerId)
@@ -2423,6 +2427,7 @@ struct LedgerOverviewView<Model: LedgerOverviewViewModelProtocol>: View {
     
     @State private var showAllMembers = false
     @State private var showAllRecords = false
+    @State private var showClearConfirmation = false
 
     var body: some View {
         ScrollView {
@@ -2430,14 +2435,17 @@ struct LedgerOverviewView<Model: LedgerOverviewViewModelProtocol>: View {
                 // 第一栏：总支出
                 totalExpensesCard
                 
-                // 第二栏：成员支出
-                memberExpensesCard
+                // 第二栏：当前净额
+                netBalancesCard
                 
-                // 第三栏：流水记录
+                // 第三栏：最近流水
                 recentRecordsCard
                 
+                // 第四栏：成员支出
+                memberExpensesCard
+                
                 // 第五栏：转账方案
-                settlementCard
+                transferPlanCard
             }
             .padding()
         }
@@ -2453,6 +2461,14 @@ struct LedgerOverviewView<Model: LedgerOverviewViewModelProtocol>: View {
         }
         .sheet(isPresented: $showAllRecords) {
             RecordsSheet(viewModel: viewModel)
+        }
+        .alert(L.clearBalancesConfirmTitle.localized, isPresented: $showClearConfirmation) {
+            Button(L.cancel.localized, role: .cancel) { }
+            Button(L.clearBalancesConfirmButton.localized) {
+                viewModel.clearAllBalances()
+            }
+        } message: {
+            Text(L.clearBalancesConfirmMessage.localized)
         }
         .onAppear(perform: viewModel.refresh)
     }
@@ -2472,7 +2488,7 @@ struct LedgerOverviewView<Model: LedgerOverviewViewModelProtocol>: View {
         .background(RoundedRectangle(cornerRadius: 12).fill(Color.blue.opacity(0.1)))
     }
     
-    // 第二栏：成员支出
+    // 第四栏：成员支出
     private var memberExpensesCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             // 标题行
@@ -2568,25 +2584,85 @@ struct LedgerOverviewView<Model: LedgerOverviewViewModelProtocol>: View {
             }
         }
         .padding()
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color.secondary.opacity(0.1)))
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.red.opacity(0.1)))
     }
     
-    // 第四栏：转账方案
-    private var settlementCard: some View {
-        Button(action: onOpenSettlement) {
-            HStack {
-                Label(L.ledgerCardViewTransferPlan.localized, systemImage: "arrow.triangle.2.circlepath")
+    // 第二栏：当前净额
+    private var netBalancesCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(L.settlementCurrentNet.localized)
+                .font(.headline)
+            
+            if viewModel.balances.isEmpty {
+                Text(L.settlementAllSettled.localized)
                     .font(.subheadline)
-                    .fontWeight(.medium)
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.caption)
                     .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+            } else {
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(viewModel.balances) { balance in
+                        HStack {
+                            Text(balance.userName)
+                                .font(.subheadline)
+                            Spacer()
+                            Text(balance.amountDisplay)
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundStyle(balance.isPositive ? Color.green : Color.red)
+                        }
+                    }
+                }
             }
-            .padding()
-            .background(RoundedRectangle(cornerRadius: 12).fill(Color.blue.opacity(0.1)))
         }
-        .buttonStyle(.plain)
+        .padding()
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.yellow.opacity(0.15)))
+    }
+    
+    // 第五栏：转账方案
+    private var transferPlanCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(L.settlementMinTransfers.localized)
+                .font(.headline)
+            
+            if viewModel.transferPlan.isEmpty {
+                Text(L.settlementAllSettled.localized)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+            } else {
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(viewModel.transferPlan) { transfer in
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("\(transfer.fromName) → \(transfer.toName)")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            Text(transfer.amountDisplay)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    
+                    // 一键清账按钮
+                    Button(action: { showClearConfirmation = true }) {
+                        HStack {
+                            Label(L.ledgerCardClearBalances.localized, systemImage: "checkmark.circle")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            Spacer()
+                        }
+                        .padding()
+                        .background(RoundedRectangle(cornerRadius: 12).fill(Color.green.opacity(0.1)))
+                        .foregroundStyle(.green)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding()
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.secondary.opacity(0.1)))
     }
 }
 
