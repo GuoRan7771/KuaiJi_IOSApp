@@ -1252,6 +1252,7 @@ struct ExpenseFormView<Model: ExpenseFormViewModelProtocol>: View {
     @State private var showingOtherPayerSheet = false
     @State private var showingHelpPayPayerSheet = false
     @State private var showingBeneficiarySheet = false
+    @State private var showingCategorySheet = false
     @State private var amountText: String = ""
     @FocusState private var isAmountFocused: Bool
     
@@ -1462,13 +1463,27 @@ struct ExpenseFormView<Model: ExpenseFormViewModelProtocol>: View {
                     set: { viewModel.draft.date = $0 }
                 ), displayedComponents: [.date, .hourAndMinute])
                 
-                Picker(L.expenseCategory.localized, selection: binding(
-                    get: { viewModel.draft.category },
-                    set: { viewModel.draft.category = $0 }
-                )) {
+                HStack {
+                    Text(L.expenseCategory.localized)
+                    Spacer()
+                    Text(viewModel.draft.category.displayName)
+                        .foregroundStyle(.blue)
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    showingCategorySheet = true
+                }
+                .confirmationDialog(L.expenseCategory.localized, isPresented: $showingCategorySheet, titleVisibility: .visible) {
                     ForEach(ExpenseCategory.allCases, id: \.self) { category in
-                        Text(category.displayName).tag(category)
+                        Button(category.displayName) {
+                            viewModel.draft.category = category
+                            viewModel.regeneratePreview()
+                        }
                     }
+                    Button(L.cancel.localized, role: .cancel) { }
                 }
             } header: {
                 Text(L.expenseBasicInfo.localized)
@@ -2749,7 +2764,7 @@ struct RecordsSheet<Model: LedgerOverviewViewModelProtocol>: View {
                                 Image(systemName: categoryIcon(for: record.category))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
-                                Text(record.category.rawValue)
+                                Text(record.category.displayName)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
