@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Combine
+import UniformTypeIdentifiers
 
 // MARK: - View Data Models
 
@@ -289,6 +290,8 @@ protocol SettingsViewModelProtocol: ObservableObject {
     func clearAllData()
     func getCurrentUser() -> UserProfile?
     func updateUserProfile(name: String, emoji: String, currency: CurrencyCode)
+    func exportData() -> URL?
+    func importData(from url: URL) throws
 }
 
 // MARK: - Root ViewModel & Factories
@@ -1758,6 +1761,12 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
     @State private var showingProfileEdit = false
     @State private var showingGuide = false
     @State private var selectedLedgerId: UUID?
+    @State private var showingImportPicker = false
+    @State private var showingImportConfirmation = false
+    @State private var pendingImportURL: URL?
+    @State private var showingAlert = false
+    @State private var alertTitle = ""
+    @State private var alertMessage = ""
 
     var body: some View {
         Form {
@@ -1842,6 +1851,41 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                     .foregroundStyle(.secondary)
             }
             
+            // 数据管理
+            Section {
+                Button {
+                    exportData()
+                } label: {
+                    HStack {
+                        Text(L.settingsExportData.localized)
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                
+                Button {
+                    showingImportPicker = true
+                } label: {
+                    HStack {
+                        Text(L.settingsImportData.localized)
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        Image(systemName: "square.and.arrow.down")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } header: {
+                Text(L.settingsDataSection.localized)
+            } footer: {
+                Text(L.settingsExportDataDesc.localized)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            
             Section(L.settingsAbout.localized) {
                 Button {
                     showingGuide = true
@@ -1917,6 +1961,75 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
             }
         } message: {
             Text(L.settingsDeleteMessage.localized)
+        }
+        .alert(L.settingsImportConfirmTitle.localized, isPresented: $showingImportConfirmation) {
+            Button(L.cancel.localized, role: .cancel) {
+                pendingImportURL = nil
+            }
+            Button(L.settingsImportConfirmButton.localized, role: .destructive) {
+                performImport()
+            }
+        } message: {
+            Text(L.settingsImportConfirmMessage.localized)
+        }
+        .alert(alertTitle, isPresented: $showingAlert) {
+            Button(L.ok.localized, role: .cancel) { }
+        } message: {
+            Text(alertMessage)
+        }
+        .fileImporter(isPresented: $showingImportPicker, allowedContentTypes: [.json]) { result in
+            switch result {
+            case .success(let url):
+                pendingImportURL = url
+                showingImportConfirmation = true
+            case .failure(let error):
+                alertTitle = L.settingsImportError.localized
+                alertMessage = error.localizedDescription
+                showingAlert = true
+            }
+        }
+    }
+    
+    private func exportData() {
+        if let exportURL = viewModel.exportData() {
+            // 使用 UIActivityViewController 分享文件
+            let activityVC = UIActivityViewController(activityItems: [exportURL], applicationActivities: nil)
+            
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let window = windowScene.windows.first,
+               let rootVC = window.rootViewController {
+                activityVC.popoverPresentationController?.sourceView = rootVC.view
+                rootVC.present(activityVC, animated: true)
+            }
+        } else {
+            alertTitle = L.settingsExportError.localized
+            alertMessage = L.settingsExportErrorMessage.localized
+            showingAlert = true
+        }
+    }
+    
+    private func performImport() {
+        guard let url = pendingImportURL else { return }
+        
+        do {
+            // 需要访问安全作用域资源
+            let accessing = url.startAccessingSecurityScopedResource()
+            defer {
+                if accessing {
+                    url.stopAccessingSecurityScopedResource()
+                }
+            }
+            
+            try viewModel.importData(from: url)
+            alertTitle = L.settingsImportSuccess.localized
+            alertMessage = L.settingsImportSuccessMessage.localized
+            showingAlert = true
+            pendingImportURL = nil
+        } catch {
+            alertTitle = L.settingsImportError.localized
+            alertMessage = error.localizedDescription
+            showingAlert = true
+            pendingImportURL = nil
         }
     }
     

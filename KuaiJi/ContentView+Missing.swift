@@ -90,6 +90,18 @@ final class SettingsScreenModel: ObservableObject, SettingsViewModelProtocol {
     func updateUserProfile(name: String, emoji: String, currency: CurrencyCode) {
         root?.updateUserProfile(name: name, emoji: emoji, currency: currency)
     }
+    
+    func exportData() -> URL? {
+        return root?.dataManager?.exportAllData()
+    }
+    
+    func importData(from url: URL) throws {
+        try root?.dataManager?.importAllData(from: url)
+        // 重新加载数据到 root
+        if let dataManager = root?.dataManager {
+            root?.setDataManager(dataManager)
+        }
+    }
 }
 
 // MARK: - Root Helpers

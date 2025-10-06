@@ -660,5 +660,345 @@ class PersistentDataManager: ObservableObject {
         allLedgers = []
         allFriends = []
     }
+    
+    // MARK: - 数据导出/导入
+    
+    /// 导出所有数据到 JSON 文件
+    func exportAllData() -> URL? {
+        guard let currentUser = currentUser else { return nil }
+        
+        // 获取所有数据
+        let allUsersDescriptor = FetchDescriptor<UserProfile>()
+        let allLedgersDescriptor = FetchDescriptor<Ledger>()
+        
+        guard let users = try? modelContext.fetch(allUsersDescriptor),
+              let ledgers = try? modelContext.fetch(allLedgersDescriptor) else {
+            return nil
+        }
+        
+        // 创建导出数据结构
+        let exportData = ExportData(
+            version: "1.0",
+            exportDate: Date(),
+            currentUserId: currentUser.remoteId,
+            hasCompletedOnboarding: hasCompletedOnboarding(),
+            users: users.map { ExportUserProfile(from: $0) },
+            ledgers: ledgers.map { ExportLedger(from: $0) }
+        )
+        
+        // 转换为 JSON
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        
+        guard let jsonData = try? encoder.encode(exportData) else {
+            return nil
+        }
+        
+        // 保存到临时文件
+        let timestamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
+        let filename = "KuaiJi_Backup_\(timestamp).json"
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+        
+        do {
+            try jsonData.write(to: tempURL)
+            return tempURL
+        } catch {
+            print("❌ 导出数据失败: \(error)")
+            return nil
+        }
+    }
+    
+    /// 从 JSON 文件导入所有数据
+    func importAllData(from url: URL) throws {
+        // 读取文件
+        let jsonData = try Data(contentsOf: url)
+        
+        // 解码数据
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let importData = try decoder.decode(ExportData.self, from: jsonData)
+        
+        // 清空现有数据
+        clearAllDataWithoutResettingOnboarding()
+        
+        // 导入用户数据
+        var userMapping: [UUID: UserProfile] = [:]
+        for exportUser in importData.users {
+            let user = UserProfile(
+                remoteId: exportUser.remoteId,
+                userId: exportUser.userId,
+                name: exportUser.name,
+                avatarEmoji: exportUser.avatarEmoji,
+                localeIdentifier: exportUser.localeIdentifier,
+                currency: exportUser.currency,
+                createdAt: exportUser.createdAt,
+                updatedAt: exportUser.updatedAt
+            )
+            modelContext.insert(user)
+            userMapping[exportUser.remoteId] = user
+            
+            // 设置当前用户
+            if exportUser.remoteId == importData.currentUserId {
+                currentUser = user
+            }
+        }
+        
+        // 导入账本和相关数据
+        for exportLedger in importData.ledgers {
+            let ledger = Ledger(
+                remoteId: exportLedger.remoteId,
+                name: exportLedger.name,
+                ownerId: exportLedger.ownerId,
+                currency: exportLedger.currency,
+                createdAt: exportLedger.createdAt,
+                updatedAt: exportLedger.updatedAt,
+                settings: exportLedger.settings
+            )
+            modelContext.insert(ledger)
+            
+            // 导入成员关系
+            for exportMembership in exportLedger.memberships {
+                let membership = Membership(
+                    remoteId: exportMembership.remoteId,
+                    userId: exportMembership.userId,
+                    role: exportMembership.role,
+                    joinedAt: exportMembership.joinedAt,
+                    ledger: ledger,
+                    user: userMapping[exportMembership.userId]
+                )
+                modelContext.insert(membership)
+            }
+            
+            // 导入支出记录
+            var expenseMapping: [UUID: Expense] = [:]
+            for exportExpense in exportLedger.expenses {
+                let expense = Expense(
+                    remoteId: exportExpense.remoteId,
+                    ledgerId: exportExpense.ledgerId,
+                    payerId: exportExpense.payerId,
+                    title: exportExpense.title,
+                    amountMinorUnits: exportExpense.amountMinorUnits,
+                    currency: exportExpense.currency,
+                    date: exportExpense.date,
+                    note: exportExpense.note,
+                    category: exportExpense.category,
+                    createdAt: exportExpense.createdAt,
+                    updatedAt: exportExpense.updatedAt,
+                    metadata: exportExpense.metadata,
+                    splitStrategy: exportExpense.splitStrategy,
+                    ledger: ledger,
+                    isSettlement: exportExpense.isSettlement ?? false
+                )
+                modelContext.insert(expense)
+                expenseMapping[exportExpense.remoteId] = expense
+                
+                // 导入参与者
+                for exportParticipant in exportExpense.participants {
+                    let participant = ExpenseParticipant(
+                        remoteId: exportParticipant.remoteId,
+                        expenseId: exportParticipant.expenseId,
+                        userId: exportParticipant.userId,
+                        shareType: exportParticipant.shareType,
+                        shareValue: exportParticipant.shareValue,
+                        expense: expense
+                    )
+                    modelContext.insert(participant)
+                }
+            }
+        }
+        
+        // 保存数据
+        try modelContext.save()
+        
+        // 恢复设置
+        if importData.hasCompletedOnboarding {
+            UserDefaults.standard.set(true, forKey: hasCompletedOnboardingKey)
+        }
+        
+        // 重新加载数据
+        loadData()
+    }
+    
+    /// 清空所有数据但不重置 onboarding 标记（用于导入前清理）
+    private func clearAllDataWithoutResettingOnboarding() {
+        // 删除 AuditLog
+        let auditLogDesc = FetchDescriptor<AuditLog>()
+        if let items = try? modelContext.fetch(auditLogDesc) {
+            for item in items { modelContext.delete(item) }
+        }
+        
+        // 删除 TransferPlan
+        let transferPlanDesc = FetchDescriptor<TransferPlan>()
+        if let items = try? modelContext.fetch(transferPlanDesc) {
+            for item in items { modelContext.delete(item) }
+        }
+        
+        // 删除 BalanceSnapshot
+        let balanceSnapshotDesc = FetchDescriptor<BalanceSnapshot>()
+        if let items = try? modelContext.fetch(balanceSnapshotDesc) {
+            for item in items { modelContext.delete(item) }
+        }
+        
+        // 删除 ExpenseParticipant
+        let expenseParticipantDesc = FetchDescriptor<ExpenseParticipant>()
+        if let items = try? modelContext.fetch(expenseParticipantDesc) {
+            for item in items { modelContext.delete(item) }
+        }
+        
+        // 删除 Expense
+        let expenseDesc = FetchDescriptor<Expense>()
+        if let items = try? modelContext.fetch(expenseDesc) {
+            for item in items { modelContext.delete(item) }
+        }
+        
+        // 删除 Membership
+        let membershipDesc = FetchDescriptor<Membership>()
+        if let items = try? modelContext.fetch(membershipDesc) {
+            for item in items { modelContext.delete(item) }
+        }
+        
+        // 删除 Ledger
+        let ledgerDesc = FetchDescriptor<Ledger>()
+        if let items = try? modelContext.fetch(ledgerDesc) {
+            for item in items { modelContext.delete(item) }
+        }
+        
+        // 删除 UserProfile
+        let userProfileDesc = FetchDescriptor<UserProfile>()
+        if let items = try? modelContext.fetch(userProfileDesc) {
+            for item in items { modelContext.delete(item) }
+        }
+        
+        try? modelContext.save()
+        
+        // 清空内存
+        currentUser = nil
+        allLedgers = []
+        allFriends = []
+    }
+}
+
+// MARK: - Export Data Structures
+
+struct ExportData: Codable {
+    let version: String
+    let exportDate: Date
+    let currentUserId: UUID
+    let hasCompletedOnboarding: Bool
+    let users: [ExportUserProfile]
+    let ledgers: [ExportLedger]
+}
+
+struct ExportUserProfile: Codable {
+    let remoteId: UUID
+    let userId: String
+    let name: String
+    let avatarEmoji: String?
+    let localeIdentifier: String
+    let currency: CurrencyCode
+    let createdAt: Date
+    let updatedAt: Date
+    
+    init(from user: UserProfile) {
+        self.remoteId = user.remoteId
+        self.userId = user.userId
+        self.name = user.name
+        self.avatarEmoji = user.avatarEmoji
+        self.localeIdentifier = user.localeIdentifier
+        self.currency = user.currency
+        self.createdAt = user.createdAt
+        self.updatedAt = user.updatedAt
+    }
+}
+
+struct ExportLedger: Codable {
+    let remoteId: UUID
+    let name: String
+    let ownerId: UUID
+    let currency: CurrencyCode
+    let createdAt: Date
+    let updatedAt: Date
+    let settings: LedgerSettings
+    let memberships: [ExportMembership]
+    let expenses: [ExportExpense]
+    
+    init(from ledger: Ledger) {
+        self.remoteId = ledger.remoteId
+        self.name = ledger.name
+        self.ownerId = ledger.ownerId
+        self.currency = ledger.currency
+        self.createdAt = ledger.createdAt
+        self.updatedAt = ledger.updatedAt
+        self.settings = ledger.settings
+        self.memberships = ledger.memberships.map { ExportMembership(from: $0) }
+        self.expenses = ledger.expenses.map { ExportExpense(from: $0) }
+    }
+}
+
+struct ExportMembership: Codable {
+    let remoteId: UUID
+    let userId: UUID
+    let role: LedgerRole
+    let joinedAt: Date
+    
+    init(from membership: Membership) {
+        self.remoteId = membership.remoteId
+        self.userId = membership.userId
+        self.role = membership.role
+        self.joinedAt = membership.joinedAt
+    }
+}
+
+struct ExportExpense: Codable {
+    let remoteId: UUID
+    let ledgerId: UUID
+    let payerId: UUID
+    let title: String
+    let amountMinorUnits: Int
+    let currency: CurrencyCode
+    let date: Date
+    let note: String
+    let category: ExpenseCategory
+    let createdAt: Date
+    let updatedAt: Date
+    let metadata: ExpenseMetadata
+    let splitStrategy: SplitStrategy
+    let isSettlement: Bool?
+    let participants: [ExportExpenseParticipant]
+    
+    init(from expense: Expense) {
+        self.remoteId = expense.remoteId
+        self.ledgerId = expense.ledgerId
+        self.payerId = expense.payerId
+        self.title = expense.title
+        self.amountMinorUnits = expense.amountMinorUnits
+        self.currency = expense.currency
+        self.date = expense.date
+        self.note = expense.note
+        self.category = expense.category
+        self.createdAt = expense.createdAt
+        self.updatedAt = expense.updatedAt
+        self.metadata = expense.metadata
+        self.splitStrategy = expense.splitStrategy
+        self.isSettlement = expense.isSettlement
+        self.participants = expense.participants.map { ExportExpenseParticipant(from: $0) }
+    }
+}
+
+struct ExportExpenseParticipant: Codable {
+    let remoteId: UUID
+    let expenseId: UUID
+    let userId: UUID
+    let shareType: ShareType
+    let shareValue: Decimal?
+    
+    init(from participant: ExpenseParticipant) {
+        self.remoteId = participant.remoteId
+        self.expenseId = participant.expenseId
+        self.userId = participant.userId
+        self.shareType = participant.shareType
+        self.shareValue = participant.shareValue
+    }
 }
 
