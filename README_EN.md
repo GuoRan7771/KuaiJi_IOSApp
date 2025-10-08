@@ -65,10 +65,10 @@ yet still allows **Bluetooth / Wi-Fi** synchronization of ledgers — offering a
 
 ### Shared Ledger UI Update (2025-10-06)
 
-All transfer details now fit on one screen
-Fixed category tap bug
-Added full data export/import in Settings for backup and migration
-Fixed Shortcut launch issue for default ledger
+All transfer details now fit on one screen  
+Fixed category tap bug  
+Added full data export/import in Settings for backup and migration  
+Fixed Shortcut launch issue for default ledger  
 
 ### New Feature: Quick Add (2025-10-05)
 
