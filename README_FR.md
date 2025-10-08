@@ -1,4 +1,3 @@
-
 <p align="center">
   🌐 <b>Langue :</b>
   <a href="README.md">中文</a> |
@@ -7,6 +6,7 @@
 </p>
 
 ---
+
 
 # KuaiJi  
 
@@ -43,7 +43,7 @@ offrant une expérience de partage *« pseudo-décentralisée »*.
    ```bash
    git clone https://github.com/GuoRan7771/KuaiJi_IOSApp.git
    cd KuaiJi_IOSApp
-
+   
 2. Ouvrir avec **Xcode** (`.xcodeproj` ou `.xcworkspace`)
 3. Exécuter sur simulateur ou appareil réel
 
