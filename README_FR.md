@@ -67,10 +67,10 @@ offrant une expérience de partage *« pseudo-décentralisée »*.
 
 ### Changement d’interface du compte partagé (2025-10-06)
 
-Toutes les informations sur une seule page
-Correction d’un bug sur le clic de catégorie
-Ajout de l’export/import complet pour sauvegarde et migration
-Correction de l’accès rapide au compte par Raccourcis
+Toutes les informations sur une seule page  
+Correction d’un bug sur le clic de catégorie  
+Ajout de l’export/import complet pour sauvegarde et migration  
+Correction de l’accès rapide au compte par Raccourcis  
 
 ### Nouvelle fonction : ajout rapide (2025-10-05)
 
