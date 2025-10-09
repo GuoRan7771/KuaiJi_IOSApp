@@ -8,6 +8,7 @@
 import SwiftUI
 import Combine
 import UniformTypeIdentifiers
+import SwiftData
 
 // MARK: - View Data Models
 
@@ -1755,6 +1756,8 @@ struct MemberDetailView<Model: MemberDetailViewModelProtocol>: View {
 struct SettingsView<Model: SettingsViewModelProtocol>: View {
     @ObservedObject var viewModel: Model
     @ObservedObject var rootViewModel: AppRootViewModel
+    @ObservedObject var personalSettingsViewModel: PersonalLedgerSettingsViewModel
+    @ObservedObject var personalLedgerRoot: PersonalLedgerRootViewModel
     @EnvironmentObject var appState: AppState
     @State private var showingContactSheet = false
     @State private var showingClearDataAlert = false
@@ -1767,6 +1770,8 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
     @State private var showingAlert = false
     @State private var alertTitle = ""
     @State private var alertMessage = ""
+    @State private var showingPersonalExportError = false
+    @State private var showingPersonalClearAlert = false
 
     var body: some View {
         Form {
@@ -1851,6 +1856,34 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                     .foregroundStyle(.secondary)
             }
             
+            // 个人账本设置
+            Section {
+                Picker(L.personalPrimaryCurrency.localized, selection: $personalSettingsViewModel.primaryCurrency) {
+                    ForEach(CurrencyCode.allCases, id: \.self) { code in
+                        Text(code.rawValue).tag(code)
+                    }
+                }
+                Picker(L.personalFXSource.localized, selection: $personalSettingsViewModel.fxSource) {
+                    ForEach(PersonalFXSource.allCases, id: \.self) { source in
+                        Text(source.displayName).tag(source)
+                    }
+                }
+                Stepper(value: $personalSettingsViewModel.defaultFXPrecision, in: 2...6) {
+                    Text(L.personalFXPrecision.localized("\(personalSettingsViewModel.defaultFXPrecision)"))
+                }
+                TextField(L.personalFXDefaultRate.localized, text: $personalSettingsViewModel.defaultFXRateText)
+                    .keyboardType(.decimalPad)
+                Toggle(L.personalFeeInclude.localized, isOn: $personalSettingsViewModel.countFeeInStats)
+                NavigationLink(L.personalAccountsManage.localized) {
+                    PersonalAccountsView(root: personalLedgerRoot, viewModel: personalLedgerRoot.makeAccountsViewModel())
+                }
+                Button(L.save.localized) {
+                    Task { await personalSettingsViewModel.save() }
+                }
+            } header: {
+                Text(L.personalSettingsTitle.localized)
+            }
+
             // 数据管理
             Section {
                 Button {
@@ -1884,6 +1917,31 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                 Text(L.settingsExportDataDesc.localized)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+            
+            Section {
+                Button {
+                    do {
+                        let url = try exportPersonalCSV()
+                        presentShare(url: url)
+                    } catch {
+                        showingPersonalExportError = true
+                    }
+                } label: {
+                    HStack {
+                        Text(L.personalExportCSV.localized)
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Button(L.personalClearData.localized, role: .destructive) {
+                    showingPersonalClearAlert = true
+                }
+            } header: {
+                Text(L.personalDataSection.localized)
             }
             
             Section(L.settingsAbout.localized) {
@@ -1972,6 +2030,17 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
         } message: {
             Text(L.settingsImportConfirmMessage.localized)
         }
+        .alert(L.personalExportFailed.localized, isPresented: $showingPersonalExportError) {
+            Button(L.ok.localized, action: {})
+        }
+        .alert(L.personalClearConfirmTitle.localized, isPresented: $showingPersonalClearAlert) {
+            Button(L.cancel.localized, role: .cancel) { }
+            Button(L.personalClearData.localized, role: .destructive) {
+                clearPersonalData()
+            }
+        } message: {
+            Text(L.personalClearConfirmMessage.localized)
+        }
         .alert(alertTitle, isPresented: $showingAlert) {
             Button(L.ok.localized, role: .cancel) { }
         } message: {
@@ -1990,6 +2059,53 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
         }
     }
     
+    private func exportPersonalCSV() throws -> URL {
+        let records = try personalLedgerRoot.store.records(filter: PersonalRecordFilter())
+        var lines: [String] = ["日期,账户,类型,分类,金额,币种,备注"]
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        for record in records {
+            let dateString = formatter.string(from: record.occurredAt)
+            let typeString: String
+            switch record.kind {
+            case .income: typeString = "Income"
+            case .expense: typeString = "Expense"
+            case .fee: typeString = "Fee"
+            }
+            let account = personalLedgerRoot.store.account(with: record.accountId)
+            let accountName = account?.name ?? ""
+            let note = record.note.replacingOccurrences(of: ",", with: " ")
+            let amount = SettlementMath.decimal(fromMinorUnits: record.amountMinorUnits, scale: 2)
+            let currencyCode = account?.currency.rawValue ?? personalLedgerRoot.store.preferences.primaryDisplayCurrency.rawValue
+            lines.append("\(dateString),\(accountName),\(typeString),\(record.categoryKey),\(amount),\(currencyCode),\(note)")
+        }
+        let csv = lines.joined(separator: "\n") + "\n"
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("PersonalLedger-\(UUID().uuidString).csv")
+        try csv.write(to: url, atomically: true, encoding: .utf8)
+        return url
+    }
+
+    private func presentShare(url: URL) {
+        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootVC = scene.windows.first?.rootViewController else { return }
+        let controller = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        controller.popoverPresentationController?.sourceView = rootVC.view
+        rootVC.present(controller, animated: true)
+    }
+
+    private func clearPersonalData() {
+        do {
+            try personalLedgerRoot.store.clearAllPersonalData()
+            alertTitle = L.personalClearSuccess.localized
+            alertMessage = L.personalClearSuccessMessage.localized
+            showingAlert = true
+        } catch {
+            alertTitle = L.personalClearFailed.localized
+            alertMessage = error.localizedDescription
+            showingAlert = true
+        }
+    }
+
     private func exportData() {
         if let exportURL = viewModel.exportData() {
             // 使用 UIActivityViewController 分享文件
@@ -2227,13 +2343,15 @@ private extension View {
 
 struct ContentView: View {
     @ObservedObject var viewModel: AppRootViewModel
+    @ObservedObject var personalLedgerRoot: PersonalLedgerRootViewModel
     @StateObject private var listViewModel: LedgerListScreenModel
     @StateObject private var friendViewModel: FriendListScreenModel
     @StateObject private var settingsViewModel: SettingsScreenModel
     @EnvironmentObject var appState: AppState
 
-    init(viewModel: AppRootViewModel) {
+    init(viewModel: AppRootViewModel, personalLedgerRoot: PersonalLedgerRootViewModel) {
         self.viewModel = viewModel
+        self.personalLedgerRoot = personalLedgerRoot
         _listViewModel = StateObject(wrappedValue: viewModel.makeLedgerListViewModel())
         _friendViewModel = StateObject(wrappedValue: viewModel.makeFriendListViewModel())
         _settingsViewModel = StateObject(wrappedValue: viewModel.makeSettingsViewModel())
@@ -2244,10 +2362,13 @@ struct ContentView: View {
             LedgerNavigator(rootViewModel: viewModel, listViewModel: listViewModel)
                 .tabItem { Label(L.tabLedgers.localized, systemImage: "list.bullet") }
 
+            PersonalLedgerNavigator(root: personalLedgerRoot)
+                .tabItem { Label(L.tabPersonalLedger.localized, systemImage: "wallet.pass") }
+
             FriendNavigator(viewModel: friendViewModel, rootViewModel: viewModel)
                 .tabItem { Label(L.tabFriends.localized, systemImage: "person.2.fill") }
 
-            SettingsNavigator(viewModel: settingsViewModel, rootViewModel: viewModel)
+            SettingsNavigator(viewModel: settingsViewModel, rootViewModel: viewModel, personalLedgerRoot: personalLedgerRoot)
                 .tabItem { Label(L.tabSettings.localized, systemImage: "gearshape") }
         }
     }
@@ -2330,10 +2451,22 @@ struct LedgerNavigator: View {
 struct SettingsNavigator: View {
     @ObservedObject var viewModel: SettingsScreenModel
     @ObservedObject var rootViewModel: AppRootViewModel
+    @ObservedObject var personalLedgerRoot: PersonalLedgerRootViewModel
+    @StateObject private var personalSettingsModel: PersonalLedgerSettingsViewModel
+    
+    init(viewModel: SettingsScreenModel, rootViewModel: AppRootViewModel, personalLedgerRoot: PersonalLedgerRootViewModel) {
+        self.viewModel = viewModel
+        self.rootViewModel = rootViewModel
+        self.personalLedgerRoot = personalLedgerRoot
+        _personalSettingsModel = StateObject(wrappedValue: personalLedgerRoot.makeSettingsViewModel())
+    }
     
     var body: some View {
         NavigationStack {
-            SettingsView(viewModel: viewModel, rootViewModel: rootViewModel)
+            SettingsView(viewModel: viewModel,
+                        rootViewModel: rootViewModel,
+                        personalSettingsViewModel: personalSettingsModel,
+                        personalLedgerRoot: personalLedgerRoot)
         }
     }
 }
@@ -3413,7 +3546,25 @@ extension View {
 }
 
 #Preview {
-    ContentView(viewModel: AppRootViewModel())
+    let schema = Schema([
+        UserProfile.self,
+        Ledger.self,
+        Membership.self,
+        Expense.self,
+        ExpenseParticipant.self,
+        BalanceSnapshot.self,
+        TransferPlan.self,
+        AuditLog.self,
+        PersonalAccount.self,
+        PersonalTransaction.self,
+        AccountTransfer.self,
+        PersonalPreferences.self
+    ])
+    let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: schema, configurations: [configuration])
+    let personalRoot = PersonalLedgerRootViewModel(modelContext: container.mainContext, defaultCurrency: .cny)
+    return ContentView(viewModel: AppRootViewModel(), personalLedgerRoot: personalRoot)
+        .modelContainer(container)
         .environment(\.locale, Locale(identifier: "zh_CN"))
 }
 

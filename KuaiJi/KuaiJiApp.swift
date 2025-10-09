@@ -32,8 +32,14 @@ private enum DeepLinkParser {
 struct KuaiJiApp: App {
     @StateObject private var rootViewModel = AppRootViewModel()
     @StateObject private var appState = AppState()
+    @StateObject private var personalLedgerRoot: PersonalLedgerRootViewModel
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
+    init() {
+        let container = sharedModelContainer
+        _personalLedgerRoot = StateObject(wrappedValue: PersonalLedgerRootViewModel(modelContext: container.mainContext, defaultCurrency: .cny))
+    }
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             UserProfile.self,
@@ -43,7 +49,11 @@ struct KuaiJiApp: App {
             ExpenseParticipant.self,
             BalanceSnapshot.self,
             TransferPlan.self,
-            AuditLog.self
+            AuditLog.self,
+            PersonalAccount.self,
+            PersonalTransaction.self,
+            AccountTransfer.self,
+            PersonalPreferences.self
         ])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         do {
@@ -76,7 +86,7 @@ struct KuaiJiApp: App {
                     }
                 } else {
                     // 显示主界面
-                    ContentView(viewModel: rootViewModel)
+                    ContentView(viewModel: rootViewModel, personalLedgerRoot: personalLedgerRoot)
                         .environmentObject(appState)
                 }
             }
@@ -94,6 +104,11 @@ struct KuaiJiApp: App {
                     // 如果已完成设置，加载数据
                     if !appState.showOnboarding && !appState.showWelcomeGuide {
                         rootViewModel.setDataManager(manager)
+                        if let currency = manager.currentUser?.currency {
+                            try? personalLedgerRoot.store.updatePreferences { prefs in
+                                prefs.primaryDisplayCurrency = currency
+                            }
+                        }
                         // 刷新 Quick Actions
                         appState.refreshQuickActions()
                     }
