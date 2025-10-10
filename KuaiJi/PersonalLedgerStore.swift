@@ -441,10 +441,28 @@ final class PersonalLedgerStore: ObservableObject {
     // MARK: - Accounts
 
     func refreshAccounts() throws {
-        let descriptor = FetchDescriptor<PersonalAccount>(sortBy: [SortDescriptor(\.createdAt, order: .forward)])
+        let descriptor = FetchDescriptor<PersonalAccount>(
+            sortBy: [
+                SortDescriptor(\.sortIndex, order: .forward),
+                SortDescriptor(\.createdAt, order: .forward)
+            ])
         let fetched = try context.fetch(descriptor)
         activeAccounts = fetched.filter { $0.status == .active }
         archivedAccounts = fetched.filter { $0.status == .archived }
+    }
+
+    // 依据显示顺序持久化账户排序
+    func reorderAccounts(idsInDisplayOrder: [UUID]) throws {
+        let existing = activeAccounts + archivedAccounts
+        let map = Dictionary(uniqueKeysWithValues: existing.map { ($0.remoteId, $0) })
+        for (idx, id) in idsInDisplayOrder.enumerated() {
+            if let account = map[id] {
+                account.sortIndex = idx
+                account.updatedAt = Date.now
+            }
+        }
+        try context.save()
+        try refreshAccounts()
     }
 
     func createAccount(from draft: PersonalAccountDraft) throws -> PersonalAccount {

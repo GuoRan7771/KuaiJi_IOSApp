@@ -821,6 +821,20 @@ final class PersonalAccountsViewModel: ObservableObject {
         }
     }
 
+    // 拖拽排序：更新本地顺序并持久化
+    func move(from source: IndexSet, to destination: Int) {
+        var newList = accounts
+        newList.move(fromOffsets: source, toOffset: destination)
+        accounts = newList
+        Task {
+            do {
+                try store.reorderAccounts(idsInDisplayOrder: newList.map { $0.id })
+            } catch {
+                lastError = error.localizedDescription
+            }
+        }
+    }
+
     private func convertBalance(_ account: PersonalAccount) -> Int {
         store.convertToDisplay(minorUnits: account.balanceMinorUnits, currency: account.currency, fxRate: nil)
     }

@@ -994,12 +994,14 @@ struct PersonalAccountsView: View {
                                onActivate: { Task { await viewModel.activateAccount(account.id) } },
                                onDelete: { Task { await viewModel.deleteAccount(account.id) } })
                 }
+                .onMove(perform: viewModel.move)
             }
         }
         .listStyle(.insetGrouped)
         .navigationTitle(L.personalAccountsTitle.localized)
         .toolbar {
             ToolbarItemGroup(placement: .navigationBarTrailing) {
+                EditButton()
                 Button(action: { editingAccount = nil; showingAccountForm = true }) {
                     Image(systemName: "plus")
                 }

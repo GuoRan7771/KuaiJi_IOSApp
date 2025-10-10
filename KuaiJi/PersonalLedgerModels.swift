@@ -65,6 +65,7 @@ final class PersonalAccount {
     var creditLimitMinorUnits: Int?
     var createdAt: Date
     var updatedAt: Date
+    var sortIndex: Int = 0
 
     init(remoteId: UUID = UUID(),
          name: String,
@@ -76,7 +77,8 @@ final class PersonalAccount {
          status: PersonalAccountStatus = .active,
          creditLimitMinorUnits: Int? = nil,
          createdAt: Date = .now,
-         updatedAt: Date = .now) {
+         updatedAt: Date = .now,
+         sortIndex: Int = 0) {
         self.remoteId = remoteId
         self.name = name
         self.type = type
@@ -88,6 +90,7 @@ final class PersonalAccount {
         self.creditLimitMinorUnits = creditLimitMinorUnits
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.sortIndex = sortIndex
     }
 }
 
