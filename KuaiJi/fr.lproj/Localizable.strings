@@ -134,7 +134,6 @@
 "settings.about" = "À Propos";
 "settings.guide" = "Introduction";
 "settings.contactMe" = "Me Contacter";
-// "settings.ledgerVisibility" = "Visibilité des fonctionnalités";
 "settings.showSharedAndFriends" = "Afficher le ledger partagé et les amis";
 "settings.showPersonalLedger" = "Afficher le ledger personnel";
 "settings.clearData" = "Effacer les comptes partagés et amis";
@@ -168,6 +167,9 @@
 "onboarding.currencySection" = "Devise";
 "onboarding.currencyPicker" = "Sélectionner la Devise";
 "onboarding.currencyFooter" = "Définissez votre devise la plus utilisée";
+"onboarding.currency.cny" = "¥ CNY";
+"onboarding.currency.usd" = "$ USD";
+"onboarding.currency.eur" = "€ EUR";
 "onboarding.avatarSection" = "Sélectionner l'Avatar";
 "onboarding.currentAvatar" = "Avatar Actuel";
 "onboarding.avatarFooter" = "Choisissez un Emoji comme avatar";
@@ -312,6 +314,9 @@
 "guide.localStorage" = "Stockage Local";
 "guide.noServer" = "Pas de Serveur";
 "guide.fullyPrivate" = "Totalement Privé";
+
+"guide.sample.amount1" = "¥1\u00A0250";
+"guide.sample.amount2" = "¥580";
 
 
 "tab.personalLedger" = "Ledger personnel";

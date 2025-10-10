@@ -167,6 +167,9 @@
 "onboarding.currencySection" = "Currency";
 "onboarding.currencyPicker" = "Select Currency";
 "onboarding.currencyFooter" = "Set your most commonly used currency";
+"onboarding.currency.cny" = "¥ CNY";
+"onboarding.currency.usd" = "$ USD";
+"onboarding.currency.eur" = "€ EUR";
 "onboarding.avatarSection" = "Select Avatar";
 "onboarding.currentAvatar" = "Current Avatar";
 "onboarding.avatarFooter" = "Choose an Emoji as your avatar";
@@ -311,6 +314,9 @@
 "guide.localStorage" = "Local Storage";
 "guide.noServer" = "No Server";
 "guide.fullyPrivate" = "Fully Private";
+
+"guide.sample.amount1" = "¥1,250";
+"guide.sample.amount2" = "¥580";
 
 
 "tab.personalLedger" = "Personal Ledger";

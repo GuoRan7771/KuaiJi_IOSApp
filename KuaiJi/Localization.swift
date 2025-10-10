@@ -296,6 +296,9 @@ enum L {
     static let onboardingCurrencySection = "onboarding.currencySection"
     static let onboardingCurrencyPicker = "onboarding.currencyPicker"
     static let onboardingCurrencyFooter = "onboarding.currencyFooter"
+    static let onboardingCurrencyCNY = "onboarding.currency.cny"
+    static let onboardingCurrencyUSD = "onboarding.currency.usd"
+    static let onboardingCurrencyEUR = "onboarding.currency.eur"
     static let onboardingAvatarSection = "onboarding.avatarSection"
     static let onboardingCurrentAvatar = "onboarding.currentAvatar"
     static let onboardingAvatarFooter = "onboarding.avatarFooter"
@@ -441,4 +444,7 @@ enum L {
     static let guideLocalStorage = "guide.localStorage"
     static let guideNoServer = "guide.noServer"
     static let guideFullyPrivate = "guide.fullyPrivate"
+    // 引导页面示例金额
+    static let guideSampleAmount1 = "guide.sample.amount1"
+    static let guideSampleAmount2 = "guide.sample.amount2"
 }

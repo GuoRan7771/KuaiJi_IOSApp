@@ -2377,7 +2377,7 @@ struct ContactView: View {
                 
                 // Text content with liquid glass effect
                 VStack(spacing: 16) {
-                    Text("Guo")
+                    Text(L.contactAuthor.localized)
                         .font(.system(size: 32, weight: .semibold, design: .rounded))
                         .foregroundStyle(
                             LinearGradient(
@@ -2388,7 +2388,7 @@ struct ContactView: View {
                         )
                         .shadow(color: .white.opacity(0.5), radius: 8)
                     
-                    Text("rwg184849@gmail.com")
+                    Text(L.contactEmail.localized)
                         .font(.system(size: 16, weight: .medium, design: .rounded))
                         .foregroundStyle(.white.opacity(0.9))
                         .padding(.horizontal, 24)

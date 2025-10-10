@@ -63,6 +63,13 @@ yet still allows **Bluetooth / Wi-Fi** synchronization of ledgers — offering a
 
 ## Recent Updates
 
+### Major Update (2025-10-10)
+
+ - New Personal Ledger: accounts/records/stats/internal transfer, CSV export and clear
+ - Settings updates: personal ledger settings (display currency, FX source/precision, default fee), shared tab default landing
+ - UI tweaks  
+ - Quick Actions: personal ledger shortcut
+
 ### Shared Ledger UI Update (2025-10-06)
 
 All transfer details now fit on one screen  

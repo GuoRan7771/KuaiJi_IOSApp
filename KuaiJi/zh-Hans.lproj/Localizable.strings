@@ -134,7 +134,6 @@
 "settings.about" = "关于";
 "settings.guide" = "简介";
 "settings.contactMe" = "联系我";
-// "settings.ledgerVisibility" = "功能显示";
 "settings.showSharedAndFriends" = "显示共享账本及朋友";
 "settings.showPersonalLedger" = "显示个人账本";
 "settings.clearData" = "抹掉共享账本及朋友数据";
@@ -168,6 +167,9 @@
 "onboarding.currencySection" = "常用货币";
 "onboarding.currencyPicker" = "选择常用货币";
 "onboarding.currencyFooter" = "设置您最常使用的货币类型";
+"onboarding.currency.cny" = "¥ CNY";
+"onboarding.currency.usd" = "$ USD";
+"onboarding.currency.eur" = "€ EUR";
 "onboarding.avatarSection" = "选择头像";
 "onboarding.currentAvatar" = "当前头像";
 "onboarding.avatarFooter" = "从 Emoji 中选择一个喜欢的头像";
@@ -312,6 +314,9 @@
 "guide.localStorage" = "本地存储";
 "guide.noServer" = "无需服务器";
 "guide.fullyPrivate" = "完全私密";
+
+"guide.sample.amount1" = "¥1,250";
+"guide.sample.amount2" = "¥580";
 
 
 "tab.personalLedger" = "个人账本";
