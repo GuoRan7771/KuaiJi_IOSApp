@@ -148,6 +148,12 @@
 "quickAction.addExpense" = "Quick Add";
 "quickAction.personalSubtitle" = "Personal ledger";
 
+/* Erase Absolutely All */
+"eraseAllData" = "Erase Absolutely All (Irreversible)";
+"eraseAllData.warning" = "This will delete ALL data including shared ledgers, friends, personal ledger/accounts and ANY settings. This cannot be undone.";
+"eraseAllData.confirmTitle" = "Confirm Erase All";
+"eraseAllData.confirmMessage" = "This will wipe all data and preferences. The app will return to first-launch state. Continue?";
+
 /* Language Options */
 "language.system" = "System";
 "language.chinese" = "中文 (简体)";
@@ -388,6 +394,13 @@
 "personal.stats.month" = "Month";
 "personal.stats.quarter" = "Quarter";
 "personal.stats.year" = "Year";
+"personal.stats.structureTitle" = "Spending Structure";
+"personal.stats.essential" = "Essential";
+"personal.stats.discretionary" = "Discretionary";
+"personal.stats.expenseGrowth" = "Expense Growth";
+"personal.stats.insightsTitle" = "Insights";
+"personal.stats.insight.streak" = "Up for %d periods";
+"personal.stats.insight.recentGrowth" = "Recent growth";
 "personal.settings.title" = "Personal Ledger";
 "personal.primaryCurrency" = "Display currency";
 "personal.fxSource" = "FX source";
@@ -432,6 +445,9 @@
 "personal.transfer.title" = "Transfer";
 "personal.transfer.direction" = "%@ → %@";
 "personal.transfer.directionTitle" = "Direction";
+"personal.transfer.invert" = "Invert";
+"personal.transfer.feeHint" = "The fee is deducted from the selected charged account and valued in its currency. If unsure, leave it blank and record later.";
+"personal.transfer.fxInfo" = "1 %@ = %@ %@";
 "personal.conversionFeeNote" = "Conversion fee";
 "personal.export.hint" = "Includes personal ledger CSV.";
 "personal.clear.hint" = "Delete all personal ledger accounts and records (shared ledgers unaffected).";

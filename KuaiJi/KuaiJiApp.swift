@@ -91,12 +91,14 @@ struct KuaiJiApp: App {
                 }
             }
             .onAppear {
+                KeyboardDismissInstaller.installIfNeeded()
                 // 设置 AppDelegate 的 appState 引用
                 AppDelegate.appState = appState
                 
                 if appState.dataManager == nil {
                     let manager = PersistentDataManager(modelContext: sharedModelContainer.mainContext)
                     appState.dataManager = manager
+                    rootViewModel.bind(appState: appState)
                     
                     // 检查引导和设置状态
                     appState.checkOnboardingStatus()

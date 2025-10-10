@@ -861,10 +861,58 @@ class PersistentDataManager: ObservableObject {
         if let items = try? modelContext.fetch(userProfileDesc) {
             for item in items { modelContext.delete(item) }
         }
+
+        // 个人账本相关：删除 PersonalTransaction
+        let pTxDesc = FetchDescriptor<PersonalTransaction>()
+        if let items = try? modelContext.fetch(pTxDesc) {
+            for item in items { modelContext.delete(item) }
+        }
+        // 删除 AccountTransfer
+        let pTransferDesc = FetchDescriptor<AccountTransfer>()
+        if let items = try? modelContext.fetch(pTransferDesc) {
+            for item in items { modelContext.delete(item) }
+        }
+        // 删除 PersonalAccount
+        let pAccountDesc = FetchDescriptor<PersonalAccount>()
+        if let items = try? modelContext.fetch(pAccountDesc) {
+            for item in items { modelContext.delete(item) }
+        }
+        // 删除 PersonalPreferences（将由首次访问时自动重建）
+        let pPrefsDesc = FetchDescriptor<PersonalPreferences>()
+        if let items = try? modelContext.fetch(pPrefsDesc) {
+            for item in items { modelContext.delete(item) }
+        }
         
         try? modelContext.save()
         
         // 清空内存
+        currentUser = nil
+        allLedgers = []
+        allFriends = []
+    }
+
+    /// 彻底抹除应用的所有数据与偏好设置（共享账本、朋友、个人账本与所有设置）
+    func eraseAbsolutelyAllDataAndPreferences() {
+        // 1) 清空数据库所有实体
+        clearAllDataWithoutResettingOnboarding()
+        
+        // 2) 重置所有与功能相关的用户偏好与标记
+        let defaults = UserDefaults.standard
+        let keysToReset: [String] = [
+            hasCompletedOnboardingKey,              // 首次设置完成标记
+            "hasSeenWelcomeGuide",                // 欢迎引导已查看
+            "defaultLedgerIdForQuickAction",      // 旧版默认账本ID
+            "defaultQuickActionTarget",           // 快速操作目标
+            "showSharedLedgerTab",                // Tab 显示偏好
+            "showPersonalLedgerTab",
+            "sharedLandingPref",                  // 共享账本落地页偏好
+            "SuppressSyncWarning",                // 同步警告不再提示
+            "com.kuaiji.shortcut.pendingQuickAdd" // 快捷指令挂起标记
+        ]
+        for key in keysToReset { defaults.removeObject(forKey: key) }
+        defaults.synchronize()
+        
+        // 3) 内存态复位
         currentUser = nil
         allLedgers = []
         allFriends = []

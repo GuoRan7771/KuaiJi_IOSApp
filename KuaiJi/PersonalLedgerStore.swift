@@ -330,6 +330,7 @@ struct PersonalStatsRequest {
 final class PersonalLedgerStore: ObservableObject {
     private let context: ModelContext
     private let calendar: Calendar
+    private let recoveryDefaultCurrency: CurrencyCode
 
     @Published private(set) var preferences: PersonalPreferences
     @Published private(set) var activeAccounts: [PersonalAccount] = []
@@ -338,6 +339,7 @@ final class PersonalLedgerStore: ObservableObject {
     init(context: ModelContext, defaultCurrency: CurrencyCode = .cny, calendar: Calendar = .current) throws {
         self.context = context
         self.calendar = calendar
+        self.recoveryDefaultCurrency = defaultCurrency
         self.preferences = try PersonalLedgerStore.ensurePreferences(in: context, defaultCurrency: defaultCurrency)
         try refreshAccounts()
     }
@@ -345,6 +347,7 @@ final class PersonalLedgerStore: ObservableObject {
     // MARK: - Preferences
 
     func updatePreferences(_ block: (PersonalPreferences) -> Void) throws {
+        ensurePreferencesConsistency()
         block(preferences)
         try context.save()
         objectWillChange.send()
@@ -361,6 +364,78 @@ final class PersonalLedgerStore: ObservableObject {
         context.insert(prefs)
         try context.save()
         return prefs
+    }
+
+    /// 在可能被外部数据清理后，确保 preferences 始终存在且为有效对象
+    private func ensurePreferencesConsistency() {
+        do {
+            var descriptor = FetchDescriptor<PersonalPreferences>()
+            descriptor.fetchLimit = 1
+            if let existing = try context.fetch(descriptor).first {
+                // 如果当前持有的引用不一致或已失效，则用数据库中的有效对象替换
+                if existing.remoteId != preferences.remoteId {
+                    preferences = existing
+                }
+            } else {
+                // 已被清空，重建一份
+                let prefs = PersonalPreferences(primaryDisplayCurrency: recoveryDefaultCurrency)
+                context.insert(prefs)
+                try context.save()
+                preferences = prefs
+            }
+        } catch {
+            // 兜底：若获取失败则尝试重建
+            let prefs = PersonalPreferences(primaryDisplayCurrency: recoveryDefaultCurrency)
+            context.insert(prefs)
+            try? context.save()
+            preferences = prefs
+        }
+    }
+
+    // MARK: - Safe accessors for preferences
+    func getPreferences() -> PersonalPreferences {
+        ensurePreferencesConsistency()
+        return preferences
+    }
+
+    func safePrimaryDisplayCurrency() -> CurrencyCode {
+        ensurePreferencesConsistency()
+        return preferences.primaryDisplayCurrency
+    }
+
+    func safeCountFeeInStats() -> Bool {
+        ensurePreferencesConsistency()
+        return preferences.countFeeInStats
+    }
+
+    func safeDefaultFXRate() -> Decimal? {
+        ensurePreferencesConsistency()
+        return preferences.defaultFXRate
+    }
+
+    func safeDefaultConversionFee() -> Decimal? {
+        ensurePreferencesConsistency()
+        return preferences.defaultConversionFee
+    }
+
+    func safeLastUsedAccountId() -> UUID? {
+        ensurePreferencesConsistency()
+        return preferences.lastUsedAccountId
+    }
+
+    func safeLastUsedCategoryKey() -> String? {
+        ensurePreferencesConsistency()
+        return preferences.lastUsedCategoryKey
+    }
+
+    func safeDefaultFeeCategoryKey() -> String? {
+        ensurePreferencesConsistency()
+        return preferences.defaultFeeCategoryKey
+    }
+
+    func safeFXRate(for currency: CurrencyCode) -> Decimal? {
+        ensurePreferencesConsistency()
+        return preferences.fxRates[currency]
     }
 
     // MARK: - Accounts
@@ -893,6 +968,7 @@ final class PersonalLedgerStore: ObservableObject {
     }
 
     func convertToDisplay(minorUnits: Int, currency: CurrencyCode, fxRate: Decimal?) -> Int {
+        ensurePreferencesConsistency()
         guard currency != preferences.primaryDisplayCurrency else { return minorUnits }
         guard minorUnits != 0 else { return 0 }
         let amount = SettlementMath.decimal(fromMinorUnits: minorUnits, scale: 2)

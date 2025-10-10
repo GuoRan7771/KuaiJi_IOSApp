@@ -148,6 +148,12 @@
 "quickAction.addExpense" = "Ajout Rapide";
 "quickAction.personalSubtitle" = "Ledger personnel";
 
+/* Effacement Total */
+"eraseAllData" = "Effacer tout (irréversible)";
+"eraseAllData.warning" = "Cette action supprimera TOUTES les données, y compris les livres partagés, amis, livre personnel/comptes et TOUS les réglages. Ceci est irréversible.";
+"eraseAllData.confirmTitle" = "Confirmer l'effacement total";
+"eraseAllData.confirmMessage" = "Cela effacera toutes les données et préférences. L'application reviendra à l'état de première exécution. Continuer ?";
+
 /* Options de langue */
 "language.system" = "Système";
 "language.chinese" = "中文 (简体)";
@@ -388,6 +394,13 @@
 "personal.stats.month" = "Mois";
 "personal.stats.quarter" = "Trimestre";
 "personal.stats.year" = "Année";
+"personal.stats.structureTitle" = "Structure des dépenses";
+"personal.stats.essential" = "Essentiel";
+"personal.stats.discretionary" = "Discrétionnaire";
+"personal.stats.expenseGrowth" = "Croissance des dépenses";
+"personal.stats.insightsTitle" = "Insights";
+"personal.stats.insight.streak" = "Hausse depuis %d périodes";
+"personal.stats.insight.recentGrowth" = "Croissance récente";
 "personal.settings.title" = "Réglages du ledger personnel";
 "personal.primaryCurrency" = "Devise d'affichage";
 "personal.fxSource" = "Source du taux";
@@ -430,6 +443,9 @@
 "personal.transfer.title" = "Virement";
 "personal.transfer.direction" = "%@ → %@";
 "personal.transfer.directionTitle" = "Sens";
+"personal.transfer.invert" = "Inverser";
+"personal.transfer.feeHint" = "Les frais sont imputés sur le compte sélectionné et libellés dans sa devise. En cas de doute, laissez vide et complétez plus tard.";
+"personal.transfer.fxInfo" = "1 %@ = %@ %@";
 "personal.conversionFeeNote" = "Frais de conversion";
 "personal.export.hint" = "Inclut l'export CSV du ledger personnel.";
 "personal.clear.hint" = "Supprime tous les comptes et écritures du ledger personnel (les comptes partagés ne sont pas affectés).";

@@ -763,15 +763,28 @@ struct PersonalRecordFormView: View {
                               text: $viewModel.fxRateText,
                               prompt: Text(viewModel.fxRatePlaceholder).foregroundStyle(.secondary))
                         .keyboardType(.decimalPad)
+                    HStack(spacing: 8) {
+                        Text(viewModel.fxInfoText)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button(L.personalTransferInvert.localized) {
+                            viewModel.invertFXRate()
+                        }
+                        .font(.caption)
+                    }
                     TextField(L.personalFieldFee.localized(viewModel.accountCurrencyCode),
                               text: $viewModel.feeText,
                               prompt: Text(viewModel.feePlaceholder).foregroundStyle(.secondary))
                         .keyboardType(.decimalPad)
+                    Text(L.personalTransferFeeHint.localized)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
                 DatePicker(L.personalFieldDate.localized, selection: $viewModel.occurredAt, displayedComponents: [.date, .hourAndMinute])
                 TextField(L.personalFieldNote.localized, text: $viewModel.note, axis: .vertical)
             }
         }
+        .dismissKeyboardOnTap()
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button(L.cancel.localized, action: onDone)
@@ -823,7 +836,7 @@ struct PersonalAllRecordsView: View {
             let accountName = account?.name ?? ""
             let note = record.note.replacingOccurrences(of: ",", with: " ")
             let amount = SettlementMath.decimal(fromMinorUnits: record.amountMinorUnits, scale: 2)
-            let currencyCode = account?.currency.rawValue ?? root.store.preferences.primaryDisplayCurrency.rawValue
+                    let currencyCode = account?.currency.rawValue ?? root.store.safePrimaryDisplayCurrency().rawValue
             lines.append("\(dateString),\(accountName),\(typeString),\(record.categoryKey),\(amount),\(currencyCode),\(note)")
         }
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("PersonalLedger-All-\(UUID().uuidString).csv")
@@ -1153,6 +1166,7 @@ struct PersonalAccountFormView: View {
                 TextField(L.personalFieldNote.localized, text: Binding($viewModel.draft.note, replacingNilWith: ""), axis: .vertical)
             }
         }
+        .dismissKeyboardOnTap()
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button(L.cancel.localized, action: onDone)
@@ -1235,6 +1249,17 @@ struct PersonalTransferFormView: View {
                     .disabled(!viewModel.fxRateEditable)
                     .allowsHitTesting(viewModel.fxRateEditable)
                     .opacity(viewModel.fxRateEditable ? 1 : 0.6)
+                if viewModel.fxRateEditable {
+                    HStack(spacing: 8) {
+                        Text(viewModel.fxInfoText)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button(L.personalTransferInvert.localized) {
+                            viewModel.invertFXRate()
+                        }
+                        .font(.caption)
+                    }
+                }
                 TextField(L.personalTransferFee.localized,
                           text: $viewModel.feeText,
                           prompt: Text(viewModel.feePlaceholder).foregroundStyle(.secondary))
@@ -1243,10 +1268,14 @@ struct PersonalTransferFormView: View {
                     Text(L.personalTransferFeeFrom.localized).tag(PersonalTransferFeeSide.from)
                     Text(L.personalTransferFeeTo.localized).tag(PersonalTransferFeeSide.to)
                 }
+                Text(L.personalTransferFeeHint.localized)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
                 DatePicker(L.personalFieldDate.localized, selection: $viewModel.occurredAt, displayedComponents: [.date, .hourAndMinute])
                 TextField(L.personalFieldNote.localized, text: $viewModel.note)
             }
         }
+        .dismissKeyboardOnTap()
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button(L.cancel.localized, action: onDone)
@@ -1286,6 +1315,57 @@ struct PersonalStatsView: View {
                 Toggle(L.personalStatsIncludeFee.localized, isOn: $viewModel.includeFees)
                     .toggleStyle(.switch)
 
+                // 支出结构（生活必需 vs 可变支出）
+                if let s = viewModel.structure, s.total > 0 {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(L.personalStatsStructureTitle.localized)
+                            .font(.headline)
+                        Chart {
+                            // essential
+                            SectorMark(
+                                angle: .value("Share", s.essentialShare),
+                                innerRadius: .ratio(0.6),
+                                angularInset: 1
+                            )
+                            .foregroundStyle(.blue)
+                            // discretionary
+                            SectorMark(
+                                angle: .value("Share", s.discretionaryShare),
+                                innerRadius: .ratio(0.6),
+                                angularInset: 1
+                            )
+                            .foregroundStyle(.purple)
+                        }
+                        .frame(height: 180)
+
+                        HStack {
+                            Label("\(L.personalStatsEssential.localized) \(formatCurrency(s.essentialMinorUnits)) (\(formatPercent(s.essentialShare)))", systemImage: "square.fill")
+                                .foregroundStyle(.blue)
+                            Spacer()
+                            Label("\(L.personalStatsDiscretionary.localized) \(formatCurrency(s.discretionaryMinorUnits)) (\(formatPercent(s.discretionaryShare)))", systemImage: "square.fill")
+                                .foregroundStyle(.purple)
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+                }
+
+                // 周期增长率
+                if let g = viewModel.expenseGrowthRate {
+                    let up = g >= 0
+                    HStack(spacing: 8) {
+                        Image(systemName: up ? "arrow.up.right.circle.fill" : "arrow.down.right.circle.fill")
+                            .foregroundStyle(up ? .red : .green)
+                        Text("\(L.personalStatsExpenseGrowth.localized): \(formatPercent(g))")
+                            .foregroundStyle(up ? .red : .green)
+                        Spacer()
+                        Text(viewModel.period.displayName)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(12)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+                }
+
                 if !viewModel.timeline.isEmpty {
                     Chart(viewModel.timeline) { point in
                         LineMark(x: .value("Date", point.date), y: .value("Income", point.incomeMinorUnits))
@@ -1303,10 +1383,48 @@ struct PersonalStatsView: View {
                     }
                     .frame(height: 220)
                 }
+
+                // 趋势洞察
+                if !viewModel.insights.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(L.personalStatsInsightsTitle.localized)
+                            .font(.headline)
+                        ForEach(viewModel.insights) { insight in
+                            HStack(spacing: 6) {
+                                Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
+                                let streakText = L.personalStatsInsightStreak.localized(insight.increasingStreak)
+                                let growthText = L.personalStatsInsightRecentGrowth.localized
+                                Text("\(localizedCategoryName(insight.categoryKey)): \(streakText)，\(growthText) \(formatPercent(insight.recentGrowthRate))")
+                                Spacer()
+                            }
+                            .font(.caption)
+                            .padding(8)
+                            .background(Color.yellow.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+                        }
+                    }
+                }
             }
             .padding()
         }
         .navigationTitle(L.personalStatsTitle.localized)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Menu {
+                    // 以 Radio 的方式列出 currency 选项
+                    ForEach(viewModel.availableCurrencies, id: \.self) { code in
+                        Button(action: { viewModel.selectedCurrency = code }) {
+                            if viewModel.selectedCurrency == code {
+                                Label(code.rawValue, systemImage: "checkmark")
+                            } else {
+                                Text(code.rawValue)
+                            }
+                        }
+                    }
+                } label: {
+                    Label(viewModel.selectedCurrency.rawValue, systemImage: "coloncurrencysign.circle")
+                }
+            }
+        }
     }
 }
 
@@ -1327,6 +1445,30 @@ extension PersonalStatsViewModel.Period {
         case .year: return L.personalStatsYear.localized
         }
     }
+}
+
+// MARK: - Helpers for Stats UI
+
+private func formatCurrency(_ minor: Int) -> String {
+    let amount = Double(minor) / 100.0
+    let f = NumberFormatter()
+    f.numberStyle = .currency
+    f.maximumFractionDigits = 2
+    return f.string(from: NSNumber(value: amount)) ?? String(format: "%.2f", amount)
+}
+
+private func formatPercent(_ v: Double) -> String {
+    let f = NumberFormatter()
+    f.numberStyle = .percent
+    f.maximumFractionDigits = 1
+    return f.string(from: NSNumber(value: v)) ?? String(format: "%.1f%%", v * 100)
+}
+
+private func localizedCategoryName(_ key: String) -> String {
+    if let match = (expenseCategories + incomeCategories + feeCategories).first(where: { $0.key == key }) {
+        return match.localizedName
+    }
+    return key
 }
 
 extension PersonalRecordRowViewData {

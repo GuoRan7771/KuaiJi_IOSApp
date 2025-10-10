@@ -289,6 +289,7 @@ protocol SettingsViewModelProtocol: ObservableObject {
     var uiState: SettingsViewState { get set }
     func persist()
     func clearAllData()
+    func eraseAbsolutelyAll()
     func getCurrentUser() -> UserProfile?
     func updateUserProfile(name: String, emoji: String, currency: CurrencyCode)
     func exportFullData(personalStore: PersonalLedgerStore, visibility: FeatureVisibilitySnapshot) -> URL?
@@ -319,6 +320,7 @@ final class AppRootViewModel: ObservableObject {
     private var memberLookup: [UUID: MemberSummaryViewData]
     
     var dataManager: PersistentDataManager?
+    weak var appStateRef: AppState?
 
     var members: [MemberSummaryViewData] { [currentUser] + friends }
 
@@ -346,6 +348,24 @@ final class AppRootViewModel: ObservableObject {
     func setDataManager(_ manager: PersistentDataManager) {
         self.dataManager = manager
         loadFromPersistence()
+    }
+
+    func bind(appState: AppState) {
+        self.appStateRef = appState
+    }
+
+    func notifyEraseAll() {
+        // 抹除后刷新内存并要求 AppState 重新进入首次设置/引导
+        ledgerInfos = [:]
+        ledgerSummaries = []
+        friends = []
+        memberLookup = [:]
+        appStateRef?.dataManager = dataManager
+        appStateRef?.showOnboarding = false
+        appStateRef?.showWelcomeGuide = false
+        appStateRef?.isCheckingOnboarding = true
+        appStateRef?.checkOnboardingStatus()
+        appStateRef?.isCheckingOnboarding = false
     }
     
     func loadFromPersistence() {
@@ -1771,6 +1791,7 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
     @State private var alertMessage = ""
     @State private var showingPersonalExportError = false
     @State private var showingPersonalClearAlert = false
+    @State private var showingEraseAbsolutelyAllAlert = false
     @State private var quickActionSelection: QuickActionSelection = .none
     @State private var showingSharedCSVPicker = false
 
@@ -1919,22 +1940,6 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
             
             // 个人账本设置
             Section {
-                Stepper(value: $personalSettingsViewModel.defaultFXPrecision, in: 2...6) {
-                    Text(L.personalFXPrecision.localized("\(personalSettingsViewModel.defaultFXPrecision)"))
-                }
-                .onChangeCompat(of: personalSettingsViewModel.defaultFXPrecision) {
-                    Task { await personalSettingsViewModel.save() }
-                }
-                TextField(L.personalFXDefaultRate.localized, text: $personalSettingsViewModel.defaultFXRateText)
-                    .keyboardType(.decimalPad)
-                    .onChangeCompat(of: personalSettingsViewModel.defaultFXRateText) {
-                        Task { await personalSettingsViewModel.save() }
-                    }
-                TextField(L.personalDefaultFee.localized, text: $personalSettingsViewModel.defaultFeeText)
-                    .keyboardType(.decimalPad)
-                    .onChangeCompat(of: personalSettingsViewModel.defaultFeeText) {
-                        Task { await personalSettingsViewModel.save() }
-                    }
                 Toggle(L.personalFeeInclude.localized, isOn: $personalSettingsViewModel.countFeeInStats)
                     .onChangeCompat(of: personalSettingsViewModel.countFeeInStats) {
                         Task { await personalSettingsViewModel.save() }
@@ -2076,6 +2081,19 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                 Text(L.personalClearHint.localized)
                     .appSecondaryTextStyle()
             }
+
+            // 彻底抹除所有数据（共享+个人+设置）
+            Section {
+                Button(role: .destructive) {
+                    showingEraseAbsolutelyAllAlert = true
+                } label: {
+                    Text(L.eraseAllData.localized)
+                        .frame(maxWidth: .infinity)
+                }
+            } footer: {
+                Text(L.eraseAllDataWarning.localized)
+                    .appSecondaryTextStyle()
+            }
         }
         .scrollDismissesKeyboard(.interactively)
         .dismissKeyboardOnTap()
@@ -2112,6 +2130,14 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
             }
         } message: {
             Text(L.settingsDeleteMessage.localized)
+        }
+        .alert(L.eraseAllConfirmTitle.localized, isPresented: $showingEraseAbsolutelyAllAlert) {
+            Button(L.cancel.localized, role: .cancel) { }
+            Button(L.delete.localized, role: .destructive) {
+                viewModel.eraseAbsolutelyAll()
+            }
+        } message: {
+            Text(L.eraseAllConfirmMessage.localized)
         }
         .alert(L.settingsImportConfirmTitle.localized, isPresented: $showingImportConfirmation) {
             Button(L.cancel.localized, role: .cancel) {
@@ -2225,7 +2251,7 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
             let accountName = account?.name ?? ""
             let note = record.note.replacingOccurrences(of: ",", with: " ")
             let amount = SettlementMath.decimal(fromMinorUnits: record.amountMinorUnits, scale: 2)
-            let currencyCode = account?.currency.rawValue ?? personalLedgerRoot.store.preferences.primaryDisplayCurrency.rawValue
+            let currencyCode = account?.currency.rawValue ?? personalLedgerRoot.store.safePrimaryDisplayCurrency().rawValue
             lines.append("\(dateString),\(accountName),\(typeString),\(record.categoryKey),\(amount),\(currencyCode),\(note)")
         }
         let csv = lines.joined(separator: "\n") + "\n"
@@ -3744,18 +3770,8 @@ struct ProfileEditView: View {
 
 struct DismissKeyboardOnTapModifier: ViewModifier {
     func body(content: Content) -> some View {
+        // 使用全局 window 级手势统一处理收起键盘；避免局部手势与子视图交互冲突
         content
-            .background(KeyboardDismissBackground())
-    }
-}
-
-private struct KeyboardDismissBackground: View {
-    var body: some View {
-        Color.clear
-            .contentShape(Rectangle())
-            .onTapGesture {
-                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-            }
     }
 }
 
@@ -3763,6 +3779,46 @@ extension View {
     /// 添加点击空白处隐藏键盘的功能
     func dismissKeyboardOnTap() -> some View {
         self.modifier(DismissKeyboardOnTapModifier())
+    }
+}
+
+// 全局 Window 级键盘收起安装器（不拦截子视图点击，且仅在点击非输入控件时触发）
+final class KeyboardDismissInstaller: NSObject, UIGestureRecognizerDelegate {
+    private static var installed = false
+    private var tapRecognizers: [UITapGestureRecognizer] = []
+    static let shared = KeyboardDismissInstaller()
+
+    static func installIfNeeded() {
+        guard !installed else { return }
+        installed = true
+        shared.install()
+    }
+
+    private func install() {
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        for scene in scenes {
+            for window in scene.windows {
+                let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
+                tap.cancelsTouchesInView = false
+                tap.delegate = self
+                window.addGestureRecognizer(tap)
+                tapRecognizers.append(tap)
+            }
+        }
+    }
+
+    @objc private func handleTap(_ sender: UITapGestureRecognizer) {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+
+    // 仅在点击非输入控件区域时触发，避免点击文本框本身也收起键盘
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        var view: UIView? = touch.view
+        while let v = view {
+            if v is UITextField || v is UITextView { return false }
+            view = v.superview
+        }
+        return true
     }
 }
 
@@ -3788,3 +3844,4 @@ extension View {
         .modelContainer(container)
         .environment(\.locale, Locale(identifier: "zh_CN"))
 }
+

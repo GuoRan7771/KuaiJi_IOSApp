@@ -159,6 +159,23 @@ struct PersonalStatsCategoryShare: Identifiable, Hashable {
     var amountMinorUnits: Int
 }
 
+// MARK: - Stats Enhancements (Structure, Growth, Insights)
+
+struct PersonalSpendingStructure {
+    let essentialMinorUnits: Int
+    let discretionaryMinorUnits: Int
+    var total: Int { essentialMinorUnits + discretionaryMinorUnits }
+    var essentialShare: Double { total > 0 ? Double(essentialMinorUnits) / Double(total) : 0 }
+    var discretionaryShare: Double { total > 0 ? Double(discretionaryMinorUnits) / Double(total) : 0 }
+}
+
+struct CategoryTrendInsight: Identifiable, Hashable {
+    let id: UUID = UUID()
+    let categoryKey: String
+    let increasingStreak: Int
+    let recentGrowthRate: Double
+}
+
 @MainActor
 final class PersonalLedgerRootViewModel: ObservableObject {
     let store: PersonalLedgerStore
@@ -243,7 +260,7 @@ final class PersonalLedgerHomeViewModel: ObservableObject {
     @Published private(set) var archiveError: String?
     @Published private(set) var totalsByMonth: [PersonalYearMonth: PersonalMonthlyTotals] = [:]
 
-    var displayCurrency: CurrencyCode { store.preferences.primaryDisplayCurrency }
+    var displayCurrency: CurrencyCode { store.safePrimaryDisplayCurrency() }
 
     init(store: PersonalLedgerStore) {
         self.store = store
@@ -283,7 +300,7 @@ final class PersonalLedgerHomeViewModel: ObservableObject {
         isLoading = true
         defer { isLoading = false }
         do {
-            let includeFees = store.preferences.countFeeInStats
+            let includeFees = store.safeCountFeeInStats()
             var entries: [PersonalOverviewEntry] = []
             if let interval = calendar.dateInterval(of: .month, for: selectedMonth) {
                 let kinds: Set<PersonalTransactionKind> = includeFees ? [.income, .expense, .fee] : [.income, .expense]
@@ -311,7 +328,7 @@ final class PersonalLedgerHomeViewModel: ObservableObject {
                                           expenseMinorUnits: bucket.expense,
                                           incomeMinorUnits: bucket.income)
                 }
-                let defaultCurrency = store.preferences.primaryDisplayCurrency
+                let defaultCurrency = store.safePrimaryDisplayCurrency()
                 entries.sort {
                     if $0.currency == defaultCurrency && $1.currency != defaultCurrency {
                         return true
@@ -323,7 +340,7 @@ final class PersonalLedgerHomeViewModel: ObservableObject {
                 }
             }
             if entries.isEmpty {
-                let defaultCurrency = store.preferences.primaryDisplayCurrency
+                let defaultCurrency = store.safePrimaryDisplayCurrency()
                 entries = [PersonalOverviewEntry(currency: defaultCurrency,
                                                  expenseMinorUnits: 0,
                                                  incomeMinorUnits: 0)]
@@ -399,7 +416,7 @@ final class PersonalLedgerHomeViewModel: ObservableObject {
         if let cached = totalsByMonth[month] {
             return (cached.expenseMinorUnits, cached.incomeMinorUnits)
         }
-        let result = try store.monthlyTotals(for: month.date, includeFees: store.preferences.countFeeInStats)
+        let result = try store.monthlyTotals(for: month.date, includeFees: store.safeCountFeeInStats())
         totalsByMonth[month] = PersonalMonthlyTotals(expenseMinorUnits: result.expense, incomeMinorUnits: result.income)
         return result
     }
@@ -518,15 +535,30 @@ final class PersonalRecordFormViewModel: ObservableObject {
         if let account = currentAccount() {
             value = defaultFXRate(for: account)
         } else {
-            value = store.preferences.defaultFXRate ?? 1
+            value = store.safeDefaultFXRate() ?? 1
         }
         let string = NSDecimalNumber(decimal: value).stringValue
         return L.personalFXPlaceholder.localized(string)
     }
     var feePlaceholder: String {
-        let value = store.preferences.defaultConversionFee ?? 0
+        let value = store.safeDefaultConversionFee() ?? 0
         let string = NSDecimalNumber(decimal: value).stringValue
         return L.personalFeePlaceholder.localized(string)
+    }
+
+    // 汇率方向信息，例如："1 CNY = 0.14 USD"，当无法解析汇率时显示问号
+    var fxInfoText: String {
+        guard showFXField, let account = currentAccount() else { return "" }
+        let from = amountCurrency
+        let to = account.currency
+        let trimmed = fxRateText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let rateText: String
+        if let parsed = Decimal(string: trimmed), parsed > 0 {
+            rateText = NSDecimalNumber(decimal: parsed).stringValue
+        } else {
+            rateText = "?"
+        }
+        return L.personalTransferFXInfo.localized(from.rawValue, rateText, to.rawValue)
     }
 
     private let store: PersonalLedgerStore
@@ -545,12 +577,12 @@ final class PersonalRecordFormViewModel: ObservableObject {
             self.note = record.note
             self.amountCurrency = record.currency
         } else {
-            let defaultAccountId = store.preferences.lastUsedAccountId ?? store.activeAccounts.first?.remoteId
+            let defaultAccountId = store.safeLastUsedAccountId() ?? store.activeAccounts.first?.remoteId
             self.accountId = defaultAccountId
             if let account = store.activeAccounts.first(where: { $0.remoteId == defaultAccountId }) {
                 self.amountCurrency = account.currency
             } else {
-                self.amountCurrency = store.preferences.primaryDisplayCurrency
+                self.amountCurrency = store.safePrimaryDisplayCurrency()
             }
             updateDefaultCategory()
             self.amountText = ""
@@ -590,13 +622,13 @@ final class PersonalRecordFormViewModel: ObservableObject {
     }
 
     private func defaultFXRate(for account: PersonalAccount) -> Decimal {
-        if account.currency == store.preferences.primaryDisplayCurrency {
+        if account.currency == store.safePrimaryDisplayCurrency() {
             return 1
         }
-        if let stored = store.preferences.fxRates[account.currency], stored > 0 {
+        if let stored = store.safeFXRate(for: account.currency), stored > 0 {
             return stored
         }
-        if let fallback = store.preferences.defaultFXRate, fallback > 0 {
+        if let fallback = store.safeDefaultFXRate(), fallback > 0 {
             return fallback
         }
         return 1
@@ -622,6 +654,14 @@ final class PersonalRecordFormViewModel: ObservableObject {
             feeText = ""
             userSetCustomCurrency = false
         }
+    }
+
+    // 一键反转汇率：fxRateText = 1 / 当前值
+    func invertFXRate() {
+        let trimmed = fxRateText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let parsed = Decimal(string: trimmed), parsed > 0 else { return }
+        let inverted = 1 / parsed
+        fxRateText = NSDecimalNumber(decimal: inverted).stringValue
     }
 
     func submit() async -> Bool {
@@ -674,7 +714,7 @@ final class PersonalRecordFormViewModel: ObservableObject {
                                                  fxRate: fxRate)
             _ = try store.saveTransaction(input)
             if showFXField, feeValue > 0, editingRecord == nil {
-                let previousCategory = store.preferences.lastUsedCategoryKey
+            let previousCategory = store.safeLastUsedCategoryKey()
                 let feeNote: String
                 if note.isEmpty {
                     feeNote = L.personalConversionFeeNote.localized
@@ -683,7 +723,7 @@ final class PersonalRecordFormViewModel: ObservableObject {
                 }
                 let feeInput = PersonalTransactionInput(kind: .fee,
                                                         accountId: account.remoteId,
-                                                        categoryKey: store.preferences.defaultFeeCategoryKey ?? "fees",
+                                                        categoryKey: store.safeDefaultFeeCategoryKey() ?? "fees",
                                                         amount: feeValue,
                                                         occurredAt: occurredAt,
                                                         note: feeNote,
@@ -794,7 +834,7 @@ final class PersonalAccountsViewModel: ObservableObject {
         if totals.isEmpty {
             return []
         }
-        let primary = store.preferences.primaryDisplayCurrency
+        let primary = store.safePrimaryDisplayCurrency()
         return totals
             .map { PersonalNetWorthEntry(currency: $0.key, totalMinorUnits: $0.value) }
             .sorted {
@@ -875,7 +915,7 @@ final class PersonalTransferFormViewModel: ObservableObject {
     private let transferId: UUID?
 
     var accounts: [PersonalAccount] { store.activeAccounts }
-    private var defaultFeeValue: Decimal { store.preferences.defaultConversionFee ?? 0 }
+    private var defaultFeeValue: Decimal { store.safeDefaultConversionFee() ?? 0 }
     var fxRatePlaceholder: String {
         let value: Decimal
         if let account = currentFromAccount() {
@@ -889,6 +929,20 @@ final class PersonalTransferFormViewModel: ObservableObject {
     var feePlaceholder: String {
         let string = NSDecimalNumber(decimal: defaultFeeValue).stringValue
         return L.personalFeePlaceholder.localized(string)
+    }
+
+    // 汇率方向信息，例如："1 CNY = 0.14 USD"，当无法解析汇率时显示问号
+    var fxInfoText: String {
+        guard let from = currentFromAccount()?.currency,
+              let to = currentToAccount()?.currency else { return "" }
+        let trimmed = fxRateText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let rateText: String
+        if let parsed = Decimal(string: trimmed), parsed > 0 {
+            rateText = NSDecimalNumber(decimal: parsed).stringValue
+        } else {
+            rateText = "?"
+        }
+        return L.personalTransferFXInfo.localized(from.rawValue, rateText, to.rawValue)
     }
 
     init(store: PersonalLedgerStore, transferId: UUID? = nil) {
@@ -918,13 +972,13 @@ final class PersonalTransferFormViewModel: ObservableObject {
     }
 
     private func defaultFXRate(for account: PersonalAccount) -> Decimal {
-        if account.currency == store.preferences.primaryDisplayCurrency {
+        if account.currency == store.safePrimaryDisplayCurrency() {
             return 1
         }
-        if let stored = store.preferences.fxRates[account.currency], stored > 0 {
+        if let stored = store.safeFXRate(for: account.currency), stored > 0 {
             return stored
         }
-        if let fallback = store.preferences.defaultFXRate, fallback > 0 {
+        if let fallback = store.safeDefaultFXRate(), fallback > 0 {
             return fallback
         }
         return 1
@@ -938,6 +992,14 @@ final class PersonalTransferFormViewModel: ObservableObject {
     private func currentToAccount() -> PersonalAccount? {
         guard let toAccountId else { return nil }
         return store.account(with: toAccountId)
+    }
+
+    // 一键反转汇率：fxRateText = 1 / 当前值
+    func invertFXRate() {
+        let trimmed = fxRateText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let parsed = Decimal(string: trimmed), parsed > 0 else { return }
+        let inverted = 1 / parsed
+        fxRateText = NSDecimalNumber(decimal: inverted).stringValue
     }
 
     func submit() async -> Bool {
@@ -1167,37 +1229,213 @@ final class PersonalStatsViewModel: ObservableObject {
     @Published var anchorDate: Date = Date() { didSet { Task { await refresh() } } }
     @Published var includeFees: Bool = true { didSet { Task { await refresh() } } }
     @Published var selectedAccountIds: Set<UUID> = [] { didSet { Task { await refresh() } } }
+    @Published var selectedCurrency: CurrencyCode { didSet { Task { await refresh() } } }
     @Published private(set) var timeline: [PersonalStatsSeriesPoint] = []
     @Published private(set) var breakdown: [PersonalStatsCategoryShare] = []
+    @Published private(set) var structure: PersonalSpendingStructure?
+    @Published private(set) var expenseGrowthRate: Double?
+    @Published private(set) var insights: [CategoryTrendInsight] = []
+    @Published private(set) var availableCurrencies: [CurrencyCode] = []
     @Published var lastError: String?
 
     private let store: PersonalLedgerStore
 
     init(store: PersonalLedgerStore) {
         self.store = store
+        self.selectedCurrency = store.safePrimaryDisplayCurrency()
         Task { await refresh() }
     }
 
     func refresh() async {
         do {
             let range = dateRange()
-            let kinds: Set<PersonalTransactionKind> = includeFees ? [.income, .expense, .fee] : [.income, .expense]
-            let timelineMap = try store.timeline(for: range,
-                                                 kinds: kinds,
-                                                 accountIds: selectedAccountIds.isEmpty ? nil : selectedAccountIds)
-            let sortedDates = timelineMap.keys.sorted()
-            timeline = sortedDates.map { date in
-                let entry = timelineMap[date] ?? (income: 0, expense: 0)
-                return PersonalStatsSeriesPoint(date: date,
-                                                 incomeMinorUnits: entry.income,
-                                                 expenseMinorUnits: entry.expense)
+            // refresh available currencies from active accounts
+            let currencies = Array(Set(store.activeAccounts.map { $0.currency })).sorted { $0.rawValue < $1.rawValue }
+            availableCurrencies = currencies.isEmpty ? [store.safePrimaryDisplayCurrency()] : currencies
+            if !availableCurrencies.contains(selectedCurrency) {
+                selectedCurrency = availableCurrencies.first ?? store.safePrimaryDisplayCurrency()
             }
-            let breakdownMap = try store.categoryBreakdown(for: range,
-                                                            includeFees: includeFees,
-                                                            accountIds: selectedAccountIds.isEmpty ? nil : selectedAccountIds)
-            breakdown = breakdownMap.map { key, value in
-                PersonalStatsCategoryShare(categoryKey: key, amountMinorUnits: value)
-            }.sorted { $0.amountMinorUnits > $1.amountMinorUnits }
+
+            // Build timeline and breakdown for the selected currency only (no cross-currency conversion)
+            let calendar = Calendar.current
+            var filter = PersonalRecordFilter(dateRange: range,
+                                             kinds: includeFees ? [.income, .expense, .fee] : [.income, .expense],
+                                             accountIds: selectedAccountIds.isEmpty ? nil : selectedAccountIds,
+                                             categoryKeys: nil,
+                                             minimumAmountMinor: nil,
+                                             maximumAmountMinor: nil,
+                                             keyword: nil)
+            let all = try store.records(filter: filter)
+            // Filter by account currency
+            let txns = all.filter { tx in
+                guard let account = store.account(with: tx.accountId) else { return false }
+                return account.currency == selectedCurrency
+            }
+            // timeline
+            var daily: [Date: (income: Int, expense: Int)] = [:]
+            for t in txns {
+                let day = calendar.startOfDay(for: t.occurredAt)
+                var bucket = daily[day] ?? (0, 0)
+                switch t.kind {
+                case .income:
+                    bucket.income += t.amountMinorUnits
+                case .expense:
+                    bucket.expense += t.amountMinorUnits
+                case .fee:
+                    if includeFees { bucket.expense += t.amountMinorUnits }
+                }
+                daily[day] = bucket
+            }
+            let sortedDates = daily.keys.sorted()
+            timeline = sortedDates.map { d in
+                let e = daily[d] ?? (0, 0)
+                return PersonalStatsSeriesPoint(date: d, incomeMinorUnits: e.income, expenseMinorUnits: e.expense)
+            }
+            // breakdown for expenses (and fees if included)
+            var totals: [String: Int] = [:]
+            for t in txns {
+                switch t.kind {
+                case .income:
+                    continue
+                case .expense:
+                    totals[t.categoryKey, default: 0] += t.amountMinorUnits
+                case .fee:
+                    if includeFees { totals[t.categoryKey, default: 0] += t.amountMinorUnits }
+                }
+            }
+            breakdown = totals.map { PersonalStatsCategoryShare(categoryKey: $0.key, amountMinorUnits: $0.value) }
+                .sorted { $0.amountMinorUnits > $1.amountMinorUnits }
+
+            // Compute spending structure (essential vs discretionary)
+            let essentialKeys: Set<String> = [
+                "food", "transport", "accommodation", "utilities",
+                // legacy compatibility keys
+                "housing", "health", "education"
+            ]
+            var essentialTotal = 0
+            var discretionaryTotal = 0
+            for item in breakdown {
+                if essentialKeys.contains(item.categoryKey) {
+                    essentialTotal += item.amountMinorUnits
+                } else {
+                    discretionaryTotal += item.amountMinorUnits
+                }
+            }
+            structure = PersonalSpendingStructure(essentialMinorUnits: essentialTotal,
+                                                  discretionaryMinorUnits: discretionaryTotal)
+
+            // Compute expense growth rate (current vs previous period)
+            func previousRange(from r: ClosedRange<Date>, period: Period) -> ClosedRange<Date> {
+                let cal = Calendar.current
+                switch period {
+                case .month:
+                    let start = cal.date(byAdding: .month, value: -1, to: r.lowerBound) ?? r.lowerBound
+                    let end = cal.date(byAdding: .month, value: -1, to: r.upperBound) ?? r.upperBound
+                    return start...end
+                case .quarter:
+                    let start = cal.date(byAdding: .month, value: -3, to: r.lowerBound) ?? r.lowerBound
+                    let end = cal.date(byAdding: .month, value: -3, to: r.upperBound) ?? r.upperBound
+                    return start...end
+                case .year:
+                    let start = cal.date(byAdding: .year, value: -1, to: r.lowerBound) ?? r.lowerBound
+                    let end = cal.date(byAdding: .year, value: -1, to: r.upperBound) ?? r.upperBound
+                    return start...end
+                }
+            }
+            let prevRange = previousRange(from: range, period: period)
+            // compute previous expense sum for selected currency
+            filter = PersonalRecordFilter(dateRange: prevRange,
+                                          kinds: includeFees ? [.income, .expense, .fee] : [.income, .expense],
+                                          accountIds: selectedAccountIds.isEmpty ? nil : selectedAccountIds,
+                                          categoryKeys: nil,
+                                          minimumAmountMinor: nil,
+                                          maximumAmountMinor: nil,
+                                          keyword: nil)
+            let prevAll = try store.records(filter: filter)
+            let prevTxns = prevAll.filter { tx in
+                guard let account = store.account(with: tx.accountId) else { return false }
+                return account.currency == selectedCurrency
+            }
+            let currentExpense = timeline.reduce(0) { $0 + $1.expenseMinorUnits }
+            let prevExpense = prevTxns.reduce(0) { partial, t in
+                switch t.kind {
+                case .income: return partial
+                case .expense: return partial + t.amountMinorUnits
+                case .fee: return includeFees ? partial + t.amountMinorUnits : partial
+                }
+            }
+            expenseGrowthRate = prevExpense > 0 ? Double(currentExpense - prevExpense) / Double(prevExpense) : nil
+
+            // Build category trend insights over recent periods
+            func lastNRanges(_ n: Int, endingWith r: ClosedRange<Date>, period: Period) -> [ClosedRange<Date>] {
+                var result: [ClosedRange<Date>] = [r]
+                for _ in 1..<n {
+                    result.append(previousRange(from: result.last!, period: period))
+                }
+                return result.reversed()
+            }
+            let ranges = lastNRanges(6, endingWith: range, period: period)
+            // key -> series of shares across periods
+            var seriesPerCategory: [String: [Double]] = [:]
+            for r in ranges {
+                var f = PersonalRecordFilter(dateRange: r,
+                                             kinds: includeFees ? [.income, .expense, .fee] : [.income, .expense],
+                                             accountIds: selectedAccountIds.isEmpty ? nil : selectedAccountIds,
+                                             categoryKeys: nil,
+                                             minimumAmountMinor: nil,
+                                             maximumAmountMinor: nil,
+                                             keyword: nil)
+                let allR = try store.records(filter: f)
+                let txR = allR.filter { tx in
+                    guard let account = store.account(with: tx.accountId) else { return false }
+                    return account.currency == selectedCurrency
+                }
+                var map: [String: Int] = [:]
+                for t in txR {
+                    switch t.kind {
+                    case .income:
+                        continue
+                    case .expense:
+                        map[t.categoryKey, default: 0] += t.amountMinorUnits
+                    case .fee:
+                        if includeFees { map[t.categoryKey, default: 0] += t.amountMinorUnits }
+                    }
+                }
+                let total = map.values.reduce(0, +)
+                // padding zero for existing keys
+                for key in seriesPerCategory.keys {
+                    seriesPerCategory[key, default: []].append(0)
+                }
+                if total > 0 {
+                    for (key, val) in map {
+                        let share = Double(val) / Double(total)
+                        if var arr = seriesPerCategory[key] {
+                            arr.removeLast()
+                            arr.append(share)
+                            seriesPerCategory[key] = arr
+                        } else {
+                            let zeros = Array(repeating: 0.0, count: ranges.count - 1)
+                            seriesPerCategory[key] = zeros + [share]
+                        }
+                    }
+                }
+            }
+            var alerts: [CategoryTrendInsight] = []
+            for (key, series) in seriesPerCategory {
+                guard series.count >= 3 else { continue }
+                let last3 = Array(series.suffix(3))
+                // strict increasing with small epsilon
+                let eps = 0.0001
+                let inc = zip(last3, last3.dropFirst()).allSatisfy { ($1 - $0) > eps }
+                let streak = inc ? 3 : 0
+                if let last = series.last, let prev = series.dropLast().last, prev > 0 {
+                    let grow = (last - prev) / prev
+                    if streak >= 3 || grow >= 0.2 {
+                        alerts.append(CategoryTrendInsight(categoryKey: key, increasingStreak: streak, recentGrowthRate: grow))
+                    }
+                }
+            }
+            insights = alerts.sorted { ($0.increasingStreak, $0.recentGrowthRate) > ($1.increasingStreak, $1.recentGrowthRate) }
         } catch {
             lastError = error.localizedDescription
         }
@@ -1241,7 +1479,7 @@ final class PersonalLedgerSettingsViewModel: ObservableObject {
 
     init(store: PersonalLedgerStore) {
         self.store = store
-        let prefs = store.preferences
+        let prefs = store.getPreferences()
         primaryCurrency = prefs.primaryDisplayCurrency
         defaultFXPrecision = prefs.defaultFXPrecision
         defaultFXRateText = ""
@@ -1283,7 +1521,7 @@ final class PersonalLedgerSettingsViewModel: ObservableObject {
     }
 
     func reloadFromStore() {
-        applyPreferences(store.preferences)
+        applyPreferences(store.getPreferences())
     }
 
     private func applyPreferences(_ prefs: PersonalPreferences) {

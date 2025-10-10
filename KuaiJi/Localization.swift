@@ -247,6 +247,13 @@ enum L {
     static let personalStatsMonth = "personal.stats.month"
     static let personalStatsQuarter = "personal.stats.quarter"
     static let personalStatsYear = "personal.stats.year"
+    static let personalStatsStructureTitle = "personal.stats.structureTitle"
+    static let personalStatsEssential = "personal.stats.essential"
+    static let personalStatsDiscretionary = "personal.stats.discretionary"
+    static let personalStatsExpenseGrowth = "personal.stats.expenseGrowth"
+    static let personalStatsInsightsTitle = "personal.stats.insightsTitle"
+    static let personalStatsInsightStreak = "personal.stats.insight.streak"
+    static let personalStatsInsightRecentGrowth = "personal.stats.insight.recentGrowth"
     static let personalSettingsTitle = "personal.settings.title"
     static let personalPrimaryCurrency = "personal.primaryCurrency"
     static let personalFXSource = "personal.fxSource"
@@ -263,6 +270,9 @@ enum L {
     static let personalTransferTitle = "personal.transfer.title"
     static let personalTransferDirection = "personal.transfer.direction"
     static let personalTransferDirectionTitle = "personal.transfer.directionTitle"
+    static let personalTransferInvert = "personal.transfer.invert"
+    static let personalTransferFeeHint = "personal.transfer.feeHint"
+    static let personalTransferFXInfo = "personal.transfer.fxInfo"
     static let personalConversionFeeNote = "personal.conversionFeeNote"
     static let personalExportHint = "personal.export.hint"
     static let personalClearHint = "personal.clear.hint"
@@ -418,6 +428,12 @@ enum L {
     static let syncErrorPreparing = "sync.errorPreparing"
     static let syncErrorEncoding = "sync.errorEncoding"
     static let syncErrorInvalidData = "sync.errorInvalidData"
+
+    // 全量抹除
+    static let eraseAllData = "eraseAllData"
+    static let eraseAllDataWarning = "eraseAllData.warning"
+    static let eraseAllConfirmTitle = "eraseAllData.confirmTitle"
+    static let eraseAllConfirmMessage = "eraseAllData.confirmMessage"
     
     // 欢迎引导
     static let guideWelcomeTitle = "guide.welcome.title"

@@ -82,6 +82,13 @@ final class SettingsScreenModel: ObservableObject, SettingsViewModelProtocol {
     func clearAllData() {
         root?.clearAllData()
     }
+
+    func eraseAbsolutelyAll() {
+        guard let manager = root?.dataManager else { return }
+        manager.eraseAbsolutelyAllDataAndPreferences()
+        // 通知 AppState 重新检查首次设置和引导
+        root?.notifyEraseAll()
+    }
     
     func getCurrentUser() -> UserProfile? {
         return root?.dataManager?.currentUser
