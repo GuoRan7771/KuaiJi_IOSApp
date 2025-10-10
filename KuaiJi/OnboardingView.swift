@@ -91,9 +91,9 @@ struct OnboardingView: View {
                                 .font(.headline)
                             
                             Picker(L.onboardingCurrencyPicker.localized, selection: $selectedCurrency) {
-                                Text("¥ CNY").tag(CurrencyCode.cny)
-                                Text("$ USD").tag(CurrencyCode.usd)
-                                Text("€ EUR").tag(CurrencyCode.eur)
+                                Text(L.onboardingCurrencyCNY.localized).tag(CurrencyCode.cny)
+                                Text(L.onboardingCurrencyUSD.localized).tag(CurrencyCode.usd)
+                                Text(L.onboardingCurrencyEUR.localized).tag(CurrencyCode.eur)
                             }
                             .pickerStyle(.segmented)
                             .padding(.horizontal)
@@ -159,10 +159,8 @@ struct OnboardingView: View {
                         .padding(.bottom, 40)
                 }
             }
-            .contentShape(Rectangle())
-            .onTapGesture {
-                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-            }
+            .scrollDismissesKeyboard(.interactively)
+            .dismissKeyboardOnTap()
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {

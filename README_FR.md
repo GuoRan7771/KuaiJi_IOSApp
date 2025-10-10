@@ -65,6 +65,13 @@ offrant une expérience de partage *« pseudo-décentralisée »*.
 
 ## Mises à jour récentes
 
+### Grande mise à jour (2025-10-10)
+
+ - Nouveau Ledger personnel : comptes/écritures/statistiques/virement interne, export CSV et effacement
+ - Réglages mis à jour : paramètres du ledger personnel, page par défaut de l’onglet partagé
+ - Ajustements UI 
+ - Actions rapides : raccourci vers le ledger personnel
+
 ### Changement d’interface du compte partagé (2025-10-06)
 
 Toutes les informations sur une seule page  

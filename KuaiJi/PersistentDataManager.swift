@@ -634,6 +634,7 @@ class PersistentDataManager: ObservableObject {
     // MARK: - 清除所有数据
     
     func clearAllData() {
+        let ownerId = currentUser?.remoteId
         // 删除所有账本（级联删除会处理相关数据）
         let ledgerDescriptor = FetchDescriptor<Ledger>()
         if let allLedgers = try? modelContext.fetch(ledgerDescriptor) {
@@ -642,42 +643,40 @@ class PersistentDataManager: ObservableObject {
             }
         }
         
-        // 删除所有用户（包括当前用户和朋友）
-        let userDescriptor = FetchDescriptor<UserProfile>()
-        if let allUsers = try? modelContext.fetch(userDescriptor) {
-            for user in allUsers {
-                modelContext.delete(user)
+        // 删除所有朋友信息（保留当前用户资料）
+        if let ownerId {
+            let friendDescriptor = FetchDescriptor<UserProfile>(
+                predicate: #Predicate<UserProfile> { user in
+                    user.remoteId != ownerId
+                }
+            )
+            if let friends = try? modelContext.fetch(friendDescriptor) {
+                for friend in friends {
+                    modelContext.delete(friend)
+                }
             }
         }
         
         try? modelContext.save()
         
-        // 重置首次设置标记
-        UserDefaults.standard.set(false, forKey: hasCompletedOnboardingKey)
-        
-        // 清空内存中的数据
-        currentUser = nil
-        allLedgers = []
-        allFriends = []
+        // 重新加载数据以更新内存状态
+        loadData()
     }
     
     // MARK: - 数据导出/导入
     
-    /// 导出所有数据到 JSON 文件
-    func exportAllData() -> URL? {
+    func exportSnapshot() -> ExportData? {
         guard let currentUser = currentUser else { return nil }
-        
-        // 获取所有数据
+
         let allUsersDescriptor = FetchDescriptor<UserProfile>()
         let allLedgersDescriptor = FetchDescriptor<Ledger>()
-        
+
         guard let users = try? modelContext.fetch(allUsersDescriptor),
               let ledgers = try? modelContext.fetch(allLedgersDescriptor) else {
             return nil
         }
-        
-        // 创建导出数据结构
-        let exportData = ExportData(
+
+        return ExportData(
             version: "1.0",
             exportDate: Date(),
             currentUserId: currentUser.remoteId,
@@ -685,21 +684,24 @@ class PersistentDataManager: ObservableObject {
             users: users.map { ExportUserProfile(from: $0) },
             ledgers: ledgers.map { ExportLedger(from: $0) }
         )
-        
-        // 转换为 JSON
+    }
+
+    /// 导出所有数据到 JSON 文件
+    func exportAllData() -> URL? {
+        guard let exportData = exportSnapshot() else { return nil }
+
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        
+
         guard let jsonData = try? encoder.encode(exportData) else {
             return nil
         }
-        
-        // 保存到临时文件
+
         let timestamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
         let filename = "KuaiJi_Backup_\(timestamp).json"
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
-        
+
         do {
             try jsonData.write(to: tempURL)
             return tempURL
@@ -709,20 +711,9 @@ class PersistentDataManager: ObservableObject {
         }
     }
     
-    /// 从 JSON 文件导入所有数据
-    func importAllData(from url: URL) throws {
-        // 读取文件
-        let jsonData = try Data(contentsOf: url)
-        
-        // 解码数据
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        let importData = try decoder.decode(ExportData.self, from: jsonData)
-        
-        // 清空现有数据
+    func importSharedData(_ importData: ExportData) throws {
         clearAllDataWithoutResettingOnboarding()
-        
-        // 导入用户数据
+
         var userMapping: [UUID: UserProfile] = [:]
         for exportUser in importData.users {
             let user = UserProfile(
@@ -737,14 +728,12 @@ class PersistentDataManager: ObservableObject {
             )
             modelContext.insert(user)
             userMapping[exportUser.remoteId] = user
-            
-            // 设置当前用户
+
             if exportUser.remoteId == importData.currentUserId {
                 currentUser = user
             }
         }
-        
-        // 导入账本和相关数据
+
         for exportLedger in importData.ledgers {
             let ledger = Ledger(
                 remoteId: exportLedger.remoteId,
@@ -756,8 +745,7 @@ class PersistentDataManager: ObservableObject {
                 settings: exportLedger.settings
             )
             modelContext.insert(ledger)
-            
-            // 导入成员关系
+
             for exportMembership in exportLedger.memberships {
                 let membership = Membership(
                     remoteId: exportMembership.remoteId,
@@ -769,9 +757,7 @@ class PersistentDataManager: ObservableObject {
                 )
                 modelContext.insert(membership)
             }
-            
-            // 导入支出记录
-            var expenseMapping: [UUID: Expense] = [:]
+
             for exportExpense in exportLedger.expenses {
                 let expense = Expense(
                     remoteId: exportExpense.remoteId,
@@ -791,9 +777,7 @@ class PersistentDataManager: ObservableObject {
                     isSettlement: exportExpense.isSettlement ?? false
                 )
                 modelContext.insert(expense)
-                expenseMapping[exportExpense.remoteId] = expense
-                
-                // 导入参与者
+
                 for exportParticipant in exportExpense.participants {
                     let participant = ExpenseParticipant(
                         remoteId: exportParticipant.remoteId,
@@ -807,17 +791,25 @@ class PersistentDataManager: ObservableObject {
                 }
             }
         }
-        
-        // 保存数据
+
         try modelContext.save()
-        
-        // 恢复设置
+
         if importData.hasCompletedOnboarding {
             UserDefaults.standard.set(true, forKey: hasCompletedOnboardingKey)
         }
-        
-        // 重新加载数据
+
         loadData()
+    }
+    
+    /// 从 JSON 文件导入所有数据
+    func importAllData(from url: URL) throws {
+        // 读取文件
+        let jsonData = try Data(contentsOf: url)
+        
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let importData = try decoder.decode(ExportData.self, from: jsonData)
+        try importSharedData(importData)
     }
     
     /// 清空所有数据但不重置 onboarding 标记（用于导入前清理）
@@ -869,10 +861,58 @@ class PersistentDataManager: ObservableObject {
         if let items = try? modelContext.fetch(userProfileDesc) {
             for item in items { modelContext.delete(item) }
         }
+
+        // 个人账本相关：删除 PersonalTransaction
+        let pTxDesc = FetchDescriptor<PersonalTransaction>()
+        if let items = try? modelContext.fetch(pTxDesc) {
+            for item in items { modelContext.delete(item) }
+        }
+        // 删除 AccountTransfer
+        let pTransferDesc = FetchDescriptor<AccountTransfer>()
+        if let items = try? modelContext.fetch(pTransferDesc) {
+            for item in items { modelContext.delete(item) }
+        }
+        // 删除 PersonalAccount
+        let pAccountDesc = FetchDescriptor<PersonalAccount>()
+        if let items = try? modelContext.fetch(pAccountDesc) {
+            for item in items { modelContext.delete(item) }
+        }
+        // 删除 PersonalPreferences（将由首次访问时自动重建）
+        let pPrefsDesc = FetchDescriptor<PersonalPreferences>()
+        if let items = try? modelContext.fetch(pPrefsDesc) {
+            for item in items { modelContext.delete(item) }
+        }
         
         try? modelContext.save()
         
         // 清空内存
+        currentUser = nil
+        allLedgers = []
+        allFriends = []
+    }
+
+    /// 彻底抹除应用的所有数据与偏好设置（共享账本、朋友、个人账本与所有设置）
+    func eraseAbsolutelyAllDataAndPreferences() {
+        // 1) 清空数据库所有实体
+        clearAllDataWithoutResettingOnboarding()
+        
+        // 2) 重置所有与功能相关的用户偏好与标记
+        let defaults = UserDefaults.standard
+        let keysToReset: [String] = [
+            hasCompletedOnboardingKey,              // 首次设置完成标记
+            "hasSeenWelcomeGuide",                // 欢迎引导已查看
+            "defaultLedgerIdForQuickAction",      // 旧版默认账本ID
+            "defaultQuickActionTarget",           // 快速操作目标
+            "showSharedLedgerTab",                // Tab 显示偏好
+            "showPersonalLedgerTab",
+            "sharedLandingPref",                  // 共享账本落地页偏好
+            "SuppressSyncWarning",                // 同步警告不再提示
+            "com.kuaiji.shortcut.pendingQuickAdd" // 快捷指令挂起标记
+        ]
+        for key in keysToReset { defaults.removeObject(forKey: key) }
+        defaults.synchronize()
+        
+        // 3) 内存态复位
         currentUser = nil
         allLedgers = []
         allFriends = []
@@ -888,6 +928,39 @@ struct ExportData: Codable {
     let hasCompletedOnboarding: Bool
     let users: [ExportUserProfile]
     let ledgers: [ExportLedger]
+}
+
+struct FeatureVisibilitySnapshot: Codable {
+    let showSharedAndFriends: Bool
+    let showPersonal: Bool
+    private let quickActionIdentifier: String?
+
+    init(showSharedAndFriends: Bool, showPersonal: Bool, quickAction: QuickActionTarget?) {
+        self.showSharedAndFriends = showSharedAndFriends
+        self.showPersonal = showPersonal
+        switch quickAction {
+        case .personal:
+            quickActionIdentifier = "personal"
+        case .shared(let id):
+            quickActionIdentifier = id.uuidString
+        case .none:
+            quickActionIdentifier = nil
+        }
+    }
+
+    func quickActionTarget() -> QuickActionTarget? {
+        guard let value = quickActionIdentifier, !value.isEmpty else { return nil }
+        if value == "personal" { return .personal }
+        if let uuid = UUID(uuidString: value) { return .shared(uuid) }
+        return nil
+    }
+}
+
+struct FullAppExportData: Codable {
+    let version: String
+    let shared: ExportData
+    let personal: PersonalLedgerSnapshot
+    let visibility: FeatureVisibilitySnapshot
 }
 
 struct ExportUserProfile: Codable {
@@ -1001,4 +1074,3 @@ struct ExportExpenseParticipant: Codable {
         self.shareValue = participant.shareValue
     }
 }
-

@@ -32,8 +32,14 @@ private enum DeepLinkParser {
 struct KuaiJiApp: App {
     @StateObject private var rootViewModel = AppRootViewModel()
     @StateObject private var appState = AppState()
+    @StateObject private var personalLedgerRoot: PersonalLedgerRootViewModel
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
+    init() {
+        let container = sharedModelContainer
+        _personalLedgerRoot = StateObject(wrappedValue: PersonalLedgerRootViewModel(modelContext: container.mainContext, defaultCurrency: .cny))
+    }
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             UserProfile.self,
@@ -43,7 +49,11 @@ struct KuaiJiApp: App {
             ExpenseParticipant.self,
             BalanceSnapshot.self,
             TransferPlan.self,
-            AuditLog.self
+            AuditLog.self,
+            PersonalAccount.self,
+            PersonalTransaction.self,
+            AccountTransfer.self,
+            PersonalPreferences.self
         ])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         do {
@@ -76,17 +86,19 @@ struct KuaiJiApp: App {
                     }
                 } else {
                     // 显示主界面
-                    ContentView(viewModel: rootViewModel)
+                    ContentView(viewModel: rootViewModel, personalLedgerRoot: personalLedgerRoot)
                         .environmentObject(appState)
                 }
             }
             .onAppear {
+                KeyboardDismissInstaller.installIfNeeded()
                 // 设置 AppDelegate 的 appState 引用
                 AppDelegate.appState = appState
                 
                 if appState.dataManager == nil {
                     let manager = PersistentDataManager(modelContext: sharedModelContainer.mainContext)
                     appState.dataManager = manager
+                    rootViewModel.bind(appState: appState)
                     
                     // 检查引导和设置状态
                     appState.checkOnboardingStatus()
@@ -94,6 +106,11 @@ struct KuaiJiApp: App {
                     // 如果已完成设置，加载数据
                     if !appState.showOnboarding && !appState.showWelcomeGuide {
                         rootViewModel.setDataManager(manager)
+                        if let currency = manager.currentUser?.currency {
+                            try? personalLedgerRoot.store.updatePreferences { prefs in
+                                prefs.primaryDisplayCurrency = currency
+                            }
+                        }
                         // 刷新 Quick Actions
                         appState.refreshQuickActions()
                     }
@@ -128,16 +145,78 @@ struct KuaiJiApp: App {
 }
 
 // MARK: - App State
+enum QuickActionTarget: Equatable {
+    case shared(UUID)
+    case personal
+}
+
+enum SharedLandingPreference: Equatable {
+    case list
+    case ledger(UUID)
+}
+
 @MainActor
 class AppState: ObservableObject {
     @Published var dataManager: PersistentDataManager?
-    @Published var showOnboarding = false
-    @Published var showWelcomeGuide = false
-    @Published var isCheckingOnboarding = true
-    @Published var quickActionLedgerId: UUID?  // Quick Action 触发时要打开的账本ID
+    @Published var showOnboarding: Bool
+    @Published var showWelcomeGuide: Bool
+    @Published var isCheckingOnboarding: Bool
+    @Published var quickActionTarget: QuickActionTarget?
+    @Published var showSharedLedgerTab: Bool {
+        didSet { UserDefaults.standard.set(showSharedLedgerTab, forKey: showSharedLedgerKey) }
+    }
+    @Published var showPersonalLedgerTab: Bool {
+        didSet { UserDefaults.standard.set(showPersonalLedgerTab, forKey: showPersonalLedgerKey) }
+    }
+    // 当选择共享账本 Tab 时触发，用于根据偏好进行页面导航
+    @Published var sharedTabActivateAt: Date?
     
     private let hasSeenWelcomeGuideKey = "hasSeenWelcomeGuide"
     private let defaultLedgerIdKey = "defaultLedgerIdForQuickAction"
+    private let defaultQuickActionKey = "defaultQuickActionTarget"
+    private let showSharedLedgerKey = "showSharedLedgerTab"
+    private let showPersonalLedgerKey = "showPersonalLedgerTab"
+    private let sharedLandingPrefKey = "sharedLandingPref"
+    
+    init() {
+        dataManager = nil
+        showOnboarding = false
+        showWelcomeGuide = false
+        isCheckingOnboarding = true
+        quickActionTarget = nil
+        let defaults = UserDefaults.standard
+        defaults.register(defaults: [
+            showSharedLedgerKey: true,
+            showPersonalLedgerKey: true
+        ])
+        showSharedLedgerTab = defaults.bool(forKey: showSharedLedgerKey)
+        showPersonalLedgerTab = defaults.bool(forKey: showPersonalLedgerKey)
+    }
+
+    // MARK: - 共享账本默认页面偏好
+
+    func getSharedLandingPreference() -> SharedLandingPreference {
+        let stored = UserDefaults.standard.string(forKey: sharedLandingPrefKey) ?? "list"
+        if stored == "list" { return .list }
+        if let id = UUID(uuidString: stored) { return .ledger(id) }
+        return .list
+    }
+
+    func setSharedLandingPreference(_ pref: SharedLandingPreference) {
+        let defaults = UserDefaults.standard
+        switch pref {
+        case .list:
+            defaults.set("list", forKey: sharedLandingPrefKey)
+        case .ledger(let id):
+            defaults.set(id.uuidString, forKey: sharedLandingPrefKey)
+        }
+        objectWillChange.send()
+    }
+
+    /// 请求在切换到共享账本标签时，根据偏好导航到指定页面
+    func requestSharedTabLandingActivation() {
+        sharedTabActivateAt = Date()
+    }
     
     func checkOnboardingStatus() {
         if let manager = dataManager {
@@ -162,27 +241,44 @@ class AppState: ObservableObject {
     
     // MARK: - Quick Action 支持
     
-    /// 获取默认账本ID
-    func getDefaultLedgerId() -> UUID? {
-        guard let uuidString = UserDefaults.standard.string(forKey: defaultLedgerIdKey),
-              let uuid = UUID(uuidString: uuidString) else {
-            return nil
+    /// 获取 Quick Action 目标
+    func getQuickActionTarget() -> QuickActionTarget? {
+        let defaults = UserDefaults.standard
+        if let stored = defaults.string(forKey: defaultQuickActionKey), !stored.isEmpty {
+            if stored == "personal" {
+                return .personal
+            }
+            if let uuid = UUID(uuidString: stored) {
+                return .shared(uuid)
+            }
         }
-        return uuid
+        // 向后兼容旧版本仅存储共享账本 ID 的情况
+        if let legacy = defaults.string(forKey: defaultLedgerIdKey), let uuid = UUID(uuidString: legacy) {
+            return .shared(uuid)
+        }
+        return nil
     }
     
-    /// 设置默认账本ID
-    func setDefaultLedgerId(_ ledgerId: UUID?) {
-        if let ledgerId = ledgerId {
-            UserDefaults.standard.set(ledgerId.uuidString, forKey: defaultLedgerIdKey)
+    /// 设置 Quick Action 目标
+    func setQuickActionTarget(_ target: QuickActionTarget?) {
+        let defaults = UserDefaults.standard
+        switch target {
+        case .shared(let ledgerId):
+            defaults.set(ledgerId.uuidString, forKey: defaultQuickActionKey)
+            defaults.set(ledgerId.uuidString, forKey: defaultLedgerIdKey)
             print("✅ 默认账本已设置: \(ledgerId.uuidString)")
             updateQuickActions()
-        } else {
-            UserDefaults.standard.removeObject(forKey: defaultLedgerIdKey)
+        case .personal:
+            defaults.set("personal", forKey: defaultQuickActionKey)
+            defaults.removeObject(forKey: defaultLedgerIdKey)
+            print("✅ 默认账本已设置为个人账本")
+            updateQuickActions()
+        case .none:
+            defaults.removeObject(forKey: defaultQuickActionKey)
+            defaults.removeObject(forKey: defaultLedgerIdKey)
             print("✅ 默认账本已清除")
             clearQuickActions()
         }
-        // 触发 UI 更新
         objectWillChange.send()
     }
     
@@ -190,9 +286,9 @@ class AppState: ObservableObject {
     func handleQuickAction(_ type: String) {
         print("🚀 收到 Quick Action: \(type)")
         if type == QuickActionType.quickAddExpense.rawValue {
-            let ledgerId = getDefaultLedgerId()
-            print("📱 设置 quickActionLedgerId: \(ledgerId?.uuidString ?? "nil")")
-            quickActionLedgerId = ledgerId
+            let target = getQuickActionTarget()
+            print("📱 设置 quickActionTarget: \(String(describing: target))")
+            quickActionTarget = target
         }
     }
 
@@ -208,34 +304,44 @@ class AppState: ObservableObject {
     
     /// 更新动态 Quick Actions
     private func updateQuickActions() {
-        guard let ledgerId = getDefaultLedgerId() else {
-            print("⚠️ 未设置默认账本ID")
+        guard let target = getQuickActionTarget() else {
+            print("⚠️ 未设置默认账本")
             clearQuickActions()
             return
         }
-        
-        guard let manager = dataManager else {
-            print("⚠️ DataManager 未初始化")
-            clearQuickActions()
-            return
+
+        var subtitle = ""
+
+        switch target {
+        case .shared(let ledgerId):
+            guard let manager = dataManager else {
+                print("⚠️ DataManager 未初始化")
+                clearQuickActions()
+                return
+            }
+
+            guard let ledger = manager.allLedgers.first(where: { $0.remoteId == ledgerId }) else {
+                print("⚠️ 找不到账本: \(ledgerId.uuidString)")
+                let available = manager.allLedgers.map { "\($0.name) (\($0.remoteId.uuidString))" }.joined(separator: ", ")
+                print("📋 可用账本: \(available)")
+                clearQuickActions()
+                return
+            }
+
+            subtitle = ledger.name
+        case .personal:
+            subtitle = L.quickActionPersonalSubtitle.localized
         }
-        
-        guard let ledger = manager.allLedgers.first(where: { $0.remoteId == ledgerId }) else {
-            print("⚠️ 找不到账本: \(ledgerId.uuidString)")
-            print("📋 可用账本: \(manager.allLedgers.map { "\($0.name) (\($0.remoteId.uuidString))" }.joined(separator: ", "))")
-            clearQuickActions()
-            return
-        }
-        
+
         let quickAddAction = UIApplicationShortcutItem(
             type: QuickActionType.quickAddExpense.rawValue,
             localizedTitle: L.quickActionAddExpense.localized,
-            localizedSubtitle: ledger.name,
+            localizedSubtitle: subtitle,
             icon: UIApplicationShortcutIcon(systemImageName: "plus.circle.fill")
         )
-        
+
         UIApplication.shared.shortcutItems = [quickAddAction]
-        print("✅ Quick Action 已更新: \(ledger.name)")
+        print("✅ Quick Action 已更新: \(subtitle)")
     }
     
     /// 清除 Quick Actions
@@ -245,7 +351,7 @@ class AppState: ObservableObject {
     
     /// 当数据加载后刷新 Quick Actions
     func refreshQuickActions() {
-        if getDefaultLedgerId() != nil {
+        if getQuickActionTarget() != nil {
             updateQuickActions()
         }
     }

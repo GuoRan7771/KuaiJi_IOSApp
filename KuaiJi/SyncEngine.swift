@@ -135,6 +135,8 @@ struct SyncEngine {
         return SyncPackage(
             senderUserId: currentUserId,
             senderName: currentUser.name,
+            senderAvatarEmoji: currentUser.avatarEmoji,
+            senderCurrency: currentUser.currency,
             timestamp: Date(),
             ledgers: syncLedgers
         )
@@ -152,6 +154,22 @@ struct SyncEngine {
         
         guard let currentUser = dataManager.currentUser else {
             return result
+        }
+
+        // 0. 与发送方互加/更新好友（如果不是自己）
+        if syncPackage.senderUserId != currentUser.userId {
+            let senderExists = dataManager.allFriends.contains { $0.userId == syncPackage.senderUserId }
+            // 使用对方提供的资料；若缺失币种则回退为本机当前用户币种
+            let senderCurrency = syncPackage.senderCurrency ?? currentUser.currency
+            let didAddOrUpdate = dataManager.addFriendFromQRCode(
+                userId: syncPackage.senderUserId,
+                name: syncPackage.senderName,
+                emoji: syncPackage.senderAvatarEmoji,
+                currency: senderCurrency
+            )
+            if didAddOrUpdate && !senderExists {
+                result.addedFriends += 1
+            }
         }
         
         for syncLedger in syncPackage.ledgers {
@@ -176,20 +194,16 @@ struct SyncEngine {
                 // 检查朋友是否已存在（基于 userId）
                 let friendExists = dataManager.allFriends.contains { $0.userId == member.userId }
                 
-                if !friendExists {
-                    // 添加朋友
-                    let success = dataManager.addFriendFromQRCode(
-                        userId: member.userId,
-                        name: member.name,
-                        emoji: member.avatarEmoji,
-                        currency: member.currency
-                    )
-                    if success {
-                        result.addedFriends += 1
-                        friendsAdded = true
-                    } else {
-                    }
-                } else {
+                // 无论是否已存在，都调用带更新逻辑的方法；存在则更新资料，不存在则新增
+                let didAddOrUpdate = dataManager.addFriendFromQRCode(
+                    userId: member.userId,
+                    name: member.name,
+                    emoji: member.avatarEmoji,
+                    currency: member.currency
+                )
+                if didAddOrUpdate && !friendExists {
+                    result.addedFriends += 1
+                    friendsAdded = true
                 }
             }
             

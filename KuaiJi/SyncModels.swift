@@ -10,9 +10,12 @@ import Foundation
 // MARK: - 同步数据包
 
 struct SyncPackage: Codable {
-    var version: String = "1.0"
+    var version: String = "1.1"
     var senderUserId: String  // 发送方的唯一用户ID
     var senderName: String    // 发送方姓名（用于显示）
+    // 新增：发送方资料（可选，兼容旧版本）
+    var senderAvatarEmoji: String? = nil
+    var senderCurrency: CurrencyCode? = nil
     var timestamp: Date
     var ledgers: [SyncLedger]
 }
