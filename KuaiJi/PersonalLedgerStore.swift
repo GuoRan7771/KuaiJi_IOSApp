@@ -45,6 +45,135 @@ enum PersonalLedgerError: LocalizedError {
     }
 }
 
+// MARK: - Export Snapshot Models
+
+struct PersonalLedgerSnapshot: Codable {
+    struct Preferences: Codable {
+        var primaryDisplayCurrency: CurrencyCode
+        var fxSource: PersonalFXSource
+        var defaultFXRate: Decimal?
+        var fxRates: [CurrencyCode: Decimal]
+        var defaultFXPrecision: Int
+        var countFeeInStats: Bool
+        var lastUsedAccountId: UUID?
+        var lastUsedCategoryKey: String?
+        var defaultFeeCategoryKey: String?
+        var defaultConversionFee: Decimal?
+        var lastBackupAt: Date?
+
+        init(from preferences: PersonalPreferences) {
+            self.primaryDisplayCurrency = preferences.primaryDisplayCurrency
+            self.fxSource = preferences.fxSource
+            self.defaultFXRate = preferences.defaultFXRate
+            self.fxRates = preferences.fxRates
+            self.defaultFXPrecision = preferences.defaultFXPrecision
+            self.countFeeInStats = preferences.countFeeInStats
+            self.lastUsedAccountId = preferences.lastUsedAccountId
+            self.lastUsedCategoryKey = preferences.lastUsedCategoryKey
+            self.defaultFeeCategoryKey = preferences.defaultFeeCategoryKey
+            self.defaultConversionFee = preferences.defaultConversionFee
+            self.lastBackupAt = preferences.lastBackupAt
+        }
+    }
+
+    struct Account: Codable {
+        var remoteId: UUID
+        var name: String
+        var type: PersonalAccountType
+        var currency: CurrencyCode
+        var includeInNetWorth: Bool
+        var balanceMinorUnits: Int
+        var note: String?
+        var status: PersonalAccountStatus
+        var creditLimitMinorUnits: Int?
+        var createdAt: Date
+        var updatedAt: Date
+
+        init(from account: PersonalAccount) {
+            self.remoteId = account.remoteId
+            self.name = account.name
+            self.type = account.type
+            self.currency = account.currency
+            self.includeInNetWorth = account.includeInNetWorth
+            self.balanceMinorUnits = account.balanceMinorUnits
+            self.note = account.note
+            self.status = account.status
+            self.creditLimitMinorUnits = account.creditLimitMinorUnits
+            self.createdAt = account.createdAt
+            self.updatedAt = account.updatedAt
+        }
+    }
+
+    struct Transaction: Codable {
+        var remoteId: UUID
+        var kind: PersonalTransactionKind
+        var accountId: UUID
+        var categoryKey: String
+        var amountMinorUnits: Int
+        var occurredAt: Date
+        var note: String
+        var attachmentPath: String?
+        var createdAt: Date
+        var updatedAt: Date
+        var displayCurrency: CurrencyCode?
+        var fxRate: Decimal?
+
+        init(from transaction: PersonalTransaction) {
+            self.remoteId = transaction.remoteId
+            self.kind = transaction.kind
+            self.accountId = transaction.accountId
+            self.categoryKey = transaction.categoryKey
+            self.amountMinorUnits = transaction.amountMinorUnits
+            self.occurredAt = transaction.occurredAt
+            self.note = transaction.note
+            self.attachmentPath = transaction.attachmentPath
+            self.createdAt = transaction.createdAt
+            self.updatedAt = transaction.updatedAt
+            self.displayCurrency = transaction.displayCurrency
+            self.fxRate = transaction.fxRate
+        }
+    }
+
+    struct Transfer: Codable {
+        var remoteId: UUID
+        var fromAccountId: UUID
+        var toAccountId: UUID
+        var amountFromMinorUnits: Int
+        var fxRate: Decimal
+        var amountToMinorUnits: Int
+        var feeMinorUnits: Int?
+        var feeCurrency: CurrencyCode?
+        var feeChargedOn: PersonalTransferFeeSide?
+        var occurredAt: Date
+        var note: String
+        var createdAt: Date
+        var updatedAt: Date
+        var feeTransactionId: UUID?
+
+        init(from transfer: AccountTransfer) {
+            self.remoteId = transfer.remoteId
+            self.fromAccountId = transfer.fromAccountId
+            self.toAccountId = transfer.toAccountId
+            self.amountFromMinorUnits = transfer.amountFromMinorUnits
+            self.fxRate = transfer.fxRate
+            self.amountToMinorUnits = transfer.amountToMinorUnits
+            self.feeMinorUnits = transfer.feeMinorUnits
+            self.feeCurrency = transfer.feeCurrency
+            self.feeChargedOn = transfer.feeChargedOn
+            self.occurredAt = transfer.occurredAt
+            self.note = transfer.note
+            self.createdAt = transfer.createdAt
+            self.updatedAt = transfer.updatedAt
+            self.feeTransactionId = transfer.feeTransactionId
+        }
+    }
+
+    var preferences: Preferences
+    var accounts: [Account]
+    var transactions: [Transaction]
+    var transfers: [Transfer]
+}
+
 struct PersonalAccountDraft {
     var id: UUID?
     var name: String
@@ -52,6 +181,7 @@ struct PersonalAccountDraft {
     var currency: CurrencyCode
     var includeInNetWorth: Bool
     var initialBalance: Decimal
+    var creditLimit: Decimal?
     var note: String?
     var status: PersonalAccountStatus
 
@@ -61,6 +191,7 @@ struct PersonalAccountDraft {
          currency: CurrencyCode = .cny,
          includeInNetWorth: Bool = true,
          initialBalance: Decimal = 0,
+         creditLimit: Decimal? = nil,
          note: String? = nil,
          status: PersonalAccountStatus = .active) {
         self.id = id
@@ -69,6 +200,7 @@ struct PersonalAccountDraft {
         self.currency = currency
         self.includeInNetWorth = includeInNetWorth
         self.initialBalance = initialBalance
+        self.creditLimit = creditLimit
         self.note = note
         self.status = status
     }
@@ -245,17 +377,24 @@ final class PersonalLedgerStore: ObservableObject {
         guard !trimmed.isEmpty else {
             throw PersonalLedgerError.nameRequired
         }
-        if try nameExists(trimmed, excluding: nil) {
+        if nameExists(trimmed, excluding: nil) {
             throw PersonalLedgerError.duplicateAccountName
         }
         let balanceMinor = SettlementMath.minorUnits(from: draft.initialBalance, scale: 2)
+        let creditMinor: Int?
+        if draft.type == .creditCard, let limit = draft.creditLimit {
+            creditMinor = SettlementMath.minorUnits(from: limit, scale: 2)
+        } else {
+            creditMinor = nil
+        }
         let account = PersonalAccount(name: trimmed,
                                       type: draft.type,
                                       currency: draft.currency,
                                       includeInNetWorth: draft.includeInNetWorth,
                                       balanceMinorUnits: balanceMinor,
                                       note: draft.note,
-                                      status: draft.status)
+                                      status: draft.status,
+                                      creditLimitMinorUnits: creditMinor)
         context.insert(account)
         try context.save()
         try refreshAccounts()
@@ -269,7 +408,7 @@ final class PersonalLedgerStore: ObservableObject {
         if trimmed.isEmpty {
             throw PersonalLedgerError.nameRequired
         }
-        if try nameExists(trimmed, excluding: account.remoteId) {
+        if nameExists(trimmed, excluding: account.remoteId) {
             throw PersonalLedgerError.duplicateAccountName
         }
         account.name = trimmed
@@ -281,6 +420,11 @@ final class PersonalLedgerStore: ObservableObject {
         account.updatedAt = Date.now
         if draft.initialBalance != SettlementMath.decimal(fromMinorUnits: account.balanceMinorUnits, scale: 2) {
             account.balanceMinorUnits = SettlementMath.minorUnits(from: draft.initialBalance, scale: 2)
+        }
+        if draft.type == .creditCard, let limit = draft.creditLimit {
+            account.creditLimitMinorUnits = SettlementMath.minorUnits(from: limit, scale: 2)
+        } else {
+            account.creditLimitMinorUnits = nil
         }
         try context.save()
         try refreshAccounts()
@@ -310,17 +454,13 @@ final class PersonalLedgerStore: ObservableObject {
         try refreshAccounts()
     }
 
-    private func nameExists(_ name: String, excluding id: UUID?) throws -> Bool {
-        let predicate = #Predicate<PersonalAccount> { account in
-            if let id = id {
-                account.remoteId != id && account.name == name
-            } else {
-                account.name == name
-            }
+    private func nameExists(_ name: String, excluding id: UUID?) -> Bool {
+        let lowered = name.lowercased()
+        let existing = activeAccounts + archivedAccounts
+        return existing.contains { account in
+            if let id = id, account.remoteId == id { return false }
+            return account.name.lowercased() == lowered
         }
-        var descriptor = FetchDescriptor<PersonalAccount>(predicate: predicate)
-        descriptor.fetchLimit = 1
-        return try context.fetch(descriptor).first != nil
     }
 
     private func findAccount(by id: UUID) throws -> PersonalAccount? {
@@ -405,6 +545,37 @@ final class PersonalLedgerStore: ObservableObject {
         try refreshAccounts()
     }
 
+    /// Deletes any personal records by id, including both transactions and transfers.
+    /// When deleting transfers, also reverts their effects and removes any associated fee transactions.
+    func deleteTransactionsOrTransfers(ids: [UUID]) throws {
+        guard !ids.isEmpty else { return }
+
+        // Delete transactions that match
+        do {
+            let txPredicate = #Predicate<PersonalTransaction> { ids.contains($0.remoteId) }
+            let txDescriptor = FetchDescriptor<PersonalTransaction>(predicate: txPredicate)
+            let transactions = try context.fetch(txDescriptor)
+            for transaction in transactions {
+                try adjustBalance(for: transaction, revert: true)
+                context.delete(transaction)
+            }
+        }
+
+        // Delete transfers that match
+        do {
+            let trPredicate = #Predicate<AccountTransfer> { ids.contains($0.remoteId) }
+            let trDescriptor = FetchDescriptor<AccountTransfer>(predicate: trPredicate)
+            let transfers = try context.fetch(trDescriptor)
+            for transfer in transfers {
+                try revertTransferEffects(transfer)
+                context.delete(transfer)
+            }
+        }
+
+        try context.save()
+        try refreshAccounts()
+    }
+
     private func findTransaction(by id: UUID) throws -> PersonalTransaction? {
         let predicate = #Predicate<PersonalTransaction> { $0.remoteId == id }
         var descriptor = FetchDescriptor<PersonalTransaction>(predicate: predicate)
@@ -471,6 +642,32 @@ final class PersonalLedgerStore: ObservableObject {
         return results
     }
 
+    func transfers(on date: Date) throws -> [AccountTransfer] {
+        guard let dayRange = calendar.dateInterval(of: .day, for: date) else { return [] }
+        return try transfers(in: dayRange.start...dayRange.end)
+    }
+
+    func transfers(in dateRange: ClosedRange<Date>?) throws -> [AccountTransfer] {
+        var predicate: Predicate<AccountTransfer>? = nil
+        if let range = dateRange {
+            let start = range.lowerBound
+            let end = range.upperBound
+            predicate = #Predicate { transfer in
+                transfer.occurredAt >= start && transfer.occurredAt < end
+            }
+        }
+        let descriptor = FetchDescriptor<AccountTransfer>(predicate: predicate,
+                                                          sortBy: [SortDescriptor(\.occurredAt, order: .reverse)])
+        return try context.fetch(descriptor)
+    }
+
+    func transfer(with id: UUID) -> AccountTransfer? {
+        let predicate = #Predicate<AccountTransfer> { $0.remoteId == id }
+        var descriptor = FetchDescriptor<AccountTransfer>(predicate: predicate)
+        descriptor.fetchLimit = 1
+        return try? context.fetch(descriptor).first
+    }
+
     func monthlyTotals(for month: Date, includeFees: Bool) throws -> (expense: Int, income: Int) {
         guard let interval = calendar.dateInterval(of: .month, for: month) else { return (0, 0) }
         var kinds: Set<PersonalTransactionKind> = [.expense, .income]
@@ -496,6 +693,26 @@ final class PersonalLedgerStore: ObservableObject {
             }
         }
         return (expense, income)
+    }
+
+    func personalDataBounds() throws -> ClosedRange<Date> {
+        let transactionDescriptor = FetchDescriptor<PersonalTransaction>(sortBy: [SortDescriptor(\.occurredAt, order: .forward)])
+        let transactions = try context.fetch(transactionDescriptor)
+        let transferDescriptor = FetchDescriptor<AccountTransfer>(sortBy: [SortDescriptor(\.occurredAt, order: .forward)])
+        let transfers = try context.fetch(transferDescriptor)
+        let earliestTransaction = transactions.first?.occurredAt
+        let latestTransaction = transactions.last?.occurredAt
+        let earliestTransfer = transfers.first?.occurredAt
+        let latestTransfer = transfers.last?.occurredAt
+
+        let candidates = [earliestTransaction, latestTransaction, earliestTransfer, latestTransfer].compactMap { $0 }
+        guard let minDate = candidates.min(), let maxDate = candidates.max() else {
+            let now = calendar.startOfMonth(for: Date())
+            return now...now
+        }
+        let start = calendar.startOfMonth(for: minDate)
+        let end = calendar.startOfMonth(for: maxDate)
+        return start...end
     }
 
     // MARK: - Transfers
@@ -699,6 +916,103 @@ final class PersonalLedgerStore: ObservableObject {
         preferences.lastUsedAccountId = nil
         preferences.lastUsedCategoryKey = nil
         preferences.fxRates = [:]
+        try context.save()
+        try refreshAccounts()
+    }
+
+    // MARK: - Export / Import Snapshot
+
+    func exportSnapshot() throws -> PersonalLedgerSnapshot {
+        let accountDescriptor = FetchDescriptor<PersonalAccount>()
+        let transactionDescriptor = FetchDescriptor<PersonalTransaction>()
+        let transferDescriptor = FetchDescriptor<AccountTransfer>()
+
+        let accounts = try context.fetch(accountDescriptor)
+        let transactions = try context.fetch(transactionDescriptor)
+        let transfers = try context.fetch(transferDescriptor)
+
+        let snapshot = PersonalLedgerSnapshot(
+            preferences: .init(from: preferences),
+            accounts: accounts.map(PersonalLedgerSnapshot.Account.init(from:)),
+            transactions: transactions.map(PersonalLedgerSnapshot.Transaction.init(from:)),
+            transfers: transfers.map(PersonalLedgerSnapshot.Transfer.init(from:))
+        )
+
+        return snapshot
+    }
+
+    func importSnapshot(_ snapshot: PersonalLedgerSnapshot) throws {
+        try clearAllPersonalData()
+
+        try updatePreferences { prefs in
+            prefs.primaryDisplayCurrency = snapshot.preferences.primaryDisplayCurrency
+            prefs.fxSource = snapshot.preferences.fxSource
+            prefs.defaultFXRate = snapshot.preferences.defaultFXRate
+            prefs.fxRates = snapshot.preferences.fxRates
+            prefs.defaultFXPrecision = snapshot.preferences.defaultFXPrecision
+            prefs.countFeeInStats = snapshot.preferences.countFeeInStats
+            prefs.lastUsedAccountId = snapshot.preferences.lastUsedAccountId
+            prefs.lastUsedCategoryKey = snapshot.preferences.lastUsedCategoryKey
+            prefs.defaultFeeCategoryKey = snapshot.preferences.defaultFeeCategoryKey
+            prefs.defaultConversionFee = snapshot.preferences.defaultConversionFee
+            prefs.lastBackupAt = snapshot.preferences.lastBackupAt
+        }
+
+        for account in snapshot.accounts {
+            let model = PersonalAccount(
+                remoteId: account.remoteId,
+                name: account.name,
+                type: account.type,
+                currency: account.currency,
+                includeInNetWorth: account.includeInNetWorth,
+                balanceMinorUnits: account.balanceMinorUnits,
+                note: account.note,
+                status: account.status,
+                creditLimitMinorUnits: account.creditLimitMinorUnits,
+                createdAt: account.createdAt,
+                updatedAt: account.updatedAt
+            )
+            context.insert(model)
+        }
+
+        for transaction in snapshot.transactions {
+            let model = PersonalTransaction(
+                remoteId: transaction.remoteId,
+                kind: transaction.kind,
+                accountId: transaction.accountId,
+                categoryKey: transaction.categoryKey,
+                amountMinorUnits: transaction.amountMinorUnits,
+                occurredAt: transaction.occurredAt,
+                note: transaction.note,
+                attachmentPath: transaction.attachmentPath,
+                createdAt: transaction.createdAt,
+                updatedAt: transaction.updatedAt,
+                displayCurrency: transaction.displayCurrency,
+                fxRate: transaction.fxRate
+            )
+            context.insert(model)
+        }
+
+        for transfer in snapshot.transfers {
+            let model = AccountTransfer(
+                remoteId: transfer.remoteId,
+                fromAccountId: transfer.fromAccountId,
+                toAccountId: transfer.toAccountId,
+                amountFromMinorUnits: transfer.amountFromMinorUnits,
+                fxRate: transfer.fxRate,
+                amountToMinorUnits: transfer.amountToMinorUnits,
+                feeMinorUnits: transfer.feeMinorUnits,
+                feeCurrency: transfer.feeCurrency,
+                feeChargedOn: transfer.feeChargedOn,
+                occurredAt: transfer.occurredAt,
+                note: transfer.note,
+                createdAt: transfer.createdAt,
+                updatedAt: transfer.updatedAt,
+                feeTransactionId: transfer.feeTransactionId
+            )
+            context.insert(model)
+        }
+
         try context.save()
         try refreshAccounts()
     }

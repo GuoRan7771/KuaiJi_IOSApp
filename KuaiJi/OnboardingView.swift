@@ -159,10 +159,11 @@ struct OnboardingView: View {
                         .padding(.bottom, 40)
                 }
             }
-            .contentShape(Rectangle())
+            .scrollDismissesKeyboard(.interactively)
             .onTapGesture {
                 UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
             }
+            .contentShape(Rectangle())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {

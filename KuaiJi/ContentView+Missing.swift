@@ -91,15 +91,63 @@ final class SettingsScreenModel: ObservableObject, SettingsViewModelProtocol {
         root?.updateUserProfile(name: name, emoji: emoji, currency: currency)
     }
     
-    func exportData() -> URL? {
-        return root?.dataManager?.exportAllData()
+    func exportFullData(personalStore: PersonalLedgerStore, visibility: FeatureVisibilitySnapshot) -> URL? {
+        guard let shared = root?.dataManager?.exportSnapshot() else { return nil }
+        let personalSnapshot: PersonalLedgerSnapshot
+        do {
+            personalSnapshot = try personalStore.exportSnapshot()
+        } catch {
+            print("❌ 导出个人账本失败: \(error)")
+            return nil
+        }
+
+        let payload = FullAppExportData(
+            version: "2.0",
+            shared: shared,
+            personal: personalSnapshot,
+            visibility: visibility
+        )
+
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+
+        guard let jsonData = try? encoder.encode(payload) else {
+            return nil
+        }
+
+        let timestamp = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
+        let filename = "KuaiJi_FullBackup_\(timestamp).json"
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+
+        do {
+            try jsonData.write(to: tempURL)
+            return tempURL
+        } catch {
+            print("❌ 导出数据失败: \(error)")
+            return nil
+        }
     }
     
-    func importData(from url: URL) throws {
-        try root?.dataManager?.importAllData(from: url)
-        // 重新加载数据到 root
-        if let dataManager = root?.dataManager {
-            root?.setDataManager(dataManager)
+    func importFullData(from url: URL, personalStore: PersonalLedgerStore) throws -> FeatureVisibilitySnapshot? {
+        let jsonData = try Data(contentsOf: url)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+
+        if let full = try? decoder.decode(FullAppExportData.self, from: jsonData) {
+            try root?.dataManager?.importSharedData(full.shared)
+            try personalStore.importSnapshot(full.personal)
+            if let dataManager = root?.dataManager {
+                root?.setDataManager(dataManager)
+            }
+            return full.visibility
+        } else {
+            let shared = try decoder.decode(ExportData.self, from: jsonData)
+            try root?.dataManager?.importSharedData(shared)
+            if let dataManager = root?.dataManager {
+                root?.setDataManager(dataManager)
+            }
+            return nil
         }
     }
 }

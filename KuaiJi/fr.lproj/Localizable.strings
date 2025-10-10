@@ -112,11 +112,16 @@
 "settings.defaultLedger" = "Compte par Défaut";
 "settings.defaultLedgerNone" = "Non Défini";
 "settings.defaultLedgerDesc" = "Appuyez longuement sur l'icône de l'application pour ajouter rapidement une dépense au compte par défaut";
+"settings.quickActionPersonal" = "Ledger personnel";
 "settings.dataSection" = "Gestion des Données";
-"settings.exportData" = "Exporter les Données";
+"settings.exportData" = "Exporter toutes les données";
 "settings.exportDataDesc" = "Exporter toutes les données vers un fichier de sauvegarde";
-"settings.importData" = "Importer les Données";
+"settings.importData" = "Importer toutes les données";
 "settings.importDataDesc" = "Restaurer les données à partir d'un fichier de sauvegarde";
+"settings.exportSharedCSV" = "Exporter le CSV du ledger partagé";
+"settings.exportSharedCSV.emptyTitle" = "Aucun ledger partagé";
+"settings.exportSharedCSV.emptyMessage" = "Créez d'abord un ledger partagé avant d'exporter.";
+"settings.exportSharedCSV.notFound" = "Impossible de trouver le ledger partagé sélectionné.";
 "settings.exportSuccess" = "Exportation Réussie";
 "settings.exportError" = "Échec de l'Exportation";
 "settings.exportErrorMessage" = "Impossible de créer le fichier d'exportation";
@@ -129,13 +134,20 @@
 "settings.about" = "À Propos";
 "settings.guide" = "Introduction";
 "settings.contactMe" = "Me Contacter";
-"settings.clearData" = "Effacer Toutes les Données";
-"settings.clearDataWarning" = "Ceci supprimera définitivement tous les comptes, dépenses, amis et votre profil personnel, et ne peut pas être annulé";
+// "settings.ledgerVisibility" = "Visibilité des fonctionnalités";
+"settings.showSharedAndFriends" = "Afficher le ledger partagé et les amis";
+"settings.showPersonalLedger" = "Afficher le ledger personnel";
+"settings.clearData" = "Effacer les comptes partagés et amis";
+"settings.clearDataWarning" = "Cette action supprime définitivement tous les comptes partagés et données des amis. Votre profil et vos réglages personnels seront conservés.";
 "settings.confirmDelete" = "Confirmer la Suppression";
-"settings.deleteMessage" = "Ceci supprimera définitivement toutes les données (y compris le profil personnel) et ne peut pas être annulé. Vous devrez reconfigurer votre profil après la suppression. Continuer?";
+"settings.deleteMessage" = "Cette action supprime définitivement tous les comptes partagés et données des amis (votre profil et vos réglages sont conservés) et ne peut pas être annulée. Continuer?";
+"settings.interfaceDisplay" = "Affichage de l'interface";
+"settings.sharedLanding" = "Page par défaut de l'onglet partagé";
+"settings.sharedLanding.list" = "Liste des comptes";
 
 /* Actions Rapides */
 "quickAction.addExpense" = "Ajout Rapide";
+"quickAction.personalSubtitle" = "Ledger personnel";
 
 /* Options de langue */
 "language.system" = "Système";
@@ -304,12 +316,16 @@
 
 "tab.personalLedger" = "Ledger personnel";
 "personal.homeTitle" = "Ledger personnel";
-"personal.todayTitle" = "Aujourd'hui";
+"personal.todayTitle" = "Enregistrements";
 "personal.todayEmpty" = "Aucune écriture aujourd'hui.";
 "personal.deleteConfirm" = "Voulez-vous supprimer les écritures sélectionnées ?";
 "personal.thisMonth" = "Ce mois";
 "personal.monthlyExpense" = "Dépenses mensuelles";
 "personal.monthlyIncome" = "Revenus mensuels";
+"personal.archive.title" = "Archives mensuelles";
+"personal.archive.loading" = "Chargement des mois";
+"personal.archive.empty" = "Aucun enregistrement";
+"personal.archive.viewRecords" = "Voir les enregistrements";
 "personal.detail.section" = "Détail";
 "personal.detail.category" = "Catégorie";
 "personal.detail.account" = "Compte";
@@ -339,14 +355,15 @@
 "personal.export.failed" = "Échec de l'export.";
 "personal.accounts.summary" = "Récapitulatif";
 "personal.netWorth" = "Patrimoine net";
+"personal.netWorth.empty" = "Aucun solde à afficher.";
 "personal.showArchived" = "Afficher les comptes archivés";
 "personal.accounts.list" = "Comptes";
 "personal.accounts.title" = "Comptes";
-"personal.accountType.bank" = "Carte bancaire";
+"personal.accountType.bank" = "Carte d'épargne";
 "personal.accountType.mobile" = "Paiement mobile";
 "personal.accountType.cash" = "Espèces";
 "personal.accountType.credit" = "Carte de crédit";
-"personal.accountType.prepaid" = "Prépayé";
+"personal.accountType.prepaid" = "Carte prépayée (cadeau)";
 "personal.accountType.other" = "Autre";
 "personal.archive" = "Archiver";
 "personal.activate" = "Activer";
@@ -358,6 +375,8 @@
 "personal.transfer.feeSide" = "Frais imputés sur";
 "personal.transfer.feeFrom" = "Compte source";
 "personal.transfer.feeTo" = "Compte cible";
+"personal.field.fee" = "Frais (%@)";
+"personal.field.creditLimit" = "Plafond de crédit";
 "personal.stats.title" = "Statistiques";
 "personal.stats.period" = "Période";
 "personal.stats.includeFee" = "Inclure les frais";
@@ -369,13 +388,16 @@
 "personal.fxSource" = "Source du taux";
 "personal.fxPrecision" = "Précision du taux : %@ décimales";
 "personal.fxDefaultRate" = "Taux par défaut";
+"personal.defaultFee" = "Frais par défaut";
+"personal.fxPlaceholder" = "Taux de change (par défaut %@)";
+"personal.feePlaceholder" = "Frais (par défaut %@)";
 "personal.feeInclude" = "Inclure les frais dans les stats";
 "personal.accounts.manage" = "Gérer les comptes";
 "personal.data.section" = "Données du ledger personnel";
-"personal.exportCSV" = "Exporter en CSV";
-"personal.clearData" = "Effacer les données";
-"personal.clear.confirmTitle" = "Effacer les données personnelles";
-"personal.clear.confirmMessage" = "Toutes les écritures et comptes personnels seront supprimés. Continuer ?";
+"personal.exportCSV" = "Exporter le CSV personnel";
+"personal.clearData" = "Effacer les données du ledger personnel";
+"personal.clear.confirmTitle" = "Effacer les données du ledger personnel";
+"personal.clear.confirmMessage" = "Toutes les écritures et comptes du ledger personnel seront supprimés. Continuer ?";
 "personal.clear.success" = "Données supprimées";
 "personal.clear.successMessage" = "Les données personnelles ont été supprimées.";
 "personal.clear.failed" = "Échec de la suppression";
@@ -391,3 +413,18 @@
 "personal.accountType.label" = "Type de compte";
 
 "personal.field.currency" = "Devise";
+"personal.category.salary" = "Salaire";
+"personal.category.bonus" = "Prime";
+"personal.category.investment" = "Investissement";
+"personal.category.sideHustle" = "Activité annexe";
+"personal.category.giftIncome" = "Cadeau";
+"personal.category.refund" = "Remboursement";
+"personal.category.otherIncome" = "Autre revenu";
+"personal.sort.occurred" = "Heure de l'opération";
+"personal.sort.created" = "Heure d'enregistrement";
+"personal.transfer.title" = "Virement";
+"personal.transfer.direction" = "%@ → %@";
+"personal.transfer.directionTitle" = "Sens";
+"personal.conversionFeeNote" = "Frais de conversion";
+"personal.export.hint" = "Inclut l'export CSV du ledger personnel.";
+"personal.clear.hint" = "Supprime tous les comptes et écritures du ledger personnel (les comptes partagés ne sont pas affectés).";

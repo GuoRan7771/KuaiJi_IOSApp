@@ -30,23 +30,16 @@ struct PersonalCategoryOption: Identifiable, Hashable, Sendable {
         }
     }
 
-    static let commonExpenseKeys: [String] = ["food", "transport", "shopping", "housing", "entertainment", "utilities", "health", "education", "fees", "other"]
-    static let commonIncomeKeys: [String] = ["salary", "bonus", "investment", "gift", "otherIncome"]
+    static let commonExpenseKeys: [String] = ExpenseCategory.allCases.map { $0.rawValue }
+    static let commonIncomeKeys: [String] = ["salary", "bonus", "investment", "sideHustle", "giftIncome", "refund", "otherIncome"]
 }
 
-let expenseCategories: [PersonalCategoryOption] = [
-    PersonalCategoryOption(key: "food", nameKey: "personal.category.food", systemImage: "fork.knife", group: .expense),
-    PersonalCategoryOption(key: "transport", nameKey: "personal.category.transport", systemImage: "car.fill", group: .expense),
-    PersonalCategoryOption(key: "shopping", nameKey: "personal.category.shopping", systemImage: "bag.fill", group: .expense),
-    PersonalCategoryOption(key: "housing", nameKey: "personal.category.housing", systemImage: "house.fill", group: .expense),
-    PersonalCategoryOption(key: "utilities", nameKey: "personal.category.utilities", systemImage: "bolt.fill", group: .expense),
-    PersonalCategoryOption(key: "entertainment", nameKey: "personal.category.entertainment", systemImage: "gamecontroller.fill", group: .expense),
-    PersonalCategoryOption(key: "health", nameKey: "personal.category.health", systemImage: "cross.case.fill", group: .expense),
-    PersonalCategoryOption(key: "education", nameKey: "personal.category.education", systemImage: "book.fill", group: .expense),
-    PersonalCategoryOption(key: "fees", nameKey: "personal.category.fees", systemImage: "creditcard", group: .expense),
-    PersonalCategoryOption(key: "travel", nameKey: "personal.category.travel", systemImage: "airplane", group: .expense),
-    PersonalCategoryOption(key: "other", nameKey: "personal.category.other", systemImage: "square.grid.2x2", group: .expense)
-]
+let expenseCategories: [PersonalCategoryOption] = ExpenseCategory.allCases.map { category in
+    PersonalCategoryOption(key: category.rawValue,
+                           nameKey: sharedExpenseNameKey(for: category),
+                           systemImage: sharedExpenseIcon(for: category),
+                           group: .expense)
+}
 
 let incomeCategories: [PersonalCategoryOption] = [
     PersonalCategoryOption(key: "salary", nameKey: "personal.category.salary", systemImage: "banknote", group: .income),
@@ -66,5 +59,41 @@ func iconForCategory(key: String) -> String {
     if let match = (expenseCategories + incomeCategories + feeCategories).first(where: { $0.key == key }) {
         return match.systemImage
     }
+    if let legacy = legacyExpenseIconMap[key] {
+        return legacy
+    }
     return "tag"
 }
+
+private func sharedExpenseNameKey(for category: ExpenseCategory) -> String {
+    switch category {
+    case .food: return L.categoryFood
+    case .transport: return L.categoryTransport
+    case .accommodation: return L.categoryAccommodation
+    case .entertainment: return L.categoryEntertainment
+    case .utilities: return L.categoryUtilities
+    case .other: return L.categoryOther
+    }
+}
+
+private func sharedExpenseIcon(for category: ExpenseCategory) -> String {
+    switch category {
+    case .food: return "fork.knife"
+    case .transport: return "car.fill"
+    case .accommodation: return "bed.double.fill"
+    case .entertainment: return "theatermasks.fill"
+    case .utilities: return "lightbulb.fill"
+    case .other: return "ellipsis.circle.fill"
+    }
+}
+
+private let legacyExpenseIconMap: [String: String] = [
+    "shopping": "bag.fill",
+    "housing": "house.fill",
+    "health": "cross.case.fill",
+    "education": "book.fill",
+    "fees": "creditcard",
+    "travel": "airplane",
+    "utilities": "bolt.fill",
+    "entertainment": "gamecontroller.fill"
+]

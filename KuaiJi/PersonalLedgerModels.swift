@@ -62,6 +62,7 @@ final class PersonalAccount {
     var balanceMinorUnits: Int
     var note: String?
     var status: PersonalAccountStatus
+    var creditLimitMinorUnits: Int?
     var createdAt: Date
     var updatedAt: Date
 
@@ -73,6 +74,7 @@ final class PersonalAccount {
          balanceMinorUnits: Int = 0,
          note: String? = nil,
          status: PersonalAccountStatus = .active,
+         creditLimitMinorUnits: Int? = nil,
          createdAt: Date = .now,
          updatedAt: Date = .now) {
         self.remoteId = remoteId
@@ -83,6 +85,7 @@ final class PersonalAccount {
         self.balanceMinorUnits = balanceMinorUnits
         self.note = note
         self.status = status
+        self.creditLimitMinorUnits = creditLimitMinorUnits
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -190,6 +193,7 @@ final class PersonalPreferences {
     var lastUsedAccountId: UUID?
     var lastUsedCategoryKey: String?
     var defaultFeeCategoryKey: String?
+    var defaultConversionFee: Decimal?
     var lastBackupAt: Date?
 
     init(remoteId: UUID = UUID(),
@@ -202,6 +206,7 @@ final class PersonalPreferences {
          lastUsedAccountId: UUID? = nil,
          lastUsedCategoryKey: String? = nil,
          defaultFeeCategoryKey: String? = "fees",
+         defaultConversionFee: Decimal? = nil,
          lastBackupAt: Date? = nil) {
         self.remoteId = remoteId
         self.primaryDisplayCurrency = primaryDisplayCurrency
@@ -213,6 +218,7 @@ final class PersonalPreferences {
         self.lastUsedAccountId = lastUsedAccountId
         self.lastUsedCategoryKey = lastUsedCategoryKey
         self.defaultFeeCategoryKey = defaultFeeCategoryKey
+        self.defaultConversionFee = defaultConversionFee
         self.lastBackupAt = lastBackupAt
     }
 }

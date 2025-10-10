@@ -6,14 +6,15 @@
 //
 
 import Charts
-import PhotosUI
 import SwiftUI
 import UIKit
 
 enum PersonalLedgerRoute: Hashable {
     case allRecords(Date)
+    case allRecordsAll
     case accounts
     case stats
+    case archive
     case recordDetail(PersonalRecordRowViewData)
 }
 
@@ -23,6 +24,7 @@ struct PersonalLedgerNavigator: View {
     @State private var path: [PersonalLedgerRoute] = []
     @State private var showingRecordForm = false
     @State private var recordToEdit: PersonalRecordRowViewData?
+    @EnvironmentObject var appState: AppState
 
     init(root: PersonalLedgerRootViewModel) {
         self.root = root
@@ -36,13 +38,19 @@ struct PersonalLedgerNavigator: View {
                                        recordToEdit = nil
                                        showingRecordForm = true
                                    },
-                                   onShowAll: { path.append(.allRecords(homeViewModel.selectedMonth)) },
+                                   onShowArchive: {
+                                       homeViewModel.prepareArchive()
+                                       path.append(.archive)
+                                   },
+                                   onShowAllRecords: {
+                                       path.append(.allRecordsAll)
+                                   },
                                    onShowAccounts: { path.append(.accounts) },
                                    onShowStats: { path.append(.stats) },
                                    onOpenRecord: { path.append(.recordDetail($0)) },
                                    onDeleteRecords: { ids in
                                        do {
-                                           try root.store.deleteTransactions(ids: ids)
+                                           try root.store.deleteTransactionsOrTransfers(ids: ids)
                                        } catch {
                                            // swallow for now
                                        }
@@ -55,17 +63,40 @@ struct PersonalLedgerNavigator: View {
                 switch route {
                 case .allRecords(let date):
                     PersonalAllRecordsView(root: root, viewModel: root.makeAllRecordsViewModel(anchorDate: date))
+                case .allRecordsAll:
+                    PersonalAllRecordsView(root: root, viewModel: root.makeAllRecordsViewModelForAll())
                 case .accounts:
                     PersonalAccountsView(root: root, viewModel: root.makeAccountsViewModel())
                 case .stats:
                     PersonalStatsView(viewModel: root.makeStatsViewModel())
+                case .archive:
+                    PersonalMonthlyArchiveView(viewModel: homeViewModel,
+                                               onSelect: { month in
+                        withAnimation(.easeInOut) {
+                            path.append(.allRecords(month.date))
+                        }
+                    })
                 case .recordDetail(let record):
-                    PersonalRecordDetailView(root: root,
-                                             record: record,
-                                             onEdit: { editable in
-                                                 recordToEdit = editable
-                                                 showingRecordForm = true
-                                             })
+                    if record.isTransfer {
+                        PersonalTransferDetailView(root: root, record: record) { transfer in
+                            // 打开转账编辑界面
+                            path.removeAll(where: { if case .recordDetail = $0 { return true } else { return false } })
+                            // 以转账编辑表单弹出
+                            showingRecordForm = false
+                            // 打开独立的转账编辑表单
+                            // 使用统一入口：转账表单 Host
+                            // 这里通过导航到账户页的转账表单以复用 ViewModel 能力
+                            // 直接打开专用的转账编辑 Sheet
+                            PersonalTransferEditSheet.present(root: root, transferId: transfer.remoteId)
+                        }
+                    } else {
+                        PersonalRecordDetailView(root: root,
+                                                 record: record,
+                                                 onEdit: { editable in
+                                                     recordToEdit = editable
+                                                     showingRecordForm = true
+                                                 })
+                    }
                 }
             }
             .sheet(isPresented: $showingRecordForm) {
@@ -75,14 +106,82 @@ struct PersonalLedgerNavigator: View {
                 }
             }
             .navigationTitle(L.personalHomeTitle.localized)
+            .onChange(of: appState.quickActionTarget) { _, target in
+                guard case .personal = target else { return }
+                recordToEdit = nil
+                showingRecordForm = true
+                appState.quickActionTarget = nil
+            }
         }
+    }
+}
+
+struct PersonalMonthlyArchiveView: View {
+    @ObservedObject var viewModel: PersonalLedgerHomeViewModel
+    var onSelect: (PersonalYearMonth) -> Void
+
+    var body: some View {
+        List {
+            if viewModel.isLoadingArchive {
+                Section(header: Text(L.personalArchiveTitle.localized)) {
+                    HStack {
+                        ProgressView()
+                        Text(L.personalArchiveLoading.localized)
+                    }
+                }
+            } else if viewModel.availableMonths.isEmpty {
+                Section(header: Text(L.personalArchiveTitle.localized)) {
+                    Text(L.personalArchiveEmpty.localized)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                Section(header: Text(L.personalArchiveTitle.localized)) {
+                    ForEach(viewModel.availableMonths, id: \.id) { ym in
+                        Button {
+                            onSelect(ym)
+                        } label: {
+                            HStack {
+                                Text(String(format: "%04d-%02d", ym.year, ym.month))
+                                Spacer()
+                                if let totals = viewModel.totalsByMonth[ym] {
+                                    VStack(alignment: .trailing, spacing: 2) {
+                                        Text(AmountFormatter.string(minorUnits: totals.expenseMinorUnits,
+                                                                    currency: viewModel.displayCurrency,
+                                                                    locale: Locale.current))
+                                            .foregroundStyle(.red)
+                                        Text(AmountFormatter.string(minorUnits: totals.incomeMinorUnits,
+                                                                    currency: viewModel.displayCurrency,
+                                                                    locale: Locale.current))
+                                            .foregroundStyle(.green)
+                                    }
+                                } else {
+                                    ProgressView()
+                                        .onAppear {
+                                            Task {
+                                                _ = try? await viewModel.totals(for: ym)
+                                            }
+                                        }
+                                }
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.appSecondaryText)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle(L.personalArchiveTitle.localized)
     }
 }
 
 struct PersonalLedgerHomeView: View {
     @ObservedObject var viewModel: PersonalLedgerHomeViewModel
     var onCreateRecord: () -> Void
-    var onShowAll: () -> Void
+    var onShowArchive: () -> Void
+    var onShowAllRecords: () -> Void
     var onShowAccounts: () -> Void
     var onShowStats: () -> Void
     var onOpenRecord: (PersonalRecordRowViewData) -> Void
@@ -96,22 +195,41 @@ struct PersonalLedgerHomeView: View {
         ZStack(alignment: .bottomTrailing) {
             List(selection: $selection) {
                 Section {
-                    PersonalOverviewCard(overview: viewModel.overview,
+                    HStack {
+                        Spacer()
+                        Button(action: onShowArchive) {
+                            Text(L.all.localized)
+                                .foregroundStyle(.blue)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+
+                    PersonalOverviewCard(selectedMonth: viewModel.selectedMonth,
+                                         overview: viewModel.overview,
+                                         canGoPrevious: viewModel.canGoToPreviousMonth,
+                                         canGoNext: viewModel.canGoToNextMonth,
                                          onPrevious: { viewModel.changeMonth(by: -1) },
                                          onNext: { viewModel.changeMonth(by: 1) })
                         .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                 }
-                Section(header: TodayHeader(onShowAll: onShowAll)) {
+                Section(header: TodayHeader(onShowAll: onShowAllRecords)) {
                     if viewModel.todayRecords.isEmpty {
                         Text(L.personalTodayEmpty.localized)
                             .font(.callout)
                             .foregroundStyle(.secondary)
+                        .listRowBackground(Color.red.opacity(0.1))
                     } else {
                         ForEach(viewModel.todayRecords) { record in
                             PersonalRecordRow(record: record,
                                               onTap: { onOpenRecord(record) },
                                               onEdit: { onEditRecord(record) },
                                               onDelete: { deleteRecords([record.id]) })
+                            .listRowBackground(Color.red.opacity(0.1))
                         }
                         .onDelete { indexSet in
                             let ids = indexSet.compactMap { viewModel.todayRecords[$0].id }
@@ -130,7 +248,6 @@ struct PersonalLedgerHomeView: View {
                             Label(L.delete.localized, systemImage: "trash")
                         }
                     }
-                    EditButton()
                     Button(action: onShowStats) {
                         Image(systemName: "chart.line.uptrend.xyaxis")
                     }
@@ -176,74 +293,215 @@ private struct TodayHeader: View {
             Spacer()
             Button(action: onShowAll) {
                 Text(L.all.localized)
+                    .foregroundStyle(.blue)
             }
         }
     }
 }
 
-private struct FloatingActionButton: View {
+struct FloatingActionButton: View {
     var systemImage: String
     var action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.title)
-                .foregroundStyle(.white)
-                .frame(width: 56, height: 56)
-                .background(Circle().fill(Color.accentColor))
-                .shadow(radius: 4, y: 2)
+            FloatingButtonLabel(systemImage: systemImage)
         }
         .buttonStyle(.plain)
     }
 }
 
+struct FloatingButtonLabel: View {
+    var systemImage: String
+
+    var body: some View {
+        Image(systemName: systemImage)
+            .font(.title)
+            .foregroundStyle(.white)
+            .frame(width: 56, height: 56)
+            .background(Circle().fill(Color.blue))
+            .shadow(radius: 4, y: 2)
+    }
+}
+
 struct PersonalOverviewCard: View {
+    var selectedMonth: Date
     var overview: PersonalOverviewState
+    var canGoPrevious: Bool
+    var canGoNext: Bool
     var onPrevious: () -> Void
     var onNext: () -> Void
 
+    @State private var dragOffset: CGFloat = 0
+    private let dragThreshold: CGFloat = 60
+
+    private static let monthFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "LLLL yyyy"
+        return formatter
+    }()
+
     var body: some View {
         VStack(spacing: 12) {
-            HStack {
-                Button(action: onPrevious) {
-                    Image(systemName: "chevron.left")
-                }
-                Spacer()
-                Text(L.personalThisMonth.localized)
+            // 顶部：左右箭头 + 月份标题
+            HStack(spacing: 12) {
+                MonthArrow(direction: .previous, enabled: canGoPrevious, action: onPrevious)
+                Spacer(minLength: 8)
+                Text(Self.monthFormatter.string(from: selectedMonth))
                     .font(.headline)
-                Spacer()
-                Button(action: onNext) {
-                    Image(systemName: "chevron.right")
-                }
+                    .accessibilityAddTraits(.isHeader)
+                Spacer(minLength: 8)
+                MonthArrow(direction: .next, enabled: canGoNext, action: onNext)
             }
-            HStack {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(L.personalMonthlyExpense.localized)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Text(AmountFormatter.string(minorUnits: overview.expenseMinorUnits,
-                                                currency: overview.displayCurrency,
-                                                locale: Locale.current))
-                        .font(.title2)
-                        .foregroundStyle(.red)
-                }
-                Spacer()
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(L.personalMonthlyIncome.localized)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Text(AmountFormatter.string(minorUnits: overview.incomeMinorUnits,
-                                                currency: overview.displayCurrency,
-                                                locale: Locale.current))
-                        .font(.title2)
-                        .foregroundStyle(.green)
+
+            // 中部：统计
+            VStack(spacing: 12) {
+                ForEach(overview.entries) { entry in
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(entry.currency.rawValue)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        HStack(alignment: .firstTextBaseline, spacing: 24) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(L.personalMonthlyExpense.localized)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                AmountView(amountMinorUnits: entry.expenseMinorUnits,
+                                           currency: entry.currency,
+                                           tint: .red)
+                            }
+
+                            Spacer(minLength: 24)
+
+                            VStack(alignment: .trailing, spacing: 4) {
+                                Text(L.personalMonthlyIncome.localized)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                AmountView(amountMinorUnits: entry.incomeMinorUnits,
+                                           currency: entry.currency,
+                                           tint: .green,
+                                           prefix: "+")
+                            }
+                        }
+                    }
                 }
             }
         }
-        .padding()
-        .background(RoundedRectangle(cornerRadius: 18).fill(Color(.secondarySystemBackground)))
+        .padding(.vertical, 20)
+        .padding(.horizontal, 24)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color.blue.opacity(0.1))
+                .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 4)
+        )
         .padding(.horizontal)
+        .offset(x: dragOffset)
+        .gesture(dragGesture)
+        .animation(.spring(response: 0.25, dampingFraction: 0.85, blendDuration: 0.1), value: dragOffset)
+    }
+
+    private var dragGesture: some Gesture {
+        DragGesture(minimumDistance: 12)
+            .onChanged { value in
+                let horizontal = value.translation.width
+                let vertical = abs(value.translation.height)
+                guard abs(horizontal) > vertical else { return }
+                dragOffset = horizontal / 2
+            }
+            .onEnded { value in
+                let horizontal = value.translation.width
+                defer { dragOffset = 0 }
+                guard abs(horizontal) > dragThreshold else { return }
+                if horizontal > 0 {
+                    if canGoPrevious { onPrevious() }
+                } else {
+                    if canGoNext { onNext() }
+                }
+            }
+    }
+}
+
+private struct MonthArrow: View {
+    enum Direction { case previous, next }
+
+    var direction: Direction
+    var enabled: Bool
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: direction == .previous ? "chevron.left" : "chevron.right")
+                .font(.title2.weight(.semibold))
+                .frame(width: 34, height: 34)
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
+        .opacity(enabled ? 1 : 0.35)
+        .background(
+            Circle()
+                .strokeBorder(Color.secondary.opacity(0.15), lineWidth: 1)
+                .background(Circle().fill(Color.secondary.opacity(0.08)))
+        )
+        .gesture(
+            DragGesture(minimumDistance: 12)
+                .onEnded { value in
+                    guard enabled else { return }
+                    let horizontal = value.translation.width
+                    if abs(horizontal) < abs(value.translation.height) { return }
+                    if direction == .previous, horizontal > 40 {
+                        action()
+                    } else if direction == .next, horizontal < -40 {
+                        action()
+                    }
+                }
+        )
+    }
+}
+
+private struct AmountView: View {
+    var amountMinorUnits: Int
+    var currency: CurrencyCode
+    var tint: Color
+    var prefix: String = ""
+
+    var body: some View {
+        Text(formatted)
+            .font(.title3.weight(.semibold))
+            .foregroundStyle(tint)
+    }
+
+    private var formatted: String {
+        let base = AmountFormatter.string(minorUnits: amountMinorUnits,
+                                          currency: currency,
+                                          locale: Locale.current)
+        if amountMinorUnits > 0 && !prefix.isEmpty {
+            return prefix + base
+        }
+        return base
+    }
+}
+
+private struct AnimatedAmountText: View, Animatable {
+    var amountMinorUnits: Double
+    var currency: CurrencyCode
+    var color: Color
+    var positivePrefix: String = ""
+
+    var animatableData: Double {
+        get { amountMinorUnits }
+        set { amountMinorUnits = newValue }
+    }
+
+    var body: some View {
+        let rounded = Int(amountMinorUnits.rounded())
+        let formatted = AmountFormatter.string(minorUnits: rounded,
+                                               currency: currency,
+                                               locale: Locale.current)
+        let text = rounded > 0 && !positivePrefix.isEmpty ? positivePrefix + formatted : formatted
+        return Text(text)
+            .foregroundStyle(color)
+            .animation(.interpolatingSpring(stiffness: 200, damping: 18), value: rounded)
     }
 }
 
@@ -333,11 +591,90 @@ struct PersonalRecordDetailView: View {
             Button(L.cancel.localized, role: .cancel) {}
             Button(L.delete.localized, role: .destructive) {
                 Task {
-                    try? root.store.deleteTransactions(ids: [record.id])
+                    try? root.store.deleteTransactionsOrTransfers(ids: [record.id])
                 }
             }
         } message: {
             Text(L.personalDeleteConfirm.localized)
+        }
+    }
+}
+
+struct PersonalTransferDetailView: View {
+    @ObservedObject var root: PersonalLedgerRootViewModel
+    var record: PersonalRecordRowViewData
+    var onEdit: (AccountTransfer) -> Void
+    @State private var showingDeleteAlert = false
+
+    var body: some View {
+        List {
+            if let transfer = root.store.transfer(with: record.id),
+               let from = root.store.account(with: transfer.fromAccountId),
+               let to = root.store.account(with: transfer.toAccountId) {
+                Section(header: Text(L.personalDetailSection.localized)) {
+                    DetailRow(title: L.personalDetailCategory.localized, value: L.personalTransferTitle.localized)
+                    DetailRow(title: L.personalDetailAccount.localized, value: from.name)
+                    DetailRow(title: L.personalDetailNote.localized, value: String(format: L.personalTransferDirection.localized, from.name, to.name))
+                    DetailRow(title: L.personalDetailAmount.localized,
+                              value: AmountFormatter.string(minorUnits: transfer.amountFromMinorUnits,
+                                                           currency: from.currency,
+                                                           locale: Locale.current))
+                    DetailRow(title: L.personalDetailDate.localized,
+                              value: transfer.occurredAt.formatted(date: .abbreviated, time: .shortened))
+                    if let fee = transfer.feeMinorUnits, fee > 0 {
+                        DetailRow(title: L.personalTransferFee.localized,
+                                  value: AmountFormatter.string(minorUnits: fee,
+                                                               currency: (transfer.feeChargedOn == .from ? from.currency : to.currency),
+                                                               locale: Locale.current))
+                    }
+                }
+            }
+        }
+        .navigationTitle(L.personalTransferTitle.localized)
+        .toolbar {
+            ToolbarItemGroup(placement: .navigationBarTrailing) {
+                if let transfer = root.store.transfer(with: record.id) {
+                    Button(L.edit.localized) { onEdit(transfer) }
+                }
+                Button(role: .destructive) { showingDeleteAlert = true } label: {
+                    Image(systemName: "trash")
+                }
+            }
+        }
+        .alert(L.delete.localized, isPresented: $showingDeleteAlert) {
+            Button(L.cancel.localized, role: .cancel) {}
+            Button(L.delete.localized, role: .destructive) {
+                Task {
+                    try? root.store.deleteTransactionsOrTransfers(ids: [record.id])
+                }
+            }
+        } message: {
+            Text(L.personalDeleteConfirm.localized)
+        }
+    }
+}
+
+private enum PersonalTransferEditSheet {
+    static func present(root: PersonalLedgerRootViewModel, transferId: UUID) {
+        // Simple runtime presentation via UIKit bridge
+        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootVC = scene.windows.first?.rootViewController else { return }
+        let host = UIHostingController(rootView: PersonalTransferEditHost(root: root, transferId: transferId))
+        rootVC.present(host, animated: true)
+    }
+}
+
+private struct PersonalTransferEditHost: View {
+    @Environment(\.dismiss) private var dismiss
+    let root: PersonalLedgerRootViewModel
+    let transferId: UUID
+
+    var body: some View {
+        NavigationStack {
+            PersonalTransferFormView(viewModel: root.makeTransferFormViewModel(transferId: transferId)) {
+                dismiss()
+            }
+            .navigationTitle(L.personalTransferTitle.localized)
         }
     }
 }
@@ -369,13 +706,14 @@ struct PersonalRecordFormHost: View {
         NavigationStack {
             PersonalRecordFormView(viewModel: viewModel, onDone: onDismiss)
         }
+        .scrollDismissesKeyboard(.interactively)
+        .dismissKeyboardOnTap()
     }
 }
 
 struct PersonalRecordFormView: View {
     @ObservedObject var viewModel: PersonalRecordFormViewModel
     var onDone: () -> Void
-    @State private var selectedPhoto: PhotosPickerItem?
 
     var body: some View {
         Form {
@@ -401,37 +739,37 @@ struct PersonalRecordFormView: View {
                 }
             }
             Section(header: Text(L.personalFieldAmount.localized)) {
-                TextField(L.personalFieldAmount.localized, text: $viewModel.amountText)
-                    .keyboardType(.decimalPad)
+                HStack {
+                    TextField(L.personalFieldAmount.localized, text: $viewModel.amountText)
+                        .keyboardType(.decimalPad)
+                    Menu {
+                        ForEach(viewModel.currencyOptions, id: \.self) { code in
+                            Button(code.rawValue) { viewModel.selectAmountCurrency(code) }
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(viewModel.amountCurrency.rawValue)
+                            Image(systemName: "chevron.down")
+                                .font(.caption)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 6)
+                        .background(RoundedRectangle(cornerRadius: 8).fill(Color.secondary.opacity(0.15)))
+                    }
+                    .accessibilityLabel(Text(L.personalFieldCurrency.localized))
+                }
                 if viewModel.showFXField {
-                    TextField(L.personalFieldFXRate.localized, text: $viewModel.fxRateText)
+                    TextField(L.personalFieldFXRate.localized,
+                              text: $viewModel.fxRateText,
+                              prompt: Text(viewModel.fxRatePlaceholder).foregroundStyle(.secondary))
+                        .keyboardType(.decimalPad)
+                    TextField(L.personalFieldFee.localized(viewModel.accountCurrencyCode),
+                              text: $viewModel.feeText,
+                              prompt: Text(viewModel.feePlaceholder).foregroundStyle(.secondary))
                         .keyboardType(.decimalPad)
                 }
                 DatePicker(L.personalFieldDate.localized, selection: $viewModel.occurredAt, displayedComponents: [.date, .hourAndMinute])
                 TextField(L.personalFieldNote.localized, text: $viewModel.note, axis: .vertical)
-            }
-            Section(header: Text(L.personalFieldAttachment.localized)) {
-                if let url = viewModel.attachmentURL {
-                    HStack {
-                        Text(url.lastPathComponent)
-                            .lineLimit(1)
-                        Spacer()
-                        Button(role: .destructive, action: viewModel.removeAttachment) {
-                            Image(systemName: "trash")
-                        }
-                    }
-                }
-                PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                    Label(L.personalFieldPickPhoto.localized, systemImage: "photo")
-                }
-                .onChange(of: selectedPhoto) { newItem in
-                    guard let item = newItem else { return }
-                    Task {
-                        if let data = try? await item.loadTransferable(type: Data.self) {
-                            try? viewModel.saveAttachment(data: data, fileExtension: "jpg")
-                        }
-                    }
-                }
             }
         }
         .toolbar {
@@ -467,11 +805,34 @@ struct PersonalAllRecordsView: View {
         _viewModel = StateObject(wrappedValue: viewModel)
     }
 
+    private func exportAllPersonalCSV() throws -> URL {
+        // 直接透传到设置页里已有的导出逻辑：导出全部个人账本记录
+        let records = try root.store.records(filter: PersonalRecordFilter())
+        var lines: [String] = ["日期,账户,类型,分类,金额,币种,备注"]
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        for record in records {
+            let dateString = formatter.string(from: record.occurredAt)
+            let typeString: String
+            switch record.kind {
+            case .income: typeString = "Income"
+            case .expense: typeString = "Expense"
+            case .fee: typeString = "Fee"
+            }
+            let account = root.store.account(with: record.accountId)
+            let accountName = account?.name ?? ""
+            let note = record.note.replacingOccurrences(of: ",", with: " ")
+            let amount = SettlementMath.decimal(fromMinorUnits: record.amountMinorUnits, scale: 2)
+            let currencyCode = account?.currency.rawValue ?? root.store.preferences.primaryDisplayCurrency.rawValue
+            lines.append("\(dateString),\(accountName),\(typeString),\(record.categoryKey),\(amount),\(currencyCode),\(note)")
+        }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("PersonalLedger-All-\(UUID().uuidString).csv")
+        try lines.joined(separator: "\n").appending("\n").write(to: url, atomically: true, encoding: .utf8)
+        return url
+    }
+
     var body: some View {
         List(selection: $viewModel.selection) {
-            FilterControls(filterState: $viewModel.filterState) {
-                Task { await viewModel.refresh() }
-            }
             Section {
                 ForEach(viewModel.records) { record in
                     PersonalRecordRow(record: record,
@@ -485,17 +846,24 @@ struct PersonalAllRecordsView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(L.personalAllRecordsTitle.localized)
+        .navigationTitle(monthTitle())
         .toolbar {
             ToolbarItemGroup(placement: .navigationBarTrailing) {
-                if !viewModel.selection.isEmpty {
-                    Button(L.delete.localized, role: .destructive) {
-                        Task { await viewModel.deleteSelected() }
+                Menu {
+                    Picker("", selection: $viewModel.sortMode) {
+                        ForEach(PersonalAllRecordsViewModel.SortMode.allCases) { mode in
+                            Text(mode.title).tag(mode)
+                        }
                     }
+                    .pickerStyle(.inline)
+                } label: {
+                    Image(systemName: "arrow.up.arrow.down")
                 }
+                
                 Button {
                     do {
-                        let url = try viewModel.exportCSV()
+                        // 使用与设置页一致的导出逻辑：导出全部个人账本 CSV
+                        let url = try exportAllPersonalCSV()
                         ShareSheet.present(url: url)
                     } catch {
                         showingShareError = true
@@ -503,12 +871,31 @@ struct PersonalAllRecordsView: View {
                 } label: {
                     Image(systemName: "square.and.arrow.up")
                 }
+                
+                if !viewModel.selection.isEmpty {
+                    Button(L.delete.localized, role: .destructive) {
+                        Task { await viewModel.deleteSelected() }
+                    }
+                }
             }
         }
         .task { await viewModel.refresh() }
         .alert(L.personalExportFailed.localized, isPresented: $showingShareError) {
             Button(L.ok.localized, action: {})
         }
+    }
+
+    private func monthTitle() -> String {
+        // 若 filterState 的范围正好是整月，则用“yyyy-MM 交易记录”，否则退回“全部记录”
+        if let range = viewModel.filterState.dateRange {
+            let cal = Calendar.current
+            if let interval = cal.dateInterval(of: .month, for: range.lowerBound), interval.start == range.lowerBound && interval.end == range.upperBound {
+                let fmt = DateFormatter()
+                fmt.dateFormat = "yyyy-MM"
+                return fmt.string(from: range.lowerBound) + " " + L.personalAllRecordsTitle.localized
+            }
+        }
+        return L.personalAllRecordsTitle.localized
     }
 }
 
@@ -566,13 +953,21 @@ struct PersonalAccountsView: View {
     var body: some View {
         List {
             Section(header: Text(L.personalAccountsSummary.localized)) {
-                HStack {
-                    Text(L.personalNetWorth.localized)
-                    Spacer()
-                    Text(AmountFormatter.string(minorUnits: viewModel.totalSummary.totalMinorUnits,
-                                                currency: viewModel.totalSummary.displayCurrency,
-                                                locale: Locale.current))
-                        .font(.headline)
+                if viewModel.totalSummary.entries.isEmpty {
+                    Text(L.personalNetWorthEmpty.localized)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(viewModel.totalSummary.entries) { entry in
+                        HStack {
+                            Text("\(L.personalNetWorth.localized) (\(entry.currency.rawValue))")
+                            Spacer()
+                            Text(AmountFormatter.string(minorUnits: entry.totalMinorUnits,
+                                                        currency: entry.currency,
+                                                        locale: Locale.current))
+                                .font(.headline)
+                        }
+                    }
                 }
             }
             Section {
@@ -682,6 +1077,8 @@ struct PersonalAccountFormHost: View {
         NavigationStack {
             PersonalAccountFormView(viewModel: viewModel, onDone: onDismiss)
         }
+        .scrollDismissesKeyboard(.interactively)
+        .dismissKeyboardOnTap()
     }
 }
 
@@ -689,11 +1086,22 @@ struct PersonalAccountFormView: View {
     @ObservedObject var viewModel: PersonalAccountFormViewModel
     var onDone: () -> Void
     @State private var balanceText: String
+    @State private var creditLimitText: String
+    @FocusState private var balanceFieldFocused: Bool
 
     init(viewModel: PersonalAccountFormViewModel, onDone: @escaping () -> Void) {
         self.viewModel = viewModel
         self.onDone = onDone
-        _balanceText = State(initialValue: NSDecimalNumber(decimal: viewModel.draft.initialBalance).stringValue)
+        if viewModel.draft.initialBalance == 0 {
+            _balanceText = State(initialValue: "")
+        } else {
+            _balanceText = State(initialValue: NSDecimalNumber(decimal: viewModel.draft.initialBalance).stringValue)
+        }
+        if let limit = viewModel.draft.creditLimit {
+            _creditLimitText = State(initialValue: NSDecimalNumber(decimal: limit).stringValue)
+        } else {
+            _creditLimitText = State(initialValue: "")
+        }
     }
 
     var body: some View {
@@ -714,12 +1122,28 @@ struct PersonalAccountFormView: View {
             Section(header: Text(L.personalFieldBalance.localized)) {
                 TextField(L.personalFieldBalance.localized, text: $balanceText)
                     .keyboardType(.decimalPad)
-                    .onChange(of: balanceText) { newValue in
-                        if let decimal = Decimal(string: newValue) {
+                    .focused($balanceFieldFocused)
+                    .onChange(of: balanceText) { _, newValue in
+                        let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if trimmed.isEmpty {
+                            viewModel.draft.initialBalance = 0
+                        } else if let decimal = Decimal(string: trimmed) {
                             viewModel.draft.initialBalance = decimal
                         }
                     }
                 Toggle(L.personalIncludeInNet.localized, isOn: $viewModel.draft.includeInNetWorth)
+                if viewModel.draft.type == .creditCard {
+                    TextField(L.personalFieldCreditLimit.localized, text: $creditLimitText)
+                        .keyboardType(.decimalPad)
+                        .onChange(of: creditLimitText) { _, newValue in
+                            let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+                            if trimmed.isEmpty {
+                                viewModel.draft.creditLimit = nil
+                            } else if let decimal = Decimal(string: trimmed) {
+                                viewModel.draft.creditLimit = decimal
+                            }
+                        }
+                }
                 if viewModel.draft.id != nil {
                     Picker(L.personalAccountStatus.localized, selection: $viewModel.draft.status) {
                         Text(L.personalStatusActive.localized).tag(PersonalAccountStatus.active)
@@ -749,6 +1173,19 @@ struct PersonalAccountFormView: View {
         .alert(viewModel.errorMessage ?? "", isPresented: Binding(get: { viewModel.errorMessage != nil }, set: { _ in viewModel.errorMessage = nil })) {
             Button(L.ok.localized, action: {})
         }
+        .onAppear {
+            if viewModel.draft.id == nil {
+                DispatchQueue.main.async {
+                    balanceFieldFocused = true
+                }
+            }
+        }
+        .onChange(of: viewModel.draft.type) { _, newValue in
+            if newValue != .creditCard {
+                creditLimitText = ""
+                viewModel.draft.creditLimit = nil
+            }
+        }
     }
 }
 
@@ -765,6 +1202,8 @@ struct PersonalTransferFormHost: View {
         NavigationStack {
             PersonalTransferFormView(viewModel: viewModel, onDone: onDismiss)
         }
+        .scrollDismissesKeyboard(.interactively)
+        .dismissKeyboardOnTap()
     }
 }
 
@@ -789,9 +1228,16 @@ struct PersonalTransferFormView: View {
             Section(header: Text(L.personalTransferAmount.localized)) {
                 TextField(L.personalFieldAmount.localized, text: $viewModel.amountText)
                     .keyboardType(.decimalPad)
-                TextField(L.personalFieldFXRate.localized, text: $viewModel.fxRateText)
+                TextField(L.personalFieldFXRate.localized,
+                          text: $viewModel.fxRateText,
+                          prompt: Text(viewModel.fxRatePlaceholder).foregroundStyle(.secondary))
                     .keyboardType(.decimalPad)
-                TextField(L.personalTransferFee.localized, text: $viewModel.feeText)
+                    .disabled(!viewModel.fxRateEditable)
+                    .allowsHitTesting(viewModel.fxRateEditable)
+                    .opacity(viewModel.fxRateEditable ? 1 : 0.6)
+                TextField(L.personalTransferFee.localized,
+                          text: $viewModel.feeText,
+                          prompt: Text(viewModel.feePlaceholder).foregroundStyle(.secondary))
                     .keyboardType(.decimalPad)
                 Picker(L.personalTransferFeeSide.localized, selection: $viewModel.selectedFeeSide) {
                     Text(L.personalTransferFeeFrom.localized).tag(PersonalTransferFeeSide.from)
@@ -885,10 +1331,15 @@ extension PersonalStatsViewModel.Period {
 
 extension PersonalRecordRowViewData {
     var kindDisplay: String {
-        switch kind {
-        case .income: return L.personalTypeIncome.localized
-        case .expense: return L.personalTypeExpense.localized
-        case .fee: return L.personalTypeFee.localized
+        switch entryNature {
+        case .transaction(let kind):
+            switch kind {
+            case .income: return L.personalTypeIncome.localized
+            case .expense: return L.personalTypeExpense.localized
+            case .fee: return L.personalTypeFee.localized
+            }
+        case .transfer:
+            return L.personalTransferTitle.localized
         }
     }
 }

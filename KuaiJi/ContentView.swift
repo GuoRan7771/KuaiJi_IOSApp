@@ -291,8 +291,8 @@ protocol SettingsViewModelProtocol: ObservableObject {
     func clearAllData()
     func getCurrentUser() -> UserProfile?
     func updateUserProfile(name: String, emoji: String, currency: CurrencyCode)
-    func exportData() -> URL?
-    func importData(from url: URL) throws
+    func exportFullData(personalStore: PersonalLedgerStore, visibility: FeatureVisibilitySnapshot) -> URL?
+    func importFullData(from url: URL, personalStore: PersonalLedgerStore) throws -> FeatureVisibilitySnapshot?
 }
 
 // MARK: - Root ViewModel & Factories
@@ -1376,7 +1376,7 @@ struct ExpenseFormView<Model: ExpenseFormViewModelProtocol>: View {
                                 .foregroundStyle(.blue)
                             Image(systemName: "chevron.right")
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.appSecondaryText)
                         }
                         .contentShape(Rectangle())
                         .onTapGesture {
@@ -1763,7 +1763,6 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
     @State private var showingClearDataAlert = false
     @State private var showingProfileEdit = false
     @State private var showingGuide = false
-    @State private var selectedLedgerId: UUID?
     @State private var showingImportPicker = false
     @State private var showingImportConfirmation = false
     @State private var pendingImportURL: URL?
@@ -1772,7 +1771,41 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
     @State private var alertMessage = ""
     @State private var showingPersonalExportError = false
     @State private var showingPersonalClearAlert = false
+    @State private var quickActionSelection: QuickActionSelection = .none
+    @State private var showingSharedCSVPicker = false
 
+    private enum QuickActionSelection: Hashable, Identifiable {
+        case none
+        case shared(UUID)
+        case personal
+
+        var id: String {
+            switch self {
+            case .none: return "none"
+            case .personal: return "personal"
+            case .shared(let id): return id.uuidString
+            }
+        }
+    }
+
+    private func selection(from target: QuickActionTarget?) -> QuickActionSelection {
+        switch target {
+        case .shared(let id): return .shared(id)
+        case .personal: return .personal
+        case .none: return .none
+        }
+    }
+
+    private enum SharedCSVExportError: LocalizedError {
+        case ledgerMissing
+
+        var errorDescription: String? {
+            switch self {
+            case .ledgerMissing:
+                return L.settingsExportSharedCSVNotFound.localized
+            }
+        }
+    }
     var body: some View {
         Form {
             // 个人信息
@@ -1792,18 +1825,16 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                                     .font(.headline)
                                     .foregroundStyle(.primary)
                                 Text(L.profileUserIdLabel.localized(currentUser.userId))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .appSecondaryTextStyle()
                                 Text(L.profileCurrencyLabel.localized(currentUser.currency.rawValue))
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
+                                    .appSecondaryTextStyle()
                             }
                             
                             Spacer()
                             
                             Image(systemName: "chevron.right")
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.appSecondaryText)
                         }
                         .padding(.vertical, 4)
                     }
@@ -1812,7 +1843,7 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                 Text(L.profileTitle.localized)
             } footer: {
                 Text(L.profileViewInfo.localized)
-                    .font(.caption)
+                    .appSecondaryTextStyle()
             }
             
             Section {
@@ -1825,63 +1856,122 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.appSecondaryText)
                     }
                 }
             } footer: {
                 Text(L.settingsLanguageDesc.localized)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .appSecondaryTextStyle()
+            }
+
+            Section(L.settingsInterfaceDisplay.localized) {
+                Toggle(L.settingsShowSharedAndFriends.localized, isOn: $appState.showSharedLedgerTab)
+                Toggle(L.settingsShowPersonalLedger.localized, isOn: $appState.showPersonalLedgerTab)
+                Picker(L.settingsSharedLanding.localized, selection: Binding(get: {
+                    switch appState.getSharedLandingPreference() {
+                    case .list: return "list"
+                    case .ledger(let id): return id.uuidString
+                    }
+                }, set: { raw in
+                    if raw == "list" {
+                        appState.setSharedLandingPreference(.list)
+                    } else if let id = UUID(uuidString: raw) {
+                        appState.setSharedLandingPreference(.ledger(id))
+                    }
+                })) {
+                    Text(L.settingsSharedLandingList.localized).tag("list")
+                    ForEach(rootViewModel.ledgerSummaries, id: \.id) { ledger in
+                        Text(ledger.name).tag(ledger.id.uuidString)
+                    }
+                }
+                .pickerStyle(.menu)
+                .accessibilityIdentifier("settings.sharedLandingPicker")
             }
             
             // 快速记账默认账本设置
             Section {
-                Picker(L.settingsDefaultLedger.localized, selection: $selectedLedgerId) {
+                Picker(L.settingsDefaultLedger.localized, selection: $quickActionSelection) {
                     Text(L.settingsDefaultLedgerNone.localized)
-                        .tag(nil as UUID?)
-                    
+                        .tag(QuickActionSelection.none)
+                    Text(L.settingsQuickActionPersonal.localized)
+                        .tag(QuickActionSelection.personal)
                     ForEach(rootViewModel.ledgerSummaries, id: \.id) { ledger in
                         Text(ledger.name)
-                            .tag(ledger.id as UUID?)
+                            .tag(QuickActionSelection.shared(ledger.id))
                     }
                 }
-                .onChangeCompat(of: selectedLedgerId) {
-                    appState.setDefaultLedgerId(selectedLedgerId)
+                .onChangeCompat(of: quickActionSelection) {
+                    switch quickActionSelection {
+                    case .none:
+                        appState.setQuickActionTarget(nil)
+                    case .personal:
+                        appState.setQuickActionTarget(.personal)
+                    case .shared(let id):
+                        appState.setQuickActionTarget(.shared(id))
+                    }
                 }
             } header: {
                 Text(L.settingsQuickActionSection.localized)
             } footer: {
                 Text(L.settingsDefaultLedgerDesc.localized)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .appSecondaryTextStyle()
             }
             
             // 个人账本设置
             Section {
-                Picker(L.personalPrimaryCurrency.localized, selection: $personalSettingsViewModel.primaryCurrency) {
-                    ForEach(CurrencyCode.allCases, id: \.self) { code in
-                        Text(code.rawValue).tag(code)
-                    }
-                }
-                Picker(L.personalFXSource.localized, selection: $personalSettingsViewModel.fxSource) {
-                    ForEach(PersonalFXSource.allCases, id: \.self) { source in
-                        Text(source.displayName).tag(source)
-                    }
-                }
                 Stepper(value: $personalSettingsViewModel.defaultFXPrecision, in: 2...6) {
                     Text(L.personalFXPrecision.localized("\(personalSettingsViewModel.defaultFXPrecision)"))
                 }
+                .onChangeCompat(of: personalSettingsViewModel.defaultFXPrecision) {
+                    Task { await personalSettingsViewModel.save() }
+                }
                 TextField(L.personalFXDefaultRate.localized, text: $personalSettingsViewModel.defaultFXRateText)
                     .keyboardType(.decimalPad)
+                    .onChangeCompat(of: personalSettingsViewModel.defaultFXRateText) {
+                        Task { await personalSettingsViewModel.save() }
+                    }
+                TextField(L.personalDefaultFee.localized, text: $personalSettingsViewModel.defaultFeeText)
+                    .keyboardType(.decimalPad)
+                    .onChangeCompat(of: personalSettingsViewModel.defaultFeeText) {
+                        Task { await personalSettingsViewModel.save() }
+                    }
                 Toggle(L.personalFeeInclude.localized, isOn: $personalSettingsViewModel.countFeeInStats)
+                    .onChangeCompat(of: personalSettingsViewModel.countFeeInStats) {
+                        Task { await personalSettingsViewModel.save() }
+                    }
                 NavigationLink(L.personalAccountsManage.localized) {
                     PersonalAccountsView(root: personalLedgerRoot, viewModel: personalLedgerRoot.makeAccountsViewModel())
                 }
-                Button(L.save.localized) {
-                    Task { await personalSettingsViewModel.save() }
-                }
             } header: {
                 Text(L.personalSettingsTitle.localized)
+            }
+
+            Section(L.settingsAbout.localized) {
+                Button {
+                    showingGuide = true
+                } label: {
+                    HStack {
+                        Text(L.settingsGuide.localized)
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(Color.appSecondaryText)
+                    }
+                }
+
+                Button {
+                    showingContactSheet = true
+                } label: {
+                    HStack {
+                        Text(L.settingsContactMe.localized)
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(Color.appSecondaryText)
+                    }
+                }
             }
 
             // 数据管理
@@ -1895,10 +1985,10 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                         Spacer()
                         Image(systemName: "square.and.arrow.up")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.appSecondaryText)
                     }
                 }
-                
+
                 Button {
                     showingImportPicker = true
                 } label: {
@@ -1908,18 +1998,29 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                         Spacer()
                         Image(systemName: "square.and.arrow.down")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.appSecondaryText)
                     }
                 }
-            } header: {
-                Text(L.settingsDataSection.localized)
-            } footer: {
-                Text(L.settingsExportDataDesc.localized)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            
-            Section {
+
+                Button {
+                    if rootViewModel.ledgerSummaries.isEmpty {
+                        alertTitle = L.settingsExportSharedCSVEmptyTitle.localized
+                        alertMessage = L.settingsExportSharedCSVEmptyMessage.localized
+                        showingAlert = true
+                    } else {
+                        showingSharedCSVPicker = true
+                    }
+                } label: {
+                    HStack {
+                        Text(L.settingsExportSharedCSV.localized)
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.caption)
+                            .foregroundStyle(Color.appSecondaryText)
+                    }
+                }
+
                 Button {
                     do {
                         let url = try exportPersonalCSV()
@@ -1934,64 +2035,54 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                         Spacer()
                         Image(systemName: "square.and.arrow.up")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.appSecondaryText)
                     }
-                }
-                Button(L.personalClearData.localized, role: .destructive) {
-                    showingPersonalClearAlert = true
                 }
             } header: {
-                Text(L.personalDataSection.localized)
+                Text(L.settingsDataSection.localized)
+            } footer: {
+                Text(L.settingsExportDataDesc.localized)
+                    .appSecondaryTextStyle()
             }
-            
-            Section(L.settingsAbout.localized) {
-                Button {
-                    showingGuide = true
-                } label: {
-                    HStack {
-                        Text(L.settingsGuide.localized)
-                            .foregroundStyle(.primary)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+            .confirmationDialog(L.settingsExportSharedCSV.localized, isPresented: $showingSharedCSVPicker, titleVisibility: .visible) {
+                ForEach(rootViewModel.ledgerSummaries, id: \.id) { ledger in
+                    Button(ledger.name) {
+                        exportSharedLedgerCSV(for: ledger)
                     }
                 }
-                
-                Button {
-                    showingContactSheet = true
-                } label: {
-                    HStack {
-                        Text(L.settingsContactMe.localized)
-                            .foregroundStyle(.primary)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
+                Button(L.cancel.localized, role: .cancel) { }
             }
-            
+
             Section {
                 Button(role: .destructive) {
                     showingClearDataAlert = true
                 } label: {
-                    HStack {
-                        Spacer()
-                        Text(L.settingsClearData.localized)
-                        Spacer()
-                    }
+                    Text(L.settingsClearData.localized)
+                        .frame(maxWidth: .infinity)
                 }
             } footer: {
                 Text(L.settingsClearDataWarning.localized)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .appSecondaryTextStyle()
+            }
+
+            Section {
+                Button(role: .destructive) {
+                    showingPersonalClearAlert = true
+                } label: {
+                    Text(L.personalClearData.localized)
+                        .frame(maxWidth: .infinity)
+                }
+            } footer: {
+                Text(L.personalClearHint.localized)
+                    .appSecondaryTextStyle()
             }
         }
+        .scrollDismissesKeyboard(.interactively)
+        .dismissKeyboardOnTap()
         .navigationTitle(L.settingsTitle.localized)
         .onAppear {
-            // 初始化选中的账本ID
-            selectedLedgerId = appState.getDefaultLedgerId()
+            // 初始化快速操作目标
+            quickActionSelection = selection(from: appState.getQuickActionTarget())
         }
         .sheet(isPresented: $showingContactSheet) {
             ContactView()
@@ -2005,6 +2096,8 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                 }
             }
         }
+        .scrollDismissesKeyboard(.interactively)
+        .dismissKeyboardOnTap()
         .sheet(isPresented: $showingGuide) {
             WelcomeGuideView {
                 showingGuide = false
@@ -2059,6 +2152,62 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
         }
     }
     
+    private func exportSharedLedgerCSV(for ledger: LedgerSummaryViewData) {
+        do {
+            let url = try makeSharedLedgerCSV(for: ledger)
+            presentShare(url: url)
+        } catch {
+            alertTitle = L.settingsExportError.localized
+            alertMessage = error.localizedDescription
+            showingAlert = true
+        }
+    }
+
+    private func makeSharedLedgerCSV(for ledger: LedgerSummaryViewData) throws -> URL {
+        guard let info = rootViewModel.ledgerInfos[ledger.id] else {
+            throw SharedCSVExportError.ledgerMissing
+        }
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+
+        var lines: [String] = ["日期,标题,金额,币种,类别,付款人,参与者,备注"]
+        let sortedExpenses = info.expenses.sorted { $0.date > $1.date }
+        for expense in sortedExpenses {
+            let totalMinor = expense.amountMinorUnits + expense.metadata.tipMinorUnits + expense.metadata.taxMinorUnits
+            let amount = SettlementMath.decimal(fromMinorUnits: totalMinor, scale: 2)
+            let payerName = rootViewModel.member(with: expense.payerId)?.name ?? L.defaultUnknownMember.localized
+            let categoryName = expense.category.displayName
+            let dateString = formatter.string(from: expense.date)
+            let participants = expense.participants.map { share -> String in
+                let name = rootViewModel.member(with: share.userId)?.name ?? L.defaultUnknownMember.localized
+                return name
+                    .replacingOccurrences(of: ",", with: " ")
+                    .replacingOccurrences(of: "\n", with: " ")
+            }.joined(separator: ";")
+            let sanitizedTitle = (expense.title.isEmpty ? L.defaultUntitledExpense.localized : expense.title)
+                .replacingOccurrences(of: ",", with: " ")
+                .replacingOccurrences(of: "\n", with: " ")
+            let sanitizedCategory = categoryName
+                .replacingOccurrences(of: ",", with: " ")
+                .replacingOccurrences(of: "\n", with: " ")
+            let sanitizedPayer = payerName
+                .replacingOccurrences(of: ",", with: " ")
+                .replacingOccurrences(of: "\n", with: " ")
+            let sanitizedNote = expense.note
+                .replacingOccurrences(of: ",", with: " ")
+                .replacingOccurrences(of: "\n", with: " ")
+            lines.append("\(dateString),\(sanitizedTitle),\(amount),\(info.currency.rawValue),\(sanitizedCategory),\(sanitizedPayer),\(participants),\(sanitizedNote)")
+        }
+
+        let csv = lines.joined(separator: "\n") + "\n"
+        let safeName = ledger.name.isEmpty ? "Ledger" : ledger.name.replacingOccurrences(of: " ", with: "_")
+        let filename = "SharedLedger-\(safeName)-\(UUID().uuidString).csv"
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+        try csv.write(to: url, atomically: true, encoding: .utf8)
+        return url
+    }
+
     private func exportPersonalCSV() throws -> URL {
         let records = try personalLedgerRoot.store.records(filter: PersonalRecordFilter())
         var lines: [String] = ["日期,账户,类型,分类,金额,币种,备注"]
@@ -2107,7 +2256,10 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
     }
 
     private func exportData() {
-        if let exportURL = viewModel.exportData() {
+        let visibility = FeatureVisibilitySnapshot(showSharedAndFriends: appState.showSharedLedgerTab,
+                                                   showPersonal: appState.showPersonalLedgerTab,
+                                                   quickAction: appState.getQuickActionTarget())
+        if let exportURL = viewModel.exportFullData(personalStore: personalLedgerRoot.store, visibility: visibility) {
             // 使用 UIActivityViewController 分享文件
             let activityVC = UIActivityViewController(activityItems: [exportURL], applicationActivities: nil)
             
@@ -2136,7 +2288,14 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                 }
             }
             
-            try viewModel.importData(from: url)
+            let visibility = try viewModel.importFullData(from: url, personalStore: personalLedgerRoot.store)
+            if let visibility {
+                appState.showSharedLedgerTab = visibility.showSharedAndFriends
+                appState.showPersonalLedgerTab = visibility.showPersonal
+                appState.setQuickActionTarget(visibility.quickActionTarget())
+                quickActionSelection = selection(from: appState.getQuickActionTarget())
+            }
+            personalSettingsViewModel.reloadFromStore()
             alertTitle = L.settingsImportSuccess.localized
             alertMessage = L.settingsImportSuccessMessage.localized
             showingAlert = true
@@ -2328,14 +2487,12 @@ private extension ExpenseCategory {
 }
 
 
+// iOS 18 项目，直接使用现代 onChange API
 private extension View {
     @ViewBuilder
     func onChangeCompat<Value: Equatable>(of value: Value, perform action: @escaping () -> Void) -> some View {
-        if #available(iOS 17, *) {
-            onChange(of: value, initial: false) { _, _ in action() }
-        } else {
-            onChange(of: value) { _ in action() }
-        }
+        // iOS 17+ onChange API with oldValue and newValue parameters
+        onChange(of: value, initial: false) { _, _ in action() }
     }
 }
 
@@ -2348,6 +2505,9 @@ struct ContentView: View {
     @StateObject private var friendViewModel: FriendListScreenModel
     @StateObject private var settingsViewModel: SettingsScreenModel
     @EnvironmentObject var appState: AppState
+    
+    private enum RootTab: Hashable { case personal, ledgers, friends, settings }
+    @State private var selectedTab: RootTab = .personal
 
     init(viewModel: AppRootViewModel, personalLedgerRoot: PersonalLedgerRootViewModel) {
         self.viewModel = viewModel
@@ -2358,18 +2518,54 @@ struct ContentView: View {
     }
 
     var body: some View {
-        TabView {
-            LedgerNavigator(rootViewModel: viewModel, listViewModel: listViewModel)
-                .tabItem { Label(L.tabLedgers.localized, systemImage: "list.bullet") }
+        TabView(selection: $selectedTab) {
+            if appState.showPersonalLedgerTab {
+                PersonalLedgerNavigator(root: personalLedgerRoot)
+                    .tabItem { Label(L.tabPersonalLedger.localized, systemImage: "wallet.pass") }
+                    .tag(RootTab.personal)
+            }
 
-            PersonalLedgerNavigator(root: personalLedgerRoot)
-                .tabItem { Label(L.tabPersonalLedger.localized, systemImage: "wallet.pass") }
+            if appState.showSharedLedgerTab {
+                LedgerNavigator(rootViewModel: viewModel, listViewModel: listViewModel)
+                    .tabItem { Label(L.tabLedgers.localized, systemImage: "list.bullet") }
+                    .tag(RootTab.ledgers)
 
-            FriendNavigator(viewModel: friendViewModel, rootViewModel: viewModel)
-                .tabItem { Label(L.tabFriends.localized, systemImage: "person.2.fill") }
+                FriendNavigator(viewModel: friendViewModel, rootViewModel: viewModel)
+                    .tabItem { Label(L.tabFriends.localized, systemImage: "person.2.fill") }
+                    .tag(RootTab.friends)
+            }
 
             SettingsNavigator(viewModel: settingsViewModel, rootViewModel: viewModel, personalLedgerRoot: personalLedgerRoot)
                 .tabItem { Label(L.tabSettings.localized, systemImage: "gearshape") }
+                .tag(RootTab.settings)
+        }
+        .onChangeCompat(of: appState.showPersonalLedgerTab) { ensureValidSelectedTab() }
+        .onChangeCompat(of: appState.showSharedLedgerTab) { ensureValidSelectedTab() }
+        .onChangeCompat(of: selectedTab) {
+            if selectedTab == .ledgers {
+                appState.requestSharedTabLandingActivation()
+            }
+        }
+    }
+    
+    private func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+
+    private func ensureValidSelectedTab() {
+        // 如果当前选中的 tab 已被隐藏，切换到第一个可见 tab
+        switch selectedTab {
+        case .personal:
+            if !appState.showPersonalLedgerTab {
+                selectedTab = appState.showSharedLedgerTab ? .ledgers : .settings
+            }
+        case .ledgers, .friends:
+            if !appState.showSharedLedgerTab {
+                selectedTab = appState.showPersonalLedgerTab ? .personal : .settings
+            }
+        case .settings:
+            // 永远可用，无需处理
+            break
         }
     }
 }
@@ -2382,9 +2578,10 @@ struct LedgerNavigator: View {
     @State private var showingShareLedger = false
     @State private var quickActionLedger: LedgerSummaryViewData?
     @State private var showQuickExpenseForm = false
+    @State private var path = NavigationPath()
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             LedgerListView(viewModel: listViewModel)
                 .navigationTitle(L.ledgersPageTitle.localized)
                 .toolbar {
@@ -2393,7 +2590,6 @@ struct LedgerNavigator: View {
                             Label(L.syncShareLedger.localized, systemImage: "antenna.radiowaves.left.and.right")
                         }
                     }
-                    
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button(action: { showingCreateLedger = true }) {
                             Label(L.ledgersNew.localized, systemImage: "plus")
@@ -2414,15 +2610,20 @@ struct LedgerNavigator: View {
                         ExpenseFormHost(rootViewModel: rootViewModel, ledgerId: ledger.id)
                     }
                 }
-                .onChangeCompat(of: appState.quickActionLedgerId) {
+                .onChangeCompat(of: appState.quickActionTarget) {
                     handleQuickAction()
+                }
+                .onAppear {
+                    activateSharedLandingIfNeeded()
+                }
+                .onChangeCompat(of: appState.sharedTabActivateAt) {
+                    activateSharedLandingIfNeeded()
                 }
         }
     }
     
     private func handleQuickAction() {
-        guard let ledgerId = appState.quickActionLedgerId else {
-            print("⚠️ quickActionLedgerId 为空")
+        guard case .shared(let ledgerId) = appState.quickActionTarget else {
             return
         }
         
@@ -2431,20 +2632,35 @@ struct LedgerNavigator: View {
         
         guard let summary = rootViewModel.ledgerSummaries.first(where: { $0.id == ledgerId }) else {
             print("❌ 找不到账本 summary")
-            appState.quickActionLedgerId = nil
+            appState.quickActionTarget = nil
             return
         }
         
         print("✅ 找到账本: \(summary.name)")
         
         // 清除 Quick Action 状态
-        appState.quickActionLedgerId = nil
+        appState.quickActionTarget = nil
         
         // 打开记账表单
         quickActionLedger = summary
         showQuickExpenseForm = true
         
         print("✅ 已设置打开记账表单")
+    }
+
+    private func activateSharedLandingIfNeeded() {
+        switch appState.getSharedLandingPreference() {
+        case .list:
+            break
+        case .ledger(let ledgerId):
+            guard let summary = rootViewModel.ledgerSummaries.first(where: { $0.id == ledgerId }) else {
+                return
+            }
+            // 重置路径并跳转到指定账本
+            var newPath = NavigationPath()
+            newPath.append(summary)
+            path = newPath
+        }
     }
 }
 
@@ -2492,13 +2708,13 @@ struct FriendNavigator: View {
                             } label: {
                                 Label(L.friendMenuManualInput.localized, systemImage: "keyboard")
                             }
-                            
+
                             Button {
                                 showingMyQRCode = true
                             } label: {
                                 Label(L.friendMenuMyQRCode.localized, systemImage: "qrcode")
                             }
-                            
+
                             Button {
                                 showingScanner = true
                             } label: {
@@ -2659,24 +2875,30 @@ struct LedgerOverviewHost: View {
     }
 
     var body: some View {
-        LedgerOverviewView(viewModel: viewModel,
-                           onAddExpense: { showExpenseForm = true },
-                           onOpenSettlement: { showSettlement = true },
-                           onShowRecords: { showRecords = true })
-            .navigationTitle(viewModel.ledger.name)
-            .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showExpenseForm) {
-                ExpenseFormHost(rootViewModel: rootViewModel, ledgerId: summary.id)
-            }
-            .sheet(isPresented: $showSettlement) {
-                SettlementHost(rootViewModel: rootViewModel, ledgerId: summary.id)
-            }
-            .sheet(isPresented: $showRecords) {
-                RecordsSheet(viewModel: viewModel)
-            }
-            .navigationDestination(for: MemberSummaryViewData.self) { member in
-                MemberDetailHost(rootViewModel: rootViewModel, ledgerId: summary.id, member: member)
-            }
+        ZStack(alignment: .bottomTrailing) {
+            LedgerOverviewView(viewModel: viewModel,
+                               onAddExpense: { showExpenseForm = true },
+                               onOpenSettlement: { showSettlement = true },
+                               onShowRecords: { showRecords = true })
+            FloatingActionButton(systemImage: "plus") { showExpenseForm = true }
+                .accessibilityLabel(L.ledgerAddExpense.localized)
+                .padding(.trailing, 24)
+                .padding(.bottom, 24)
+        }
+        .navigationTitle(viewModel.ledger.name)
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showExpenseForm) {
+            ExpenseFormHost(rootViewModel: rootViewModel, ledgerId: summary.id)
+        }
+        .sheet(isPresented: $showSettlement) {
+            SettlementHost(rootViewModel: rootViewModel, ledgerId: summary.id)
+        }
+        .sheet(isPresented: $showRecords) {
+            RecordsSheet(viewModel: viewModel)
+        }
+        .navigationDestination(for: MemberSummaryViewData.self) { member in
+            MemberDetailHost(rootViewModel: rootViewModel, ledgerId: summary.id, member: member)
+        }
     }
 }
 
@@ -2709,13 +2931,6 @@ struct LedgerOverviewView<Model: LedgerOverviewViewModelProtocol>: View {
                 transferPlanCard
             }
             .padding()
-        }
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button(action: onAddExpense) {
-                    Label(L.ledgerAddExpense.localized, systemImage: "plus.circle.fill")
-                }
-            }
         }
         .sheet(isPresented: $showAllMembers) {
             AllMembersSheet(memberExpenses: viewModel.memberExpenses)
@@ -3530,11 +3745,17 @@ struct ProfileEditView: View {
 struct DismissKeyboardOnTapModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .simultaneousGesture(
-                TapGesture().onEnded { _ in
-                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                }
-            )
+            .background(KeyboardDismissBackground())
+    }
+}
+
+private struct KeyboardDismissBackground: View {
+    var body: some View {
+        Color.clear
+            .contentShape(Rectangle())
+            .onTapGesture {
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            }
     }
 }
 
@@ -3567,5 +3788,3 @@ extension View {
         .modelContainer(container)
         .environment(\.locale, Locale(identifier: "zh_CN"))
 }
-
-
