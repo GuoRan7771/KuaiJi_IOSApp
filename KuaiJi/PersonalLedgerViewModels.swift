@@ -1378,14 +1378,14 @@ final class PersonalStatsViewModel: ObservableObject {
             // key -> series of shares across periods
             var seriesPerCategory: [String: [Double]] = [:]
             for r in ranges {
-                var f = PersonalRecordFilter(dateRange: r,
+                let filter = PersonalRecordFilter(dateRange: r,
                                              kinds: includeFees ? [.income, .expense, .fee] : [.income, .expense],
                                              accountIds: selectedAccountIds.isEmpty ? nil : selectedAccountIds,
                                              categoryKeys: nil,
                                              minimumAmountMinor: nil,
                                              maximumAmountMinor: nil,
                                              keyword: nil)
-                let allR = try store.records(filter: f)
+                let allR = try store.records(filter: filter)
                 let txR = allR.filter { tx in
                     guard let account = store.account(with: tx.accountId) else { return false }
                     return account.currency == selectedCurrency
