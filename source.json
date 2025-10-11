@@ -8,6 +8,8 @@
       "developerName": "Guo",
       "subtitle": "AA 分账与个人记账",
       "localizedDescription": "一款纯本地账本，可通过蓝牙/Wi-Fi 同步账本。",
+      "marketplaceID": null,
+      "notarized": false,
       "iconURL": "https://guoran7771.github.io/KuaiJi_IOSApp/icon.png",
       "screenshots": ["https://guoran7771.github.io/KuaiJi_IOSApp/s1.png"],
       "versions": [
