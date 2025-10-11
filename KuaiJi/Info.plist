@@ -24,10 +24,6 @@
 		<string>_kuaiji-sync._tcp</string>
 		<string>_kuaiji-sync._udp</string>
 	</array>
-	<key>NSCameraUsageDescription</key>
-	<string>需要使用相机扫描二维码以添加朋友</string>
-	<key>NSLocalNetworkUsageDescription</key>
-	<string>需要访问本地网络以发现附近设备并同步账本数据</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
