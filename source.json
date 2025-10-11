@@ -20,7 +20,7 @@
           "buildVersion": "3",
           "date": "2025-10-11T09:00:00+02:00",
           "size": 1879048,
-          "downloadURL": "https://github.com/GuoRan7771/KuaiJi_IOSApp/releases/download/2.3/KuaiJi.ipa",
+          "downloadURL": "https://github.com/GuoRan7771/KuaiJi_IOSApp/releases/latest/download/KuaiJi.ipa",
           "localizedDescription": "新增个人账本功能，界面优化与稳定性改进。",
           "minOSVersion": "15.0"
         }
