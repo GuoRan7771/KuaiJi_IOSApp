@@ -7,7 +7,7 @@
   "apps": [
     {
       "name": "KuaiJi",
-      "bundleIdentifier": "com.guo.kuaiji",
+      "bundleIdentifier": "com.Guo.kuaiji",
       "developerName": "Guo",
       "version": "1.0",
       "versionDate": "2025-10-11T09:00:00+02:00",
