@@ -1,28 +1,16 @@
 {
   "name": "Guo Source",
-  "subtitle": "个人与AA分账账本",
-  "description": "欢迎来到 Guo Source！这里提供 KuaiJi 应用的所有版本。",
-  "iconURL": "https://guoran7771.github.io/KuaiJi_IOSApp/icon.png",
-  "headerURL": "https://guoran7771.github.io/KuaiJi_IOSApp/header.png",
-  "website": "https://guoran7771.github.io/KuaiJi_IOSApp",
-  "tintColor": "#4185A9",
-  "featuredApps": [
-    "com.guo.KuaiJi"
-  ],
+  "identifier": "com.guo.source",
   "apps": [
     {
       "name": "KuaiJi",
       "bundleIdentifier": "com.guo.KuaiJi",
-      "marketplaceID": null,
       "developerName": "Guo",
-      "subtitle": "AA分账与个人记账",
-      "localizedDescription": "一款纯本地账本应用，支持AA分账、个人账户管理及蓝牙/Wi-Fi 同步账本。",
+      "subtitle": "AA ledger",
+      "localizedDescription": "Local ledger app supporting AA split and Wi-Fi sync.",
+      "marketplaceID": null,
+      "notarized": false,
       "iconURL": "https://guoran7771.github.io/KuaiJi_IOSApp/icon.png",
-      "tintColor": "#5CA399",
-      "screenshots": [
-        "https://guoran7771.github.io/KuaiJi_IOSApp/s1.png",
-        "https://guoran7771.github.io/KuaiJi_IOSApp/s2.png"
-      ],
       "versions": [
         {
           "version": "2.3",
@@ -30,49 +18,11 @@
           "date": "2025-10-11T09:00:00+02:00",
           "size": 1879048,
           "downloadURL": "https://github.com/GuoRan7771/KuaiJi_IOSApp/releases/download/2.3/KuaiJi.ipa",
-          "localizedDescription": "新增个人账本功能、界面优化与稳定性改进。",
+          "localizedDescription": "Add personal ledger feature.",
           "minOSVersion": "15.0"
-        },
-        {
-          "version": "2.2",
-          "buildVersion": "2",
-          "date": "2025-09-01T09:00:00+02:00",
-          "size": 1820000,
-          "downloadURL": "https://github.com/GuoRan7771/KuaiJi_IOSApp/releases/download/2.2/KuaiJi.ipa",
-          "localizedDescription": "修复账本同步Bug。"
-        },
-        {
-          "version": "2.1",
-          "buildVersion": "1",
-          "date": "2025-08-01T09:00:00+02:00",
-          "size": 1790000,
-          "downloadURL": "https://github.com/GuoRan7771/KuaiJi_IOSApp/releases/download/2.1/KuaiJi.ipa",
-          "localizedDescription": "初始发布。"
         }
-      ],
-      "appPermissions": {
-        "entitlements": [
-          "com.apple.security.application-groups"
-        ],
-        "privacy": {
-          "NSPhotoLibraryUsageDescription": "用于保存账本截图。",
-          "NSBluetoothAlwaysUsageDescription": "用于蓝牙同步账本。",
-          "NSLocalNetworkUsageDescription": "用于Wi-Fi局域网同步账本。"
-        }
-      }
+      ]
     }
   ],
-  "news": [
-    {
-      "title": "KuaiJi v2.3 上线",
-      "identifier": "kuai_ji_v2_3",
-      "caption": "新增个人账本与界面优化。",
-      "date": "2025-10-11",
-      "tintColor": "#5CA399",
-      "imageURL": "https://guoran7771.github.io/KuaiJi_IOSApp/s1.png",
-      "notify": true,
-      "appID": "com.guo.KuaiJi",
-      "url": "https://guoran7771.github.io/KuaiJi_IOSApp"
-    }
-  ]
+  "news": []
 }
