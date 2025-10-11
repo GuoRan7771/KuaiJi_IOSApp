@@ -14,11 +14,11 @@
       "screenshots": ["https://guoran7771.github.io/KuaiJi_IOSApp/s1.png"],
       "versions": [
         {
-          "version": "1.0",
+          "version": "2.3",
           "buildVersion": "1",
           "date": "2025-10-11",
-          "downloadURL": "https://github.com/GuoRan7771/KuaiJi_IOSApp/releases/download/1.0/KuaiJi.ipa",
-          "size": 12345678,
+          "downloadURL": "https://github.com/GuoRan7771/KuaiJi_IOSApp/releases/download/2.3/KuaiJi.ipa",
+          "size": 1876535,
           "minOSVersion": "15.0"
         }
       ]
