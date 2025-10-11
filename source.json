@@ -1,0 +1,26 @@
+{
+  "name": "Guo Source",
+  "identifier": "com.guo.source",
+  "apps": [
+    {
+      "name": "KuaiJi",
+      "bundleIdentifier": "com.guo.KuaiJi",
+      "developerName": "Guo",
+      "subtitle": "AA 分账与个人记账",
+      "localizedDescription": "一款纯本地账本，可通过蓝牙/Wi-Fi 同步账本。",
+      "iconURL": "https://guoran7771.github.io/KuaiJi_IOSApp/icon.png",
+      "screenshots": ["https://guoran7771.github.io/KuaiJi_IOSApp/s1.png"],
+      "versions": [
+        {
+          "version": "2.3",
+          "buildVersion": "1",
+          "date": "2025-10-11",
+          "downloadURL": "https://github.com/GuoRan7771/KuaiJi_IOSApp/releases/download/1.0/KuaiJi.ipa",
+          "size": 12345678,
+          "minOSVersion": "15.0"
+        }
+      ]
+    }
+  ],
+  "news": []
+}
