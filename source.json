@@ -4,7 +4,7 @@
   "apps": [
     {
       "name": "KuaiJi",
-      "bundleIdentifier": "com.guo.KuaiJi",
+      "bundleIdentifier": "com.Guo.KuaiJi",
       "marketplaceID": "0000000000",
       "developerName": "Guo",
       "subtitle": "AA 分账与个人记账",
@@ -16,13 +16,13 @@
       ],
       "versions": [
         {
-          "version": "2.3",
-          "buildVersion": "3",
+          "version": "1.0",
+          "buildVersion": "1",
           "date": "2025-10-11T09:00:00+02:00",
-          "size": 1876535,
+          "size": 1879048,
           "downloadURL": "https://guoran7771.github.io/KuaiJi_IOSApp/ipa/KuaiJi.ipa",
-          "localizedDescription": "新增个人账本功能，界面优化与稳定性改进。",
-          "minOSVersion": "15.0"
+          "localizedDescription": "初始发布版本。",
+          "minOSVersion": "18.0"
         }
       ]
     }
