@@ -5,12 +5,15 @@
     {
       "name": "KuaiJi",
       "bundleIdentifier": "com.guo.KuaiJi",
+      "marketplaceID": "0000000000",
       "developerName": "Guo",
-      "subtitle": "AA ledger",
-      "localizedDescription": "Local ledger app supporting AA split and Wi-Fi sync.",
-      "marketplaceID": null,
-      "notarized": false,
+      "subtitle": "AA 分账与个人记账",
+      "localizedDescription": "一款纯本地账本应用，支持 AA 分账、个人账户管理及蓝牙/Wi-Fi 同步。",
       "iconURL": "https://guoran7771.github.io/KuaiJi_IOSApp/icon.png",
+      "tintColor": "#5CA399",
+      "screenshots": [
+        "https://guoran7771.github.io/KuaiJi_IOSApp/s1.png"
+      ],
       "versions": [
         {
           "version": "2.3",
@@ -18,7 +21,7 @@
           "date": "2025-10-11T09:00:00+02:00",
           "size": 1879048,
           "downloadURL": "https://github.com/GuoRan7771/KuaiJi_IOSApp/releases/download/2.3/KuaiJi.ipa",
-          "localizedDescription": "Add personal ledger feature.",
+          "localizedDescription": "新增个人账本功能，界面优化与稳定性改进。",
           "minOSVersion": "15.0"
         }
       ]
