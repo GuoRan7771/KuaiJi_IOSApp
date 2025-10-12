@@ -1,39 +1,26 @@
 {
   "name": "Guo Source",
-  "identifier": "com.guo.source",
   "subtitle": "AA 分账与个人记账",
   "description": "一款纯本地账本应用，支持 AA 分账、个人账户管理及蓝牙/Wi-Fi 同步。",
   "iconURL": "https://guoran7771.github.io/KuaiJi_IOSApp/icon.png",
   "tintColor": "#5CA399",
-  "website": "https://guoran7771.github.io/KuaiJi_IOSApp/",
-  "featuredApps": [
-    "com.guo.kuaiji"
-  ],
   "apps": [
     {
       "name": "KuaiJi",
       "bundleIdentifier": "com.guo.kuaiji",
-      "marketplaceID": "0000000000",
       "developerName": "Guo",
-      "subtitle": "AA 分账与个人记账",
+      "version": "1.0",
+      "versionDate": "2025-10-11T09:00:00+02:00",
+      "versionDescription": "初始发布版本。",
+      "downloadURL": "https://guoran7771.github.io/KuaiJi_IOSApp/ipa/KuaiJi.ipa",
       "localizedDescription": "一款纯本地账本应用，支持 AA 分账、个人账户管理及蓝牙/Wi-Fi 同步。",
       "iconURL": "https://guoran7771.github.io/KuaiJi_IOSApp/icon.png",
       "tintColor": "#5CA399",
+      "size": 1876535,
+      "minOSVersion": "16.0",
       "screenshotURLs": [
         "https://guoran7771.github.io/KuaiJi_IOSApp/s1.png"
-      ],
-      "versions": [
-        {
-          "version": "1.0",
-          "buildVersion": "1",
-          "date": "2025-10-11T09:00:00+02:00",
-          "size": 1876476,
-          "downloadURL": "https://guoran7771.github.io/KuaiJi_IOSApp/ipa/KuaiJi.ipa",
-          "localizedDescription": "初始发布版本。",
-          "minOSVersion": "16.0"
-        }
       ]
     }
-  ],
-  "news": []
+  ]
 }
