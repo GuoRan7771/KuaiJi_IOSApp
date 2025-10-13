@@ -45,11 +45,12 @@ class PersistentDataManager: ObservableObject {
         // 创建新用户，生成唯一的用户ID
         let createdAt = Date()
         let userId = UserProfile.generateUserId(name: name, createdAt: createdAt)
+        let localeIdentifier = LocaleManager.preferredLocaleIdentifier ?? Locale.current.identifier
         let newUser = UserProfile(
             userId: userId,
             name: name,
             avatarEmoji: emoji,
-            localeIdentifier: "zh_CN",
+            localeIdentifier: localeIdentifier,
             currency: currency,
             createdAt: createdAt,
             updatedAt: createdAt
@@ -110,11 +111,12 @@ class PersistentDataManager: ObservableObject {
         let createdAt = Date()
         let userId = UserProfile.generateUserId(name: name, createdAt: createdAt)
         
+        let localeIdentifier = currentUser?.localeIdentifier ?? LocaleManager.preferredLocaleIdentifier ?? Locale.current.identifier
         let friend = UserProfile(
             userId: userId,
             name: name,
             avatarEmoji: emoji,
-            localeIdentifier: "zh_CN",
+            localeIdentifier: localeIdentifier,
             currency: currency,
             createdAt: createdAt,
             updatedAt: createdAt
@@ -153,11 +155,12 @@ class PersistentDataManager: ObservableObject {
         
         // 朋友不存在，添加新朋友
         let createdAt = Date()
+        let localeIdentifier = currentUser?.localeIdentifier ?? LocaleManager.preferredLocaleIdentifier ?? Locale.current.identifier
         let friend = UserProfile(
             userId: userId,
             name: name,
             avatarEmoji: emoji,
-            localeIdentifier: "zh_CN",
+            localeIdentifier: localeIdentifier,
             currency: currency,
             createdAt: createdAt,
             updatedAt: createdAt

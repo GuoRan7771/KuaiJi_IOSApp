@@ -157,6 +157,7 @@ struct PersonalStatsCategoryShare: Identifiable, Hashable {
     var id: UUID = UUID()
     var categoryKey: String
     var amountMinorUnits: Int
+    var transactionCount: Int
 }
 
 // MARK: - Stats Enhancements (Structure, Growth, Insights)
@@ -224,6 +225,173 @@ final class PersonalLedgerRootViewModel: ObservableObject {
 
     func makeSettingsViewModel() -> PersonalLedgerSettingsViewModel {
         PersonalLedgerSettingsViewModel(store: store)
+    }
+
+    func makeCSVExportViewModel() -> PersonalCSVExportViewModel {
+        PersonalCSVExportViewModel(store: store)
+    }
+}
+
+@MainActor
+final class PersonalCSVExportViewModel: ObservableObject {
+    enum PeriodMode: CaseIterable, Identifiable {
+        case range
+        case month
+        case quarter
+        case year
+
+        var id: String {
+            switch self {
+            case .range: return "range"
+            case .month: return "month"
+            case .quarter: return "quarter"
+            case .year: return "year"
+            }
+        }
+    }
+
+    @Published var periodMode: PeriodMode = .month { didSet { Task { await refresh() } } }
+    @Published var anchorDate: Date = Date() { didSet { Task { await refresh() } } }
+    @Published var fromDate: Date = Calendar.current.startOfDay(for: Date()) { didSet { Task { await refresh() } } }
+    @Published var toDate: Date = Date() { didSet { Task { await refresh() } } }
+    @Published var selectedAccountIds: Set<UUID> = [] { didSet { Task { await refresh() } } }
+    @Published var selectedCurrencies: Set<CurrencyCode> = [] { didSet { Task { await refresh() } } }
+    @Published private(set) var records: [PersonalRecordRowViewData] = []
+    @Published var sortMode: PersonalAllRecordsViewModel.SortMode = .occurredAt { didSet { Task { await refresh() } } }
+
+    private let store: PersonalLedgerStore
+    private let calendar = Calendar.current
+
+    init(store: PersonalLedgerStore) {
+        self.store = store
+        Task { await refresh() }
+    }
+
+    var availableAccounts: [PersonalAccount] { store.activeAccounts }
+    var availableCurrencies: [CurrencyCode] { Array(Set(store.activeAccounts.map { $0.currency })).sorted { $0.rawValue < $1.rawValue } }
+
+    func effectiveDateRange() -> ClosedRange<Date> {
+        switch periodMode {
+        case .range:
+            let start = calendar.startOfDay(for: fromDate)
+            let endDay = calendar.startOfDay(for: toDate)
+            let end = calendar.date(byAdding: .day, value: 1, to: endDay) ?? endDay
+            return start...end
+        case .month:
+            let interval = calendar.dateInterval(of: .month, for: anchorDate) ?? DateInterval(start: anchorDate, duration: 0)
+            return interval.start...interval.end
+        case .quarter:
+            let month = calendar.component(.month, from: anchorDate)
+            let quarterIndex = ((month - 1) / 3) * 3
+            var components = calendar.dateComponents([.year], from: anchorDate)
+            components.month = quarterIndex + 1
+            let start = calendar.date(from: components) ?? anchorDate
+            let end = calendar.date(byAdding: .month, value: 3, to: start) ?? start
+            return start...end
+        case .year:
+            let interval = calendar.dateInterval(of: .year, for: anchorDate) ?? DateInterval(start: anchorDate, duration: 0)
+            return interval.start...interval.end
+        }
+    }
+
+    func refresh() async {
+        do {
+            let range = effectiveDateRange()
+            let filter = PersonalRecordFilter(dateRange: range,
+                                              kinds: [.income, .expense, .fee],
+                                              accountIds: selectedAccountIds.isEmpty ? nil : selectedAccountIds,
+                                              categoryKeys: nil,
+                                              minimumAmountMinor: nil,
+                                              maximumAmountMinor: nil,
+                                              keyword: nil)
+            var combined = try store.records(filter: filter).compactMap { mapTransaction($0) }
+            let transfers = try store.transfers(in: range).compactMap { mapTransfer($0) }
+            combined.append(contentsOf: transfers)
+            if !selectedCurrencies.isEmpty {
+                combined = combined.filter { selectedCurrencies.contains($0.currency) }
+            }
+            records = sort(records: combined)
+        } catch {
+            records = []
+        }
+    }
+
+    func exportCSV() throws -> URL {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        var csv = "日期,账户,类型,分类,金额,币种,备注\n"
+        for record in records {
+            let dateString = formatter.string(from: record.occurredAt)
+            let typeString: String
+            switch record.entryNature {
+            case .transaction(let kind):
+                switch kind {
+                case .income: typeString = "Income"
+                case .expense: typeString = "Expense"
+                case .fee: typeString = "Fee"
+                }
+            case .transfer:
+                typeString = "Transfer"
+            }
+            let amount = SettlementMath.decimal(fromMinorUnits: record.amountMinorUnits, scale: 2)
+            csv += "\(dateString),\(record.accountName),\(typeString),\(record.categoryName),\(amount),\(record.currency.rawValue),\(record.note.replacingOccurrences(of: ",", with: " "))\n"
+        }
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("PersonalCSV-\(UUID().uuidString).csv")
+        try csv.write(to: tempURL, atomically: true, encoding: .utf8)
+        return tempURL
+    }
+
+    private func mapTransaction(_ transaction: PersonalTransaction) -> PersonalRecordRowViewData? {
+        guard let account = store.account(with: transaction.accountId) else {
+            return nil
+        }
+        let category = (expenseCategories + incomeCategories + feeCategories).first(where: { $0.key == transaction.categoryKey })
+        return PersonalRecordRowViewData(id: transaction.remoteId,
+                                         categoryKey: transaction.categoryKey,
+                                         categoryName: category?.localizedName ?? transaction.categoryKey.capitalized,
+                                         systemImage: category?.systemImage ?? iconForCategory(key: transaction.categoryKey),
+                                         note: transaction.note,
+                                         amountMinorUnits: transaction.amountMinorUnits,
+                                         currency: account.currency,
+                                         occurredAt: transaction.occurredAt,
+                                         createdAt: transaction.createdAt,
+                                         accountName: account.name,
+                                         accountId: account.remoteId,
+                                         entryNature: .transaction(transaction.kind),
+                                         transferDescription: nil)
+    }
+
+    private func mapTransfer(_ transfer: AccountTransfer) -> PersonalRecordRowViewData? {
+        guard let fromAccount = store.account(with: transfer.fromAccountId),
+              let toAccount = store.account(with: transfer.toAccountId) else {
+            return nil
+        }
+        let direction = String(format: L.personalTransferDirection.localized, fromAccount.name, toAccount.name)
+        return PersonalRecordRowViewData(id: transfer.remoteId,
+                                         categoryKey: "transfer",
+                                         categoryName: L.personalTransferTitle.localized,
+                                         systemImage: "arrow.left.arrow.right",
+                                         note: transfer.note,
+                                         amountMinorUnits: -transfer.amountFromMinorUnits,
+                                         currency: fromAccount.currency,
+                                         occurredAt: transfer.occurredAt,
+                                         createdAt: transfer.createdAt,
+                                         accountName: fromAccount.name,
+                                         accountId: fromAccount.remoteId,
+                                         entryNature: .transfer,
+                                         transferDescription: direction)
+    }
+
+    private func sort(records: [PersonalRecordRowViewData]) -> [PersonalRecordRowViewData] {
+        switch sortMode {
+        case .occurredAt:
+            return records.sorted { lhs, rhs in
+                if lhs.occurredAt == rhs.occurredAt { return lhs.createdAt > rhs.createdAt }
+                return lhs.occurredAt > rhs.occurredAt
+            }
+        case .createdAt:
+            return records.sorted { lhs, rhs in rhs.createdAt < lhs.createdAt }
+        }
     }
 }
 
@@ -347,19 +515,22 @@ final class PersonalLedgerHomeViewModel: ObservableObject {
             }
             overview = PersonalOverviewState(entries: entries,
                                              includeFees: includeFees)
-            guard let dayRange = Calendar.current.dateInterval(of: .day, for: Date()) else {
+
+            guard let monthInterval = calendar.dateInterval(of: .month, for: selectedMonth) else {
                 todayRecords = []
                 return
             }
-            let filter = PersonalRecordFilter(dateRange: dayRange.start...dayRange.end,
-                                              kinds: [.income, .expense, .fee],
-                                              accountIds: [],
-                                              categoryKeys: [],
-                                              minimumAmountMinor: nil,
-                                              maximumAmountMinor: nil,
-                                              keyword: nil)
-            var rows = try store.records(filter: filter).compactMap(mapTransaction(_:))
-            let transfers = try store.transfers(on: Date()).compactMap(mapTransfer(_:))
+
+            let monthlyRange = monthInterval.start...monthInterval.end
+            let monthlyFilter = PersonalRecordFilter(dateRange: monthlyRange,
+                                                     kinds: [.income, .expense, .fee],
+                                                     accountIds: [],
+                                                     categoryKeys: [],
+                                                     minimumAmountMinor: nil,
+                                                     maximumAmountMinor: nil,
+                                                     keyword: nil)
+            var rows = try store.records(filter: monthlyFilter).compactMap(mapTransaction(_:))
+            let transfers = try store.transfers(in: monthlyRange).compactMap(mapTransfer(_:))
             rows.append(contentsOf: transfers)
             todayRecords = Array(sort(records: rows).prefix(3))
         } catch {
@@ -1245,7 +1416,8 @@ final class PersonalStatsViewModel: ObservableObject {
     @Published var selectedAccountIds: Set<UUID> = [] { didSet { Task { await refresh() } } }
     @Published var selectedCurrency: CurrencyCode { didSet { Task { await refresh() } } }
     @Published private(set) var timeline: [PersonalStatsSeriesPoint] = []
-    @Published private(set) var breakdown: [PersonalStatsCategoryShare] = []
+    @Published private(set) var expenseBreakdown: [PersonalStatsCategoryShare] = []
+    @Published private(set) var incomeBreakdown: [PersonalStatsCategoryShare] = []
     @Published private(set) var structure: PersonalSpendingStructure?
     @Published private(set) var expenseGrowthRate: Double?
     @Published private(set) var insights: [CategoryTrendInsight] = []
@@ -1305,20 +1477,38 @@ final class PersonalStatsViewModel: ObservableObject {
                 let e = daily[d] ?? (0, 0)
                 return PersonalStatsSeriesPoint(date: d, incomeMinorUnits: e.income, expenseMinorUnits: e.expense)
             }
-            // breakdown for expenses (and fees if included)
-            var totals: [String: Int] = [:]
+            // breakdown for expenses/incomes (respecting currency separation)
+            var expenseTotals: [String: Int] = [:]
+            var expenseCounts: [String: Int] = [:]
+            var incomeTotals: [String: Int] = [:]
+            var incomeCounts: [String: Int] = [:]
             for t in txns {
                 switch t.kind {
                 case .income:
-                    continue
+                    incomeTotals[t.categoryKey, default: 0] += t.amountMinorUnits
+                    incomeCounts[t.categoryKey, default: 0] += 1
                 case .expense:
-                    totals[t.categoryKey, default: 0] += t.amountMinorUnits
+                    expenseTotals[t.categoryKey, default: 0] += t.amountMinorUnits
+                    expenseCounts[t.categoryKey, default: 0] += 1
                 case .fee:
-                    if includeFees { totals[t.categoryKey, default: 0] += t.amountMinorUnits }
+                    guard includeFees else { continue }
+                    expenseTotals[t.categoryKey, default: 0] += t.amountMinorUnits
+                    expenseCounts[t.categoryKey, default: 0] += 1
                 }
             }
-            breakdown = totals.map { PersonalStatsCategoryShare(categoryKey: $0.key, amountMinorUnits: $0.value) }
-                .sorted { $0.amountMinorUnits > $1.amountMinorUnits }
+            expenseBreakdown = expenseTotals.map {
+                PersonalStatsCategoryShare(categoryKey: $0.key,
+                                           amountMinorUnits: $0.value,
+                                           transactionCount: expenseCounts[$0.key] ?? 0)
+            }
+            .sorted { $0.amountMinorUnits > $1.amountMinorUnits }
+
+            incomeBreakdown = incomeTotals.map {
+                PersonalStatsCategoryShare(categoryKey: $0.key,
+                                           amountMinorUnits: $0.value,
+                                           transactionCount: incomeCounts[$0.key] ?? 0)
+            }
+            .sorted { $0.amountMinorUnits > $1.amountMinorUnits }
 
             // Compute spending structure (essential vs discretionary)
             let essentialKeys: Set<String> = [
@@ -1328,7 +1518,7 @@ final class PersonalStatsViewModel: ObservableObject {
             ]
             var essentialTotal = 0
             var discretionaryTotal = 0
-            for item in breakdown {
+            for item in expenseBreakdown {
                 if essentialKeys.contains(item.categoryKey) {
                     essentialTotal += item.amountMinorUnits
                 } else {

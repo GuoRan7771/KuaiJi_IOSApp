@@ -14,6 +14,7 @@ enum PersonalLedgerRoute: Hashable {
     case allRecordsAll
     case accounts
     case stats
+    case export
     case archive
     case recordDetail(PersonalRecordRowViewData)
 }
@@ -47,6 +48,7 @@ struct PersonalLedgerNavigator: View {
                                    },
                                    onShowAccounts: { path.append(.accounts) },
                                    onShowStats: { path.append(.stats) },
+                                   onShowExport: { path.append(.export) },
                                    onOpenRecord: { path.append(.recordDetail($0)) },
                                    onDeleteRecords: { ids in
                                        do {
@@ -69,6 +71,8 @@ struct PersonalLedgerNavigator: View {
                     PersonalAccountsView(root: root, viewModel: root.makeAccountsViewModel())
                 case .stats:
                     PersonalStatsView(viewModel: root.makeStatsViewModel())
+                case .export:
+                    PersonalCSVExportView(root: root, viewModel: root.makeCSVExportViewModel())
                 case .archive:
                     PersonalMonthlyArchiveView(viewModel: homeViewModel,
                                                onSelect: { month in
@@ -184,6 +188,7 @@ struct PersonalLedgerHomeView: View {
     var onShowAllRecords: () -> Void
     var onShowAccounts: () -> Void
     var onShowStats: () -> Void
+    var onShowExport: () -> Void
     var onOpenRecord: (PersonalRecordRowViewData) -> Void
     var onDeleteRecords: ([UUID]) async -> Void
     var onEditRecord: (PersonalRecordRowViewData) -> Void
@@ -240,6 +245,14 @@ struct PersonalLedgerHomeView: View {
             }
             .listStyle(.insetGrouped)
             .toolbar {
+                ToolbarItemGroup(placement: .navigationBarLeading) {
+                    Button(action: onShowExport) {
+                        Label(L.personalExportCSV.localized, systemImage: "square.and.arrow.up")
+                    }
+                    Button(action: onShowStats) {
+                        Label(L.personalStatsTitle.localized, systemImage: "chart.line.uptrend.xyaxis")
+                    }
+                }
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
                     if !selection.isEmpty {
                         Button(role: .destructive) {
@@ -248,11 +261,8 @@ struct PersonalLedgerHomeView: View {
                             Label(L.delete.localized, systemImage: "trash")
                         }
                     }
-                    Button(action: onShowStats) {
-                        Image(systemName: "chart.line.uptrend.xyaxis")
-                    }
                     Button(action: onShowAccounts) {
-                        Image(systemName: "creditcard")
+                        Label(L.personalAccountsManage.localized, systemImage: "creditcard")
                     }
                 }
             }
@@ -510,6 +520,7 @@ struct PersonalRecordRow: View {
     var onTap: () -> Void
     var onEdit: () -> Void
     var onDelete: () -> Void
+    var timestampText: String? = nil
 
     var body: some View {
         HStack(spacing: 12) {
@@ -532,7 +543,7 @@ struct PersonalRecordRow: View {
                                             currency: record.currency,
                                             locale: Locale.current))
                     .foregroundStyle(record.amountIsPositive ? Color.green : Color.red)
-                Text(record.occurredAt, style: .time)
+                Text(timestampText ?? record.occurredAt.formatted(date: .omitted, time: .shortened))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -811,37 +822,11 @@ struct PersonalRecordFormView: View {
 struct PersonalAllRecordsView: View {
     @ObservedObject var root: PersonalLedgerRootViewModel
     @StateObject private var viewModel: PersonalAllRecordsViewModel
-    @State private var showingShareError = false
+    @State private var editingRecord: PersonalRecordRowViewData?
 
     init(root: PersonalLedgerRootViewModel, viewModel: PersonalAllRecordsViewModel) {
         self.root = root
         _viewModel = StateObject(wrappedValue: viewModel)
-    }
-
-    private func exportAllPersonalCSV() throws -> URL {
-        // 直接透传到设置页里已有的导出逻辑：导出全部个人账本记录
-        let records = try root.store.records(filter: PersonalRecordFilter())
-        var lines: [String] = ["日期,账户,类型,分类,金额,币种,备注"]
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm"
-        for record in records {
-            let dateString = formatter.string(from: record.occurredAt)
-            let typeString: String
-            switch record.kind {
-            case .income: typeString = "Income"
-            case .expense: typeString = "Expense"
-            case .fee: typeString = "Fee"
-            }
-            let account = root.store.account(with: record.accountId)
-            let accountName = account?.name ?? ""
-            let note = record.note.replacingOccurrences(of: ",", with: " ")
-            let amount = SettlementMath.decimal(fromMinorUnits: record.amountMinorUnits, scale: 2)
-                    let currencyCode = account?.currency.rawValue ?? root.store.safePrimaryDisplayCurrency().rawValue
-            lines.append("\(dateString),\(accountName),\(typeString),\(record.categoryKey),\(amount),\(currencyCode),\(note)")
-        }
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("PersonalLedger-All-\(UUID().uuidString).csv")
-        try lines.joined(separator: "\n").appending("\n").write(to: url, atomically: true, encoding: .utf8)
-        return url
     }
 
     var body: some View {
@@ -850,11 +835,14 @@ struct PersonalAllRecordsView: View {
                 ForEach(viewModel.records) { record in
                     PersonalRecordRow(record: record,
                                       onTap: { },
-                                      onEdit: { },
+                                      onEdit: {
+                                          editingRecord = record
+                                      },
                                       onDelete: {
                                           viewModel.selection = [record.id]
                                           Task { await viewModel.deleteSelected() }
-                                      })
+                                      },
+                                      timestampText: timestampText(for: record))
                 }
             }
         }
@@ -872,19 +860,6 @@ struct PersonalAllRecordsView: View {
                 } label: {
                     Image(systemName: "arrow.up.arrow.down")
                 }
-                
-                Button {
-                    do {
-                        // 使用与设置页一致的导出逻辑：导出全部个人账本 CSV
-                        let url = try exportAllPersonalCSV()
-                        ShareSheet.present(url: url)
-                    } catch {
-                        showingShareError = true
-                    }
-                } label: {
-                    Image(systemName: "square.and.arrow.up")
-                }
-                
                 if !viewModel.selection.isEmpty {
                     Button(L.delete.localized, role: .destructive) {
                         Task { await viewModel.deleteSelected() }
@@ -893,8 +868,14 @@ struct PersonalAllRecordsView: View {
             }
         }
         .task { await viewModel.refresh() }
-        .alert(L.personalExportFailed.localized, isPresented: $showingShareError) {
-            Button(L.ok.localized, action: {})
+        .sheet(item: $editingRecord) { record in
+            PersonalRecordFormHost(root: root, existing: record) {
+                editingRecord = nil
+                Task { @MainActor in
+                    try? root.store.refreshAccounts()
+                    await viewModel.refresh()
+                }
+            }
         }
     }
 
@@ -909,6 +890,17 @@ struct PersonalAllRecordsView: View {
             }
         }
         return L.personalAllRecordsTitle.localized
+    }
+
+    private func timestampText(for record: PersonalRecordRowViewData) -> String {
+        let date: Date
+        switch viewModel.sortMode {
+        case .occurredAt:
+            date = record.occurredAt
+        case .createdAt:
+            date = record.createdAt
+        }
+        return date.formatted(date: .abbreviated, time: .shortened)
     }
 }
 
@@ -1000,13 +992,17 @@ struct PersonalAccountsView: View {
         .listStyle(.insetGrouped)
         .navigationTitle(L.personalAccountsTitle.localized)
         .toolbar {
-            ToolbarItemGroup(placement: .navigationBarTrailing) {
-                EditButton()
-                Button(action: { editingAccount = nil; showingAccountForm = true }) {
-                    Image(systemName: "plus")
-                }
+            ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: { showingTransferForm = true }) {
                     Image(systemName: "arrow.left.arrow.right")
+                }
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                ControlGroup {
+                    Button(action: { editingAccount = nil; showingAccountForm = true }) {
+                        Image(systemName: "plus")
+                    }
+                    EditButton()
                 }
             }
         }
@@ -1303,131 +1299,527 @@ struct PersonalTransferFormView: View {
 
 struct PersonalStatsView: View {
     @ObservedObject var viewModel: PersonalStatsViewModel
+    @State private var focus: Focus = .expense
+
+    enum Focus: String, CaseIterable, Identifiable {
+        case expense
+        case income
+
+        var id: String { rawValue }
+
+        var localizedTitle: String {
+            switch self {
+            case .expense: return L.personalStatsFocusExpense.localized
+            case .income: return L.personalStatsFocusIncome.localized
+            }
+        }
+
+        var accentColor: Color {
+            switch self {
+            case .expense: return Color(red: 0.45, green: 0.33, blue: 0.93)
+            case .income: return Color(red: 0.20, green: 0.62, blue: 0.46)
+            }
+        }
+
+        var secondaryColor: Color {
+            switch self {
+            case .expense: return Color(red: 0.97, green: 0.44, blue: 0.51)
+            case .income: return Color(red: 0.37, green: 0.77, blue: 0.55)
+            }
+        }
+    }
+
+    private var filteredBreakdown: [PersonalStatsCategoryShare] {
+        let data = focus == .expense ? viewModel.expenseBreakdown : viewModel.incomeBreakdown
+        return data.filter { $0.amountMinorUnits > 0 }
+    }
+
+    private var totalForFocus: Int {
+        filteredBreakdown.reduce(0) { $0 + $1.amountMinorUnits }
+    }
+
+    private var totalExpense: Int {
+        viewModel.timeline.reduce(0) { $0 + $1.expenseMinorUnits }
+    }
+
+    private var totalIncome: Int {
+        viewModel.timeline.reduce(0) { $0 + $1.incomeMinorUnits }
+    }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Picker(L.personalStatsPeriod.localized, selection: $viewModel.period) {
-                    ForEach(PersonalStatsViewModel.Period.allCases) { period in
-                        Text(period.displayName).tag(period)
-                    }
+            VStack(alignment: .leading, spacing: 24) {
+                headerSection
+                statsSummaryCard
+                insightsSection
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 24)
+        }
+        .background(Color(.systemGroupedBackground))
+        .navigationTitle(L.personalStatsTitle.localized)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar { currencyToolbar }
+    }
+
+    private var headerSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(L.personalStatsTitle.localized)
+                    .font(.largeTitle.weight(.bold))
+            }
+
+            HStack(spacing: 12) {
+                headerControlButton(systemImage: "chevron.left") {
+                    shiftAnchor(by: -1)
                 }
-                .pickerStyle(.segmented)
-
-                Toggle(L.personalStatsIncludeFee.localized, isOn: $viewModel.includeFees)
-                    .toggleStyle(.switch)
-
-                // 支出结构（生活必需 vs 可变支出）
-                if let s = viewModel.structure, s.total > 0 {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(L.personalStatsStructureTitle.localized)
-                            .font(.headline)
-                        Chart {
-                            // essential
-                            SectorMark(
-                                angle: .value("Share", s.essentialShare),
-                                innerRadius: .ratio(0.6),
-                                angularInset: 1
-                            )
-                            .foregroundStyle(.blue)
-                            // discretionary
-                            SectorMark(
-                                angle: .value("Share", s.discretionaryShare),
-                                innerRadius: .ratio(0.6),
-                                angularInset: 1
-                            )
-                            .foregroundStyle(.purple)
-                        }
-                        .frame(height: 180)
-
-                        HStack {
-                            Label("\(L.personalStatsEssential.localized) \(formatCurrency(s.essentialMinorUnits)) (\(formatPercent(s.essentialShare)))", systemImage: "square.fill")
-                                .foregroundStyle(.blue)
-                            Spacer()
-                            Label("\(L.personalStatsDiscretionary.localized) \(formatCurrency(s.discretionaryMinorUnits)) (\(formatPercent(s.discretionaryShare)))", systemImage: "square.fill")
-                                .foregroundStyle(.purple)
-                        }
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    }
-                }
-
-                // 周期增长率
-                if let g = viewModel.expenseGrowthRate {
-                    let up = g >= 0
-                    HStack(spacing: 8) {
-                        Image(systemName: up ? "arrow.up.right.circle.fill" : "arrow.down.right.circle.fill")
-                            .foregroundStyle(up ? .red : .green)
-                        Text("\(L.personalStatsExpenseGrowth.localized): \(formatPercent(g))")
-                            .foregroundStyle(up ? .red : .green)
-                        Spacer()
-                        Text(viewModel.period.displayName)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(12)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-                }
-
-                if !viewModel.timeline.isEmpty {
-                    Chart(viewModel.timeline) { point in
-                        LineMark(x: .value("Date", point.date), y: .value("Income", point.incomeMinorUnits))
-                            .foregroundStyle(.green)
-                        LineMark(x: .value("Date", point.date), y: .value("Expense", point.expenseMinorUnits))
-                            .foregroundStyle(.red)
-                    }
-                    .frame(height: 220)
-                }
-
-                if !viewModel.breakdown.isEmpty {
-                    Chart(viewModel.breakdown) { item in
-                        BarMark(x: .value("Category", item.categoryKey),
-                                y: .value("Amount", item.amountMinorUnits))
-                    }
-                    .frame(height: 220)
-                }
-
-                // 趋势洞察
-                if !viewModel.insights.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(L.personalStatsInsightsTitle.localized)
-                            .font(.headline)
-                        ForEach(viewModel.insights) { insight in
-                            HStack(spacing: 6) {
-                                Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
-                                let streakText = L.personalStatsInsightStreak.localized(insight.increasingStreak)
-                                let growthText = L.personalStatsInsightRecentGrowth.localized
-                                Text("\(localizedCategoryName(insight.categoryKey)): \(streakText)，\(growthText) \(formatPercent(insight.recentGrowthRate))")
-                                Spacer()
-                            }
-                            .font(.caption)
-                            .padding(8)
-                            .background(Color.yellow.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
-                        }
-                    }
+                Text(formattedPeriodLabel)
+                    .font(.title3.weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .frame(maxWidth: .infinity)
+                headerControlButton(systemImage: "chevron.right") {
+                    shiftAnchor(by: 1)
                 }
             }
-            .padding()
+
+            Picker(L.personalStatsPeriod.localized, selection: $viewModel.period) {
+                ForEach(PersonalStatsViewModel.Period.allCases) { period in
+                    Text(period.displayName).tag(period)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            if focus == .expense {
+                Toggle(L.personalStatsIncludeFee.localized, isOn: $viewModel.includeFees)
+                    .toggleStyle(.switch)
+            }
         }
-        .navigationTitle(L.personalStatsTitle.localized)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Menu {
-                    // 以 Radio 的方式列出 currency 选项
-                    ForEach(viewModel.availableCurrencies, id: \.self) { code in
-                        Button(action: { viewModel.selectedCurrency = code }) {
-                            if viewModel.selectedCurrency == code {
-                                Label(code.rawValue, systemImage: "checkmark")
-                            } else {
-                                Text(code.rawValue)
-                            }
+    }
+
+    private var statsSummaryCard: some View {
+        statsContainer {
+            VStack(alignment: .leading, spacing: 24) {
+                HStack(alignment: .center, spacing: 16) {
+                    Picker("", selection: $focus) {
+                        ForEach(Focus.allCases) { scope in
+                            Text(scope.localizedTitle).tag(scope)
                         }
                     }
-                } label: {
-                    Label(viewModel.selectedCurrency.rawValue, systemImage: "coloncurrencysign.circle")
+                    .pickerStyle(.segmented)
+
+                    Spacer(minLength: 16)
+
+                    Text(viewModel.selectedCurrency.rawValue)
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(
+                            Capsule()
+                                .fill(Color(.systemGray5))
+                        )
+                }
+
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .top, spacing: 32) {
+                        donutView()
+                            .frame(maxWidth: 220)
+                        summaryDetails(isCompact: false)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    VStack(spacing: 24) {
+                        donutView()
+                            .frame(maxWidth: .infinity)
+                        summaryDetails(isCompact: true)
+                    }
+                }
+                .frame(minHeight: 280, alignment: .top)
+
+                Divider()
+
+                if filteredBreakdown.isEmpty {
+                    Text(L.personalStatsEmpty.localized)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.vertical, 24)
+                } else {
+                    VStack(spacing: 12) {
+                        ForEach(filteredBreakdown) { item in
+                            categoryRow(for: item)
+                        }
+                    }
+                    .padding(.top, 8)
                 }
             }
         }
     }
+
+    @ViewBuilder
+    private var insightsSection: some View {
+        if focus == .expense && !viewModel.insights.isEmpty {
+            statsContainer {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(L.personalStatsInsightsTitle.localized)
+                        .font(.headline)
+                    ForEach(viewModel.insights) { insight in
+                        let streakText = L.personalStatsInsightStreak.localized(insight.increasingStreak)
+                        let growthText = L.personalStatsInsightRecentGrowth.localized
+                        let detailText = L.personalStatsInsightDetail.localized(
+                            localizedCategoryName(insight.categoryKey),
+                            streakText,
+                            growthText,
+                            formatPercent(insight.recentGrowthRate)
+                        )
+                        HStack(spacing: 12) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(Focus.expense.secondaryColor)
+                                .padding(8)
+                                .background(Focus.expense.secondaryColor.opacity(0.12), in: Circle())
+                            Text(detailText)
+                                .font(.callout)
+                                .multilineTextAlignment(.leading)
+                            Spacer()
+                        }
+                        .padding(12)
+                        .background(Color.yellow.opacity(0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    }
+                }
+            }
+        }
+    }
+
+    private var currencyToolbar: some ToolbarContent {
+        ToolbarItem(placement: .navigationBarTrailing) {
+            Menu {
+                ForEach(viewModel.availableCurrencies, id: \.self) { code in
+                    Button(action: { viewModel.selectedCurrency = code }) {
+                        if viewModel.selectedCurrency == code {
+                            Label(code.rawValue, systemImage: "checkmark")
+                        } else {
+                            Text(code.rawValue)
+                        }
+                    }
+                }
+            } label: {
+                Label(viewModel.selectedCurrency.rawValue, systemImage: "coloncurrencysign.circle")
+            }
+        }
+    }
+
+    private func shiftAnchor(by step: Int) {
+        let calendar = Calendar.current
+        let component: Calendar.Component
+        let value: Int
+        switch viewModel.period {
+        case .month:
+            component = .month
+            value = step
+        case .quarter:
+            component = .month
+            value = step * 3
+        case .year:
+            component = .year
+            value = step
+        }
+        if let newDate = calendar.date(byAdding: component, value: value, to: viewModel.anchorDate) {
+            viewModel.anchorDate = newDate
+        }
+    }
+
+    private var formattedPeriodLabel: String {
+        switch viewModel.period {
+        case .month:
+            return Self.monthHeaderFormatter.string(from: viewModel.anchorDate)
+        case .quarter:
+            return Self.quarterHeaderFormatter.string(from: viewModel.anchorDate)
+        case .year:
+            return Self.yearHeaderFormatter.string(from: viewModel.anchorDate)
+        }
+    }
+
+    private func headerControlButton(systemImage: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 17, weight: .semibold))
+                .frame(width: 40, height: 40)
+        }
+        .buttonStyle(.plain)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color(.systemBackground))
+                .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 4)
+        )
+    }
+
+    private func statsContainer<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 20, content: content)
+            .padding(.vertical, 22)
+            .padding(.horizontal, 24)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(Color(.secondarySystemBackground))
+            )
+            .shadow(color: Color.black.opacity(0.05), radius: 18, x: 0, y: 12)
+    }
+
+    private func donutView() -> some View {
+        ZStack {
+            if filteredBreakdown.isEmpty {
+                Circle()
+                    .fill(Color(.systemGray5))
+                    .frame(width: 180, height: 180)
+                VStack(spacing: 6) {
+                    Text(focus.localizedTitle)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                    Text(formattedAmount(0, currency: viewModel.selectedCurrency))
+                        .font(.headline)
+                }
+            } else {
+                Chart(filteredBreakdown) { item in
+                    SectorMark(angle: .value("Amount", Double(item.amountMinorUnits)),
+                               innerRadius: .ratio(0.62),
+                               angularInset: 1)
+                        .foregroundStyle(categoryColor(for: item.categoryKey))
+                }
+                .chartLegend(.hidden)
+                .frame(width: 200, height: 200)
+
+                VStack(spacing: 6) {
+                    Text(focus.localizedTitle)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                    Text(formattedAmount(totalForFocus, currency: viewModel.selectedCurrency))
+                        .font(.headline.weight(.semibold))
+                        .multilineTextAlignment(.center)
+                }
+            }
+        }
+    }
+
+    private func summaryDetails(isCompact: Bool) -> some View {
+        VStack(alignment: .leading, spacing: isCompact ? 18 : 22) {
+            summaryTotalCard()
+
+            if isCompact {
+                VStack(spacing: 14) {
+                    summaryChip(title: L.personalStatsFocusExpense.localized,
+                                amount: totalExpense,
+                                color: Focus.expense.accentColor)
+                    summaryChip(title: L.personalStatsFocusIncome.localized,
+                                amount: totalIncome,
+                                color: Focus.income.accentColor)
+                }
+            } else {
+                HStack(spacing: 16) {
+                    summaryChip(title: L.personalStatsFocusExpense.localized,
+                                amount: totalExpense,
+                                color: Focus.expense.accentColor)
+                    summaryChip(title: L.personalStatsFocusIncome.localized,
+                                amount: totalIncome,
+                                color: Focus.income.accentColor)
+                }
+            }
+
+            if focus == .expense, let growth = viewModel.expenseGrowthRate {
+                growthView(growth)
+            }
+
+            if focus == .expense, let structure = viewModel.structure, structure.total > 0 {
+                structureView(structure)
+            }
+        }
+    }
+
+    private func summaryTotalCard() -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(focus.localizedTitle)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            Text(formattedAmount(totalForFocus, currency: viewModel.selectedCurrency))
+                .font(.system(size: 36, weight: .bold, design: .rounded))
+                .monospacedDigit()
+                .minimumScaleFactor(0.65)
+
+            Text(L.personalStatsRecordCount.localized(filteredBreakdown.reduce(0) { $0 + $1.transactionCount }))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 18)
+        .padding(.horizontal, 20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color(.systemBackground))
+                .shadow(color: Color.black.opacity(0.06), radius: 14, x: 0, y: 10)
+        )
+    }
+
+    private func summaryChip(title: String, amount: Int, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .textCase(.uppercase)
+                .foregroundStyle(color)
+            Text(formattedAmount(amount, currency: viewModel.selectedCurrency))
+                .font(.title3.weight(.semibold))
+                .monospacedDigit()
+                .foregroundStyle(Color.primary)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(color.opacity(0.12))
+        )
+    }
+
+    private func growthView(_ value: Double) -> some View {
+        let up = value >= 0
+        let arrow = up ? "arrow.up.right" : "arrow.down.right"
+        let tint = up ? Color.red : Color.green
+        return HStack(spacing: 8) {
+            Image(systemName: arrow)
+                .font(.caption.weight(.bold))
+            Text("\(L.personalStatsExpenseGrowth.localized): \(formatPercent(value))")
+        }
+        .font(.caption.weight(.medium))
+        .foregroundStyle(tint)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(tint.opacity(0.12), in: Capsule())
+    }
+
+    private func structureView(_ structure: PersonalSpendingStructure) -> some View {
+        let essentialShare = structure.essentialShare
+        let discretionaryShare = structure.discretionaryShare
+        return VStack(alignment: .leading, spacing: 8) {
+            Text(L.personalStatsStructureTitle.localized)
+                .font(.subheadline.weight(.semibold))
+            GeometryReader { proxy in
+                let width = proxy.size.width
+                let essentialWidth = width * CGFloat(max(min(essentialShare, 1), 0))
+                let discretionaryWidth = width - essentialWidth
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color(.systemGray5))
+                    if essentialWidth > 0 {
+                        Capsule()
+                            .fill(Focus.expense.accentColor)
+                            .frame(width: essentialWidth)
+                    }
+                    if discretionaryWidth > 0 {
+                        Capsule()
+                            .fill(Focus.expense.secondaryColor)
+                            .frame(width: discretionaryWidth)
+                            .offset(x: essentialWidth)
+                    }
+                }
+            }
+            .frame(height: 12)
+
+            HStack {
+                HStack(spacing: 6) {
+                    Image(systemName: "circle.fill")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(Focus.expense.accentColor)
+                    Text("\(L.personalStatsEssential.localized) · \(formatPercent(essentialShare))")
+                }
+                .foregroundStyle(.secondary)
+                Spacer()
+                HStack(spacing: 6) {
+                    Image(systemName: "circle.fill")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(Focus.expense.secondaryColor)
+                    Text("\(L.personalStatsDiscretionary.localized) · \(formatPercent(discretionaryShare))")
+                }
+                .foregroundStyle(.secondary)
+            }
+            .font(.caption)
+        }
+        .padding(14)
+        .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private func categoryRow(for item: PersonalStatsCategoryShare) -> some View {
+        let color = categoryColor(for: item.categoryKey)
+        let share = totalForFocus > 0 ? Double(item.amountMinorUnits) / Double(totalForFocus) : 0
+        return HStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.15))
+                    .frame(width: 46, height: 46)
+                Image(systemName: iconForCategory(key: item.categoryKey))
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(color)
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(localizedCategoryName(item.categoryKey))
+                    .font(.headline)
+                Text(L.personalStatsRecordCount.localized(item.transactionCount))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 12)
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(formatPercent(share))
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                Text(formattedAmount(item.amountMinorUnits, currency: viewModel.selectedCurrency))
+                    .font(.callout.weight(.semibold))
+            }
+        }
+        .padding(.vertical, 8)
+    }
+
+    private func formattedAmount(_ amount: Int, currency: CurrencyCode) -> String {
+        AmountFormatter.string(minorUnits: amount, currency: currency, locale: Locale.current)
+    }
+
+    private func categoryColor(for key: String) -> Color {
+        let hash = key.unicodeScalars.reduce(into: UInt64(0)) { partial, scalar in
+            partial = partial &* 31 &+ UInt64(scalar.value)
+        }
+        let index = Int(hash % UInt64(Self.categoryPalette.count))
+        return Self.categoryPalette[index]
+    }
+
+    private static let categoryPalette: [Color] = [
+        Color(red: 0.46, green: 0.33, blue: 0.93),
+        Color(red: 0.99, green: 0.53, blue: 0.31),
+        Color(red: 0.16, green: 0.68, blue: 0.93),
+        Color(red: 0.19, green: 0.74, blue: 0.52),
+        Color(red: 0.98, green: 0.46, blue: 0.71),
+        Color(red: 0.96, green: 0.77, blue: 0.36),
+        Color(red: 0.38, green: 0.69, blue: 0.98),
+        Color(red: 0.57, green: 0.39, blue: 0.93),
+        Color(red: 0.98, green: 0.65, blue: 0.33),
+        Color(red: 0.24, green: 0.60, blue: 0.99)
+    ]
+
+    private static let monthHeaderFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = .autoupdatingCurrent
+        formatter.setLocalizedDateFormatFromTemplate("yMMMM")
+        return formatter
+    }()
+
+    private static let quarterHeaderFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = .autoupdatingCurrent
+        formatter.dateFormat = "QQQ y"
+        return formatter
+    }()
+
+    private static let yearHeaderFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = .autoupdatingCurrent
+        formatter.setLocalizedDateFormatFromTemplate("y")
+        return formatter
+    }()
 }
 
 
@@ -1518,5 +1910,140 @@ private enum ShareSheet {
               let root = scene.windows.first?.rootViewController else { return }
         let controller = UIActivityViewController(activityItems: [url], applicationActivities: nil)
         root.present(controller, animated: true)
+    }
+}
+
+// MARK: - Personal CSV Export UI
+
+struct PersonalCSVExportView: View {
+    @ObservedObject var root: PersonalLedgerRootViewModel
+    @StateObject var viewModel: PersonalCSVExportViewModel
+
+    var body: some View {
+        PersonalCSVExportContent(viewModel: viewModel, store: root.store)
+            .navigationTitle(L.personalExportCSV.localized)
+            .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private struct PersonalCSVExportContent: View {
+    @ObservedObject var viewModel: PersonalCSVExportViewModel
+    let store: PersonalLedgerStore
+
+    var body: some View {
+        List {
+            Section(header: Text(L.personalFilterTitle.localized)) {
+                Picker(L.personalStatsPeriod.localized, selection: $viewModel.periodMode) {
+                    Text(L.personalStatsMonth.localized).tag(PersonalCSVExportViewModel.PeriodMode.month)
+                    Text(L.personalStatsQuarter.localized).tag(PersonalCSVExportViewModel.PeriodMode.quarter)
+                    Text(L.personalStatsYear.localized).tag(PersonalCSVExportViewModel.PeriodMode.year)
+                    Text(L.personalFilterTitle.localized).tag(PersonalCSVExportViewModel.PeriodMode.range)
+                }
+                .pickerStyle(.segmented)
+
+                if viewModel.periodMode == .range {
+                    DatePicker(L.personalFilterFrom.localized, selection: $viewModel.fromDate, displayedComponents: .date)
+                    DatePicker(L.personalExportUntil.localized, selection: $viewModel.toDate, displayedComponents: .date)
+                } else {
+                    HStack(spacing: 8) {
+                        Text(L.personalExportUntil.localized)
+                            .foregroundStyle(.secondary)
+                        DatePicker("", selection: $viewModel.anchorDate, displayedComponents: .date)
+                            .labelsHidden()
+                    }
+                        .labelsHidden()
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(L.personalAccountsList.localized)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(store.activeAccounts) { account in
+                                let selected = viewModel.selectedAccountIds.contains(account.remoteId)
+                                Button(action: {
+                                    if selected { viewModel.selectedAccountIds.remove(account.remoteId) }
+                                    else { viewModel.selectedAccountIds.insert(account.remoteId) }
+                                }) {
+                                    Text(account.name)
+                                        .font(.caption)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(RoundedRectangle(cornerRadius: 10).fill(selected ? Color.accentColor.opacity(0.2) : Color(.systemGray6)))
+                                }
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(L.personalPrimaryCurrency.localized)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(Array(Set(store.activeAccounts.map { $0.currency })).sorted { $0.rawValue < $1.rawValue }, id: \.self) { code in
+                                let selected = viewModel.selectedCurrencies.contains(code)
+                                Button(action: {
+                                    if selected { viewModel.selectedCurrencies.remove(code) }
+                                    else { viewModel.selectedCurrencies.insert(code) }
+                                }) {
+                                    Text(code.rawValue)
+                                        .font(.caption)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(RoundedRectangle(cornerRadius: 10).fill(selected ? Color.accentColor.opacity(0.2) : Color(.systemGray6)))
+                                }
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+            }
+
+            Section(header: Text(L.personalAllRecordsTitle.localized)) {
+                if viewModel.records.isEmpty {
+                    Text(L.recordsEmpty.localized)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(viewModel.records) { record in
+                        PersonalRecordRow(record: record,
+                                          onTap: {},
+                                          onEdit: {},
+                                          onDelete: {},
+                                          timestampText: record.occurredAt.formatted(date: .abbreviated, time: .shortened))
+                    }
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Menu {
+                    Picker("", selection: $viewModel.sortMode) {
+                        ForEach(PersonalAllRecordsViewModel.SortMode.allCases) { mode in
+                            Text(mode.title).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.inline)
+                } label: {
+                    Image(systemName: "arrow.up.arrow.down")
+                }
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    do {
+                        let url = try viewModel.exportCSV()
+                        ShareSheet.present(url: url)
+                    } catch { }
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                .accessibilityLabel(Text(L.personalExportCSV.localized))
+            }
+        }
     }
 }

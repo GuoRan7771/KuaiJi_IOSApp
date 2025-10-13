@@ -307,6 +307,11 @@
 "guide.start" = "开始使用";
 "guide.scanQRCode" = "扫码添加";
 "guide.becomeFriends" = "成为好友";
+"guide.friends.syncTip" = "也可以通过附近设备同步成为好友";
+"guide.personalIntro.title" = "个人账本";
+"guide.personalIntro.desc" = "个人账本用于记录自己的账户与流水，支持多币种、内部转账与统计分析。";
+"guide.independence.title" = "与共享账本独立";
+"guide.independence.desc" = "个人账本与共享账本完全独立、互不影响。可在设置中按需显示或隐藏它们。";
 "guide.exampleTrip" = "一次旅行";
 "guide.exampleDinner" = "聚餐 AA";
 "guide.yourDevice" = "你的设备";
@@ -395,6 +400,17 @@
 "personal.stats.insightsTitle" = "趋势洞察";
 "personal.stats.insight.streak" = "连续上涨 %d 期";
 "personal.stats.insight.recentGrowth" = "最近增幅";
+"personal.stats.chart.share" = "占比";
+"personal.stats.chart.income" = "收入";
+"personal.stats.chart.expense" = "支出";
+"personal.stats.chart.date" = "日期";
+"personal.stats.chart.category" = "分类";
+"personal.stats.chart.amount" = "金额";
+"personal.stats.insight.detail" = "%@: %@，%@ %@";
+"personal.stats.focus.expense" = "支出";
+"personal.stats.focus.income" = "收入";
+"personal.stats.empty" = "当前周期暂无数据";
+"personal.stats.recordCount" = "共 %d 笔";
 "personal.settings.title" = "个人账本设置";
 "personal.primaryCurrency" = "展示币种";
 "personal.fxSource" = "汇率来源";
@@ -407,6 +423,7 @@
 "personal.accounts.manage" = "账户管理";
 "personal.data.section" = "个人账本数据";
 "personal.exportCSV" = "导出个人账本CSV";
+"personal.export.until" = "截止到";
 "personal.clearData" = "抹掉个人账本数据";
 "personal.clear.confirmTitle" = "抹掉个人账本数据";
 "personal.clear.confirmMessage" = "此操作会删除所有个人账本账户与记录，是否继续？";
@@ -415,6 +432,8 @@
 "personal.clear.failed" = "清空失败";
 "personal.fxSource.manual" = "手动";
 "personal.fxSource.fixed" = "固定值";
+"personalFXSourceManual" = "手动";
+"personalFXSourceFixed" = "固定值";
 "personal.field.name" = "账户名称";
 "personal.field.balance" = "初始余额";
 "personal.accountStatus" = "状态";

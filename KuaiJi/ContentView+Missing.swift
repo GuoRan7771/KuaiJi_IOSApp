@@ -70,13 +70,22 @@ final class SettingsScreenModel: ObservableObject, SettingsViewModelProtocol {
 
     init(root: AppRootViewModel) {
         self.root = root
-        // 语言选项不再需要，使用默认值
-        self.uiState = SettingsViewState(language: .system)
+        let storedLocale = LocaleManager.preferredLocaleIdentifier ?? root.dataManager?.currentUser?.localeIdentifier
+        if let locale = storedLocale {
+            self.uiState = SettingsViewState(language: LanguageOption.from(localeIdentifier: locale))
+        } else {
+            self.uiState = SettingsViewState(language: .system)
+        }
     }
 
     func persist() {
         guard let root else { return }
         root.updateSettings(with: uiState)
+        if let explicitLocale = uiState.language.localeIdentifier {
+            LocaleManager.updatePreferredLocale(explicitLocale)
+        } else {
+            LocaleManager.clearPreferredLocale()
+        }
     }
     
     func clearAllData() {

@@ -392,6 +392,7 @@ final class AppRootViewModel: ObservableObject {
                 avatarEmoji: currentUserProfile.avatarEmoji ?? "👤"
             )
             memberLookup = [currentUser.id: currentUser]
+            localeIdentifier = currentUserProfile.localeIdentifier
         }
         
         // 加载账本
@@ -679,6 +680,9 @@ final class AppRootViewModel: ObservableObject {
     }
 
     private func refreshSummaries() {
+        guard let dataManager = dataManager else { return }
+        let localeId = LocaleManager.preferredLocaleIdentifier ?? dataManager.currentUser?.localeIdentifier ?? localeIdentifier
+        localeIdentifier = localeId
         let locale = Locale(identifier: localeIdentifier)
         ledgerSummaries = ledgerInfos.values.sorted { $0.updatedAt > $1.updatedAt }.map { info in
             let net = (try? computeNetBalances(ledgerId: info.id, filters: LedgerFilterState())) ?? [:]
@@ -2026,22 +2030,9 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                     }
                 }
 
-                Button {
-                    do {
-                        let url = try exportPersonalCSV()
-                        presentShare(url: url)
-                    } catch {
-                        showingPersonalExportError = true
-                    }
-                } label: {
-                    HStack {
-                        Text(L.personalExportCSV.localized)
-                            .foregroundStyle(.primary)
-                        Spacer()
-                        Image(systemName: "square.and.arrow.up")
-                            .font(.caption)
-                            .foregroundStyle(Color.appSecondaryText)
-                    }
+                NavigationLink(destination: PersonalCSVExportView(root: personalLedgerRoot, viewModel: personalLedgerRoot.makeCSVExportViewModel())) {
+                    Text(L.personalExportCSV.localized)
+                        .foregroundStyle(.primary)
                 }
             } header: {
                 Text(L.settingsDataSection.localized)
@@ -2534,10 +2525,13 @@ struct ContentView: View {
     
     private enum RootTab: Hashable { case personal, ledgers, friends, settings }
     @State private var selectedTab: RootTab = .personal
+    @State private var path = NavigationPath()
+    private let switchToLedgersTab: () -> Void
 
-    init(viewModel: AppRootViewModel, personalLedgerRoot: PersonalLedgerRootViewModel) {
+    init(viewModel: AppRootViewModel, personalLedgerRoot: PersonalLedgerRootViewModel, switchToLedgersTab: @escaping () -> Void = {}) {
         self.viewModel = viewModel
         self.personalLedgerRoot = personalLedgerRoot
+        self.switchToLedgersTab = switchToLedgersTab
         _listViewModel = StateObject(wrappedValue: viewModel.makeLedgerListViewModel())
         _friendViewModel = StateObject(wrappedValue: viewModel.makeFriendListViewModel())
         _settingsViewModel = StateObject(wrappedValue: viewModel.makeSettingsViewModel())
@@ -2552,7 +2546,9 @@ struct ContentView: View {
             }
 
             if appState.showSharedLedgerTab {
-                LedgerNavigator(rootViewModel: viewModel, listViewModel: listViewModel)
+                LedgerNavigator(rootViewModel: viewModel,
+                                listViewModel: listViewModel,
+                                onRequireLedgerTab: { selectedTab = .ledgers })
                     .tabItem { Label(L.tabLedgers.localized, systemImage: "list.bullet") }
                     .tag(RootTab.ledgers)
 
@@ -2567,6 +2563,9 @@ struct ContentView: View {
         }
         .onChangeCompat(of: appState.showPersonalLedgerTab) { ensureValidSelectedTab() }
         .onChangeCompat(of: appState.showSharedLedgerTab) { ensureValidSelectedTab() }
+        .onChangeCompat(of: appState.quickActionTarget) {
+            handleGlobalQuickAction()
+        }
         .onChangeCompat(of: selectedTab) {
             if selectedTab == .ledgers {
                 appState.requestSharedTabLandingActivation()
@@ -2594,6 +2593,11 @@ struct ContentView: View {
             break
         }
     }
+
+    private func handleGlobalQuickAction() {
+        guard case .shared = appState.quickActionTarget else { return }
+        selectedTab = .ledgers
+    }
 }
 
 struct LedgerNavigator: View {
@@ -2603,8 +2607,8 @@ struct LedgerNavigator: View {
     @State private var showingCreateLedger = false
     @State private var showingShareLedger = false
     @State private var quickActionLedger: LedgerSummaryViewData?
-    @State private var showQuickExpenseForm = false
     @State private var path = NavigationPath()
+    let onRequireLedgerTab: () -> Void
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -2631,16 +2635,16 @@ struct LedgerNavigator: View {
                 .sheet(isPresented: $showingShareLedger) {
                     NearbyDevicesHost(rootViewModel: rootViewModel)
                 }
-                .sheet(isPresented: $showQuickExpenseForm) {
-                    if let ledger = quickActionLedger {
-                        ExpenseFormHost(rootViewModel: rootViewModel, ledgerId: ledger.id)
-                    }
+                .sheet(item: $quickActionLedger) { ledger in
+                    ExpenseFormHost(rootViewModel: rootViewModel, ledgerId: ledger.id)
                 }
                 .onChangeCompat(of: appState.quickActionTarget) {
                     handleQuickAction()
                 }
                 .onAppear {
                     activateSharedLandingIfNeeded()
+                    // 处理首次出现前已设置的 Quick Action 情况
+                    handleQuickAction()
                 }
                 .onChangeCompat(of: appState.sharedTabActivateAt) {
                     activateSharedLandingIfNeeded()
@@ -2652,26 +2656,22 @@ struct LedgerNavigator: View {
         guard case .shared(let ledgerId) = appState.quickActionTarget else {
             return
         }
-        
-        print("🔍 处理 Quick Action，账本ID: \(ledgerId.uuidString)")
-        print("📋 可用账本: \(rootViewModel.ledgerSummaries.map { "\($0.name) (\($0.id.uuidString))" }.joined(separator: ", "))")
-        
+
         guard let summary = rootViewModel.ledgerSummaries.first(where: { $0.id == ledgerId }) else {
-            print("❌ 找不到账本 summary")
             appState.quickActionTarget = nil
             return
         }
-        
-        print("✅ 找到账本: \(summary.name)")
-        
-        // 清除 Quick Action 状态
+
         appState.quickActionTarget = nil
-        
-        // 打开记账表单
-        quickActionLedger = summary
-        showQuickExpenseForm = true
-        
-        print("✅ 已设置打开记账表单")
+
+        onRequireLedgerTab()
+        var newPath = NavigationPath()
+        newPath.append(summary)
+        path = newPath
+
+        DispatchQueue.main.async {
+            quickActionLedger = summary
+        }
     }
 
     private func activateSharedLandingIfNeeded() {
@@ -3822,6 +3822,8 @@ final class KeyboardDismissInstaller: NSObject, UIGestureRecognizerDelegate {
     }
 }
 
+// NOTE: This coordinator is not used anymore; tab switching is handled via state inside ContentView.
+
 #Preview {
     let schema = Schema([
         UserProfile.self,
@@ -3842,6 +3844,5 @@ final class KeyboardDismissInstaller: NSObject, UIGestureRecognizerDelegate {
     let personalRoot = PersonalLedgerRootViewModel(modelContext: container.mainContext, defaultCurrency: .cny)
     return ContentView(viewModel: AppRootViewModel(), personalLedgerRoot: personalRoot)
         .modelContainer(container)
-        .environment(\.locale, Locale(identifier: "zh_CN"))
 }
 

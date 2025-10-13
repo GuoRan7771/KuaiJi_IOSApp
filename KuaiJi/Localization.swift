@@ -8,6 +8,22 @@
 import Foundation
 import SwiftUI
 
+struct LocaleManager {
+    private static let storageKey = "preferred.app.locale"
+
+    static var preferredLocaleIdentifier: String? {
+        UserDefaults.standard.string(forKey: storageKey)
+    }
+
+    static func updatePreferredLocale(_ identifier: String) {
+        UserDefaults.standard.set(identifier, forKey: storageKey)
+    }
+
+    static func clearPreferredLocale() {
+        UserDefaults.standard.removeObject(forKey: storageKey)
+    }
+}
+
 extension String {
     var localized: String {
         NSLocalizedString(self, comment: "")
@@ -254,6 +270,17 @@ enum L {
     static let personalStatsInsightsTitle = "personal.stats.insightsTitle"
     static let personalStatsInsightStreak = "personal.stats.insight.streak"
     static let personalStatsInsightRecentGrowth = "personal.stats.insight.recentGrowth"
+    static let personalStatsChartShare = "personal.stats.chart.share"
+    static let personalStatsChartIncome = "personal.stats.chart.income"
+    static let personalStatsChartExpense = "personal.stats.chart.expense"
+    static let personalStatsChartDate = "personal.stats.chart.date"
+    static let personalStatsChartCategory = "personal.stats.chart.category"
+    static let personalStatsChartAmount = "personal.stats.chart.amount"
+    static let personalStatsInsightDetail = "personal.stats.insight.detail"
+    static let personalStatsFocusExpense = "personal.stats.focus.expense"
+    static let personalStatsFocusIncome = "personal.stats.focus.income"
+    static let personalStatsEmpty = "personal.stats.empty"
+    static let personalStatsRecordCount = "personal.stats.recordCount"
     static let personalSettingsTitle = "personal.settings.title"
     static let personalPrimaryCurrency = "personal.primaryCurrency"
     static let personalFXSource = "personal.fxSource"
@@ -279,6 +306,7 @@ enum L {
     static let personalAccountTypeLabel = "personal.accountType.label"
     static let personalDataSection = "personal.data.section"
     static let personalExportCSV = "personal.exportCSV"
+    static let personalExportUntil = "personal.export.until"
     static let personalClearData = "personal.clearData"
     static let personalClearConfirmTitle = "personal.clear.confirmTitle"
     static let personalClearConfirmMessage = "personal.clear.confirmMessage"
@@ -463,4 +491,11 @@ enum L {
     // 引导页面示例金额
     static let guideSampleAmount1 = "guide.sample.amount1"
     static let guideSampleAmount2 = "guide.sample.amount2"
+
+    // 新增：朋友页补充 & 个人账本独立性说明
+    static let guideFriendsSyncTip = "guide.friends.syncTip"
+    static let guidePersonalIntroTitle = "guide.personalIntro.title"
+    static let guidePersonalIntroDesc = "guide.personalIntro.desc"
+    static let guideIndependenceTitle = "guide.independence.title"
+    static let guideIndependenceDesc = "guide.independence.desc"
 }

@@ -37,7 +37,7 @@ struct GuidePageData: Identifiable {
             id: 1,
             emoji: "👥",
             title: L.guideFriendsTitle.localized,
-            description: L.guideFriendsDesc.localized,
+            description: L.guideFriendsDesc.localized + "\n" + L.guideFriendsSyncTip.localized,
             accentColor: .orange,
             animationType: .pulse
         ),
@@ -64,6 +64,24 @@ struct GuidePageData: Identifiable {
             description: L.guidePrivacyDesc.localized,
             accentColor: .pink,
             animationType: .shimmer
+        ),
+        // 新增：个人账本介绍
+        GuidePageData(
+            id: 5,
+            emoji: "🧾",
+            title: L.guidePersonalIntroTitle.localized,
+            description: L.guidePersonalIntroDesc.localized,
+            accentColor: .teal,
+            animationType: .bounce
+        ),
+        // 新增：与共享账本独立
+        GuidePageData(
+            id: 6,
+            emoji: "🧩",
+            title: L.guideIndependenceTitle.localized,
+            description: L.guideIndependenceDesc.localized,
+            accentColor: .indigo,
+            animationType: .wave
         )
     ]
 }
@@ -317,41 +335,49 @@ struct GuidePageView: View {
     @ViewBuilder
     private var pageSpecificView: some View {
         switch page.id {
-        case 1: // 朋友页面 - 显示二维码图标
-            HStack(spacing: 16) {
-                VStack(spacing: 8) {
-                    Image(systemName: "qrcode")
-                        .font(.system(size: 40))
-                        .foregroundStyle(page.accentColor)
-                    Text(L.guideScanQRCode.localized)
-                        .font(.caption)
+        case 1: // 朋友页面 - 显示二维码图标 + 同步提示
+            VStack(spacing: 10) {
+                HStack(spacing: 16) {
+                    VStack(spacing: 8) {
+                        Image(systemName: "qrcode")
+                            .font(.system(size: 40))
+                            .foregroundStyle(page.accentColor)
+                        Text(L.guideScanQRCode.localized)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(page.accentColor.opacity(0.1))
+                    )
+                    
+                    Image(systemName: "arrow.right")
+                        .font(.title3)
                         .foregroundStyle(.secondary)
+                    
+                    VStack(spacing: 8) {
+                        Image(systemName: "person.2.fill")
+                            .font(.system(size: 40))
+                            .foregroundStyle(page.accentColor)
+                        Text(L.guideBecomeFriends.localized)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(page.accentColor.opacity(0.1))
+                    )
                 }
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(page.accentColor.opacity(0.1))
-                )
+                .padding(.top, 16)
                 
-                Image(systemName: "arrow.right")
-                    .font(.title3)
+                Text(L.guideFriendsSyncTip.localized)
+                    .font(.footnote)
                     .foregroundStyle(.secondary)
-                
-                VStack(spacing: 8) {
-                    Image(systemName: "person.2.fill")
-                        .font(.system(size: 40))
-                        .foregroundStyle(page.accentColor)
-                    Text(L.guideBecomeFriends.localized)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(page.accentColor.opacity(0.1))
-                )
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
             }
-            .padding(.top, 16)
             
         case 2: // 账本页面 - 显示时间轴
             VStack(spacing: 12) {
