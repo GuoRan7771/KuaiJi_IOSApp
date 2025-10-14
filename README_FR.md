@@ -1,8 +1,8 @@
 <p align="center">
-  🌐 <b>语言 / Language / Langue :</b>
-  <a href="README_CN.md">中文</a> |
+  <b>Langue / Language / 语言 :</b>
+  <b>Français</b> |
   <a href="README.md">English</a> |
-  <b>Français</b>
+  <a href="README_CN.md">中文</a>
 </p>
 
 ---
