@@ -1,93 +1,90 @@
 <p align="center">
   🌐 <b>Langue :</b>
-  <a href="README.md">中文</a> |
-  <a href="README_EN.md">English</a> |
+  <a href="README_CN.md">中文</a> |
+  <a href="README.md">English</a> |
   <b>Français</b>
 </p>
 
 ---
-
-
 # KuaiJi  
 
-## Introduction
+## Présentation
 
-**KuaiJi** est une application iOS pour **partage de dépenses (système AA)** et **gestion personnelle des comptes**.  
-Objectif simple : en finir avec la calculatrice lors des sorties, voyages ou colocations entre amis.  
+**KuaiJi** est une application iOS conçue pour la **gestion des dépenses partagées (AA)** et la **comptabilité personnelle**.  
+L’objectif est simple :  
+1. Ne plus jamais avoir à sortir la calculatrice pour savoir qui doit quoi après un dîner, un voyage ou une colocation.  
+2. Gérer facilement ses finances personnelles et ses comptes.
 
-Le projet est développé entièrement en **Swift + SwiftUI**, fonctionne **sans serveur**,  
-mais permet tout de même la synchronisation des comptes via **Bluetooth / Wi-Fi**,  
-offrant une expérience de partage *« pseudo-décentralisée »*.  
-> En réalité, le développeur ne voulait simplement pas payer les **99 $ de frais Apple**. ~~(10 $ collectés auprès des amis pour l’instant)~~
+Le projet est entièrement développé en **Swift pur avec SwiftUI**, sans serveur, fonctionnant **entièrement en local**,  
+tout en permettant la synchronisation des données via **Bluetooth / Wi-Fi**, offrant ainsi une expérience de partage « pseudo-décentralisée ».  
 
-> Donc pas de CloudKit — la comptabilité décentralisée s’impose !
+> Le développeur a tout simplement refusé de payer les 99 USD de frais annuels du programme Apple Developer. ~~(10 USD ont déjà été collectés auprès des amis…)
+
+> Impossible donc d’utiliser CloudKit : la comptabilité est devenue décentralisée !
 
 ---
 
-## Fonctionnalités
+## Points forts
 
 | Module | Description |
-|---------|-------------|
-| **Saisie des dépenses** | Ajout rapide via saisie vocale ou manuelle, avec catégories et étiquettes. |
-| **Partage entre amis** | Modes de partage : AA, j’invite, il invite, ou répartition personnalisée. |
-| **Synchronisation locale** | Partage des comptes par Bluetooth ou Wi-Fi, sans connexion requise. |
-| **Stockage local** | Toutes les données restent sur ton appareil, confidentialité garantie. |
-| **Vue statistique** | Visualisation mensuelle et annuelle des tendances et répartitions. |
-| **Identité décentralisée** | Chaque utilisateur possède un ID unique pour l’appairage inter-appareils. |
+|---------|--------------|
+| **Comptes personnels et partagés** | Ajout rapide de dépenses, saisie vocale ou manuelle, catégorisation et étiquettes. |
+| **Partage des dépenses** | Répartition automatique (AA), repas offerts, répartition personnalisée. |
+| **Synchronisation locale** | Partage de comptes via Bluetooth ou Wi-Fi, sans connexion ni identifiant. |
+| **Stockage local pur** | Toutes les données sont enregistrées sur l’appareil, garantissant la confidentialité. |
+| **Vue statistique** | Visualisation des tendances mensuelles et annuelles, répartition par catégorie. |
+| **Multilingue** | Anglais, Français, Chinois. |
 
 ---
 
-## Mode d’emploi
+## Comment l’utiliser
+### Méthode 1 (simple) :  
+Consultez ce dépôt : [https://github.com/GuoRan7771/Guo_s_Apps](https://github.com/GuoRan7771/Guo_s_Apps)
 
-1. Télécharger ou cloner le projet  
-   ```bash
-   git clone https://github.com/GuoRan7771/KuaiJi_IOSApp.git
-   cd KuaiJi_IOSApp
-   
-2. Ouvrir avec **Xcode** (`.xcodeproj` ou `.xcworkspace`)
-3. Exécuter sur simulateur ou appareil réel
+### Méthode 2 (plus technique, pour développeurs) :  
 
-   > La synchronisation sur appareil réel nécessite l’accès Bluetooth / Wi-Fi
-4. Créer un compte partagé et inviter des amis
-5. Commencer à enregistrer les dépenses, laisser l’app faire les calculs et profiter de la tranquillité 😌
+1. Cloner l’intégralité du projet.  
+2. Ouvrir le dossier dans **Xcode**.  
+3. Exécuter sur simulateur ou appareil réel.  
+
+   > Les fonctions de synchronisation sur appareil réel nécessitent l’autorisation Bluetooth / Wi-Fi.
 
 ---
 
 ## Notes du développeur
 
-> « Je l’ai codée pour m’amuser, et pourtant ça marche vraiment 😎 »
-
-* “Full-stack” signifie ici que j’ai tout fait avec l’aide forcée d’une IA.
-* Pas sur l’App Store à cause de la “politique de tarification décentralisée” : **pas de 99 $**.
-* Avant, je ne connaissais que Python et Tkinter ; l’UI d’Apple, c’est un Tkinter de luxe.
+* C’est mon tout premier projet, réalisé de A à Z — code, interface et distribution — sans expérience préalable, donc je suis déjà très satisfait.  
+* L’application n’est pas publiée sur l’App Store, car je pratique une « stratégie de tarification décentralisée ».  
+  Elle sera peut-être disponible plus tard quand j’aurai du temps et 99 USD à investir.  
+* Avant cela, je n’avais étudié qu’un peu de Python avec Tkinter ; SwiftUI, c’est un peu le Tkinter d’Apple !
 
 ---
 
 ## Mises à jour récentes
 
-### Grande mise à jour (2025-10-10)
+### Suspension des nouvelles fonctionnalités, corrections uniquement (14/10/2025)
 
- - Nouveau Ledger personnel : comptes/écritures/statistiques/virement interne, export CSV et effacement
- - Réglages mis à jour : paramètres du ledger personnel, page par défaut de l’onglet partagé
- - Ajustements UI 
- - Actions rapides : raccourci vers le ledger personnel
+### Grande mise à jour (10/10/2025)
 
-### Changement d’interface du compte partagé (2025-10-06)
+ - Nouveau **compte personnel** : gestion des comptes, enregistrements, statistiques, transferts internes, exportation et réinitialisation CSV.  
+ - Mise à jour des **paramètres** : réglages pour le compte personnel, page d’accueil par défaut pour la section partagée.  
+ - Ajustements **UI**.  
+ - **Raccourcis** : accès direct au compte personnel.
 
-Toutes les informations sur une seule page  
-Correction d’un bug sur le clic de catégorie  
-Ajout de l’export/import complet pour sauvegarde et migration  
-Correction de l’accès rapide au compte par Raccourcis  
+### Changements dans l’interface du compte partagé (06/10/2025)
 
-### Nouvelle fonction : ajout rapide (2025-10-05)
+ - Plus besoin d’ouvrir une page séparée pour les transferts : tout est visible sur un seul écran.  
+ - Correction d’un bug sur la sélection des catégories.  
+ - Ajout d’une fonction complète d’exportation et d’importation de données pour la sauvegarde et la migration.  
+ - Correction d’un problème empêchant l’ouverture rapide du compte par défaut via **Raccourcis**.
 
-Appui long sur l’icône de l’app pour ajouter une dépense dans le compte par défaut
-Correction des erreurs de traduction
+### Nouvelle fonctionnalité : saisie rapide (05/10/2025)
+
+ - Appui long sur l’icône de l’application pour accéder directement à l’écran de saisie du compte par défaut.  
+ - Correction d’erreurs de traduction.
 
 ---
 
 ## Licence
 
-Licence MIT — utilisation libre, mais aucune garantie en cas de perte de données.
-
----
+**Licence MIT** — utilisation libre, mais aucune garantie en cas de perte de données.

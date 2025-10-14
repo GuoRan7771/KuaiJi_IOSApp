@@ -1,89 +1,90 @@
 <p align="center">
-  🌐 <b>语言 / Language / Langue :</b>
-  <b>中文</b> |
-  <a href="README_EN.md">English</a> |
+  🌐 <b>Language:</b>
+  <a href="README_CN.md">中文</a> |
+  <b>English</b> |
   <a href="README_FR.md">Français</a>
 </p>
 
 ---
-# KuaiJi   
+# KuaiJi  
 
-## 简介
+## Overview
 
-**KuaiJi** 是一款用于 **AA制分账** 和 **个人记账** 的 iOS 应用。  
-目标很简单：让和朋友聚会、旅行、合租再也不用掏出计算器算谁欠谁。  
+**KuaiJi** is an iOS app for **AA bill-splitting** and **personal bookkeeping**.  
+Its goals are simple:  
+1. Make group gatherings, trips, and shared apartments free from manual debt calculations.  
+2. Help manage your personal finances efficiently.
 
-本项目使用 **纯 Swift + SwiftUI** 构建，无需服务器，全本地运行，  
-但仍然能通过 **蓝牙 / Wi-Fi** 同步账本数据，实现一种「伪分布式」的共享体验。  
-> 其实是因为开发者不想交那笔 99 美元苹果开发者年费。 ~~（目前已在朋友圈筹集到10刀~~
+The app is built entirely with **Swift + SwiftUI**, requires **no server**, and runs fully **offline**.  
+However, it still supports **Bluetooth / Wi-Fi** synchronization between devices, providing a kind of “pseudo-distributed” shared experience.  
+> The developer simply didn’t want to pay Apple’s USD 99 annual developer fee. ~~(Currently has raised $10 among friends.)~~
 
-> 所以根本没法用CloudKit，只能去中心化记账！！！
----
-
-## 功能亮点
-
-| 功能模块 | 描述 |
-|-----------|------|
-| **记账功能** | 快速添加支出，支持语音输入、手动输入、分类标签等。 |
-| **多人分账** | 一键AA、我请客、他请客、自定义分账方式。 |
-| **局域网同步** | 通过蓝牙或 Wi-Fi 与朋友共享账本，无需登录。 |
-| **纯本地存储** | 所有数据保存在你的设备中，隐私安全。 |
-| **统计视图** | 查看月度、年度支出趋势与分类分布。 |
-| **身份去中心化** | 每个用户都有唯一ID，可用于设备间账本匹配。 |
+> Therefore, CloudKit is not an option — decentralized accounting is the only way!
 
 ---
 
-## 如何使用
+## Key Features
 
-1. 下载或克隆本项目  
-   ```bash
-   git clone https://github.com/GuoRan7771/KuaiJi_IOSApp.git
-   cd KuaiJi_IOSApp
-
-2. 使用 **Xcode** 打开 `.xcodeproj` 或 `.xcworkspace`
-3. 在模拟器或真机运行
-
-   > 真机同步功能需要蓝牙 / Wi-Fi 权限
-4. 创建一个账本，邀请朋友加入
-5. 开始记账，自动结算，享受「再也不怕算错账」的快乐 😌
+| Module | Description |
+|---------|--------------|
+| **Personal & Shared Ledgers** | Quickly add expenses with voice input, manual entry, or category tags. |
+| **Multi-user Splitting** | One-tap AA split, “I pay,” “They pay,” or fully customized splitting. |
+| **Local Network Sync** | Share ledgers with friends over Bluetooth or Wi-Fi without any login. |
+| **Fully Local Storage** | All data stays on your device for maximum privacy and security. |
+| **Statistics View** | Track monthly and yearly spending trends and category distributions. |
+| **Multi-language Support** | English, French, and Chinese. |
 
 ---
 
-## 听我bb
+## How to Use
 
-> 「我只是随便写写，结果它真的能用了😎」
+### Method 1 (Simple)
+Visit the main source repository:  
+[https://github.com/GuoRan7771/Guo_s_Apps](https://github.com/GuoRan7771/Guo_s_Apps)
 
-* 所谓“全栈开发”，意思是我一个人哄AI写完了所有。
-* 没上 App Store，是因为“去中心化定价策略”：**不交99刀**。
-* 其实我之前只学过点python，只用过tkinter，但是苹果这个UI真的是苹果tkinter啊！
+### Method 2 (For Developers)
+
+1. Clone the entire project  
+2. Open the project directory with **Xcode**  
+3. Run it on the simulator or a physical device  
+
+   > Note: Real-device sync requires Bluetooth / Wi-Fi permissions.
 
 ---
 
-## 近期更新
+## Developer Notes
 
-### 大更新 (2025.10.10)
+* This is my first project built from scratch, and I’m proud of it — from code to UI to distribution, everything was a challenge I managed to overcome.  
+* It’s not on the App Store yet because of a **“decentralized pricing policy”** — I just refuse to pay the USD 99 developer fee for now.  
+* I started with some Python and tkinter experience. SwiftUI feels like Apple’s own tkinter — just shinier.
 
- - 新增个人账本：账户/记录/统计/内部转账、CSV 导出与清空
- - 设置项更新：个人账本设置、共享页默认落地页
- - UI 调整
- - 快捷操作：支持个人账本入口
+---
 
-### 共享账本内的 UI 改变 (2025.10.06)
+## Recent Updates
 
-无需再单独进入转账方案页面，所有信息一屏展示  
-修正分类功能点击异常问题  
-在设置中新增完整数据导出导入功能，用于数据备份及迁移覆盖  
-修复ShortCut中无法调用快速进入默认账本功能  
+### Feature Freeze – Bug Fixes Only (2025-10-14)
 
-### 新功能：快速记账 (2025.10.05)
+### Major Update (2025-10-10)
 
-长按应用图标可快速进入默认账本的记账界面
-修复翻译错误
+ - Added personal ledger: accounts, records, statistics, internal transfers, CSV export and data clearing  
+ - Updated settings: personal ledger preferences and default landing page in shared view  
+ - UI adjustments  
+ - Quick Actions: shortcut access to personal ledger
+
+### Shared Ledger UI Redesign (2025-10-06)
+
+ - All transfer info now displayed on a single screen — no extra pages  
+ - Fixed category-selection issues  
+ - Added full data export/import for backup and migration  
+ - Fixed Shortcut integration for quick ledger access  
+
+### New Feature: Quick Record (2025-10-05)
+
+ - Long-press app icon to open default ledger directly  
+ - Fixed translation errors  
 
 ---
 
 ## License
 
-MIT License — 你可以随便玩，只要别怪我数据丢了。
-
----
+MIT License — use it freely, just don’t blame me if your data disappears.
