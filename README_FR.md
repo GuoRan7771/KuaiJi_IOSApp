@@ -1,5 +1,5 @@
 <p align="center">
-  🌐 <b>Langue :</b>
+  🌐 <b>语言 / Language / Langue :</b>
   <a href="README_CN.md">中文</a> |
   <a href="README.md">English</a> |
   <b>Français</b>
