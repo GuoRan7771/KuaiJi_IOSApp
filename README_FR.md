@@ -65,7 +65,9 @@ Merci à ma copine pour tout son soutien discret dans l’ombre ! Heyhey 😁
 
 ---
 
-## Mises à jour récentes
+## Mises à jour récentes  
+### Ajout de nouvelles catégories (2025.10.15)
+
 
 ### Suspension des nouvelles fonctionnalités, corrections uniquement (14/10/2025)
 

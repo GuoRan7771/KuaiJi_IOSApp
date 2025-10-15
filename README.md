@@ -66,7 +66,8 @@ Thanks to my girlfriend for all her silent support behind the scenes! Heyhey ðŸ˜
 
 ---
 
-## Recent Updates
+## Recent Updates  
+### Added More Category Tags (2025.10.15)
 
 ### Feature Freeze â€“ Bug Fixes Only (2025-10-14)
 
