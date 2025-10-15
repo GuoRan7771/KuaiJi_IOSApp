@@ -56,7 +56,7 @@
 * 零基础第一个项目能做成这样我已经很开心了，从代码到UI到分发，真的都是困，好在已经都克服了✌️。  
 * 没上 App Store，是因为“去中心化定价策略”，后续有时间和钱会上架AppStore的：**不交99刀**。  
 * 其实我之前只学过点python，只用过tkinter，但是苹果这个UI真的是苹果tkinter啊！
-* <details>
+<details>
 <summary>?</summary>
 
 谢谢我女朋友背后默默的付出！
