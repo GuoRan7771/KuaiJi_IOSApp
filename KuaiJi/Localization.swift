@@ -117,6 +117,12 @@ enum L {
     static let categoryAccommodation = "category.accommodation"
     static let categoryEntertainment = "category.entertainment"
     static let categoryUtilities = "category.utilities"
+    static let categorySelfImprovement = "category.selfImprovement"
+    static let categorySchool = "category.school"
+    static let categoryMedical = "category.medical"
+    static let categoryClothing = "category.clothing"
+    static let categoryInvestment = "category.investment"
+    static let categorySocial = "category.social"
     static let categoryOther = "category.other"
     
     // 结算

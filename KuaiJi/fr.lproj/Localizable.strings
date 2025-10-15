@@ -48,6 +48,7 @@
 "expense.basicInfo" = "Infos de Base";
 "expense.purpose" = "Objet";
 "expense.purposePlaceholder" = "ex: Dîner / Taxi";
+"income.source" = "Source";
 "expense.date" = "Date";
 "expense.amount" = "Montant";
 "expense.category" = "Catégorie";
@@ -79,6 +80,12 @@
 "category.accommodation" = "Hébergement";
 "category.entertainment" = "Divertissement";
 "category.utilities" = "Quotidien";
+"category.selfImprovement" = "Développement personnel";
+"category.school" = "École";
+"category.medical" = "Médical";
+"category.clothing" = "Vêtements";
+"category.investment" = "Investissement";
+"category.social" = "Social";
 "category.other" = "Autre";
 
 /* Règlement */

@@ -72,6 +72,12 @@ private func sharedExpenseNameKey(for category: ExpenseCategory) -> String {
     case .accommodation: return L.categoryAccommodation
     case .entertainment: return L.categoryEntertainment
     case .utilities: return L.categoryUtilities
+    case .selfImprovement: return L.categorySelfImprovement
+    case .school: return L.categorySchool
+    case .medical: return L.categoryMedical
+    case .clothing: return L.categoryClothing
+    case .investment: return L.categoryInvestment
+    case .social: return L.categorySocial
     case .other: return L.categoryOther
     }
 }
@@ -83,6 +89,12 @@ private func sharedExpenseIcon(for category: ExpenseCategory) -> String {
     case .accommodation: return "bed.double.fill"
     case .entertainment: return "theatermasks.fill"
     case .utilities: return "lightbulb.fill"
+    case .selfImprovement: return "brain.head.profile"
+    case .school: return "graduationcap.fill"
+    case .medical: return "cross.case.fill"
+    case .clothing: return "tshirt.fill"
+    case .investment: return "chart.line.uptrend.xyaxis"
+    case .social: return "person.2.fill"
     case .other: return "ellipsis.circle.fill"
     }
 }

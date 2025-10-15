@@ -69,6 +69,12 @@ enum ExpenseCategory: String, Codable, CaseIterable, Sendable {
     case accommodation
     case entertainment
     case utilities
+    case selfImprovement
+    case school
+    case medical
+    case clothing
+    case investment
+    case social
     case other
 }
 

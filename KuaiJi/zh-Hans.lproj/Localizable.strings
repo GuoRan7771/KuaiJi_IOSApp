@@ -48,6 +48,7 @@
 "expense.basicInfo" = "基本信息";
 "expense.purpose" = "用途";
 "expense.purposePlaceholder" = "如：晚餐 / 打车";
+"income.source" = "来源";
 "expense.date" = "日期";
 "expense.amount" = "金额";
 "expense.category" = "分类";
@@ -79,6 +80,12 @@
 "category.accommodation" = "住宿";
 "category.entertainment" = "娱乐";
 "category.utilities" = "日常";
+"category.selfImprovement" = "自我提升";
+"category.school" = "学校";
+"category.medical" = "医疗";
+"category.clothing" = "服饰";
+"category.investment" = "投资";
+"category.social" = "社交";
 "category.other" = "其他";
 
 /* 结算 */

@@ -1480,17 +1480,14 @@ struct ExpenseFormView<Model: ExpenseFormViewModelProtocol>: View {
             
             // 第四栏：基本信息（可选填写）
             Section {
-                TextField(L.expensePurposePlaceholder.localized, text: binding(
+                // 先金额已在上方，保持此处为备注/来源、日期与分类
+                TextField(viewModel.draft.amount > 0 ? L.expensePurposePlaceholder.localized : L.expensePurposePlaceholder.localized, text: binding(
                     get: { viewModel.draft.title },
                     set: { viewModel.draft.title = $0 }
                 ))
                 .submitLabel(.done)
                 
-                DatePicker(L.expenseDate.localized, selection: binding(
-                    get: { viewModel.draft.date },
-                    set: { viewModel.draft.date = $0 }
-                ), displayedComponents: [.date, .hourAndMinute])
-                
+                // 将日期与分类顺序对调：先分类，后日期
                 HStack {
                     Text(L.expenseCategory.localized)
                     Spacer()
@@ -1501,9 +1498,7 @@ struct ExpenseFormView<Model: ExpenseFormViewModelProtocol>: View {
                         .foregroundStyle(.secondary)
                 }
                 .contentShape(Rectangle())
-                .onTapGesture {
-                    showingCategorySheet = true
-                }
+                .onTapGesture { showingCategorySheet = true }
                 .confirmationDialog(L.expenseCategory.localized, isPresented: $showingCategorySheet, titleVisibility: .visible) {
                     ForEach(ExpenseCategory.allCases, id: \.self) { category in
                         Button(category.displayName) {
@@ -1513,6 +1508,11 @@ struct ExpenseFormView<Model: ExpenseFormViewModelProtocol>: View {
                     }
                     Button(L.cancel.localized, role: .cancel) { }
                 }
+
+                DatePicker(L.expenseDate.localized, selection: binding(
+                    get: { viewModel.draft.date },
+                    set: { viewModel.draft.date = $0 }
+                ), displayedComponents: [.date, .hourAndMinute])
             } header: {
                 Text(L.expenseBasicInfo.localized)
             } footer: {
@@ -2498,6 +2498,12 @@ private extension ExpenseCategory {
         case .accommodation: return L.categoryAccommodation.localized
         case .entertainment: return L.categoryEntertainment.localized
         case .utilities: return L.categoryUtilities.localized
+        case .selfImprovement: return L.categorySelfImprovement.localized
+        case .school: return L.categorySchool.localized
+        case .medical: return L.categoryMedical.localized
+        case .clothing: return L.categoryClothing.localized
+        case .investment: return L.categoryInvestment.localized
+        case .social: return L.categorySocial.localized
         case .other: return L.categoryOther.localized
         }
     }
@@ -3280,6 +3286,12 @@ struct RecordsSheet<Model: LedgerOverviewViewModelProtocol>: View {
         case .accommodation: return "bed.double.fill"
         case .entertainment: return "theatermasks.fill"
         case .utilities: return "lightbulb.fill"
+        case .selfImprovement: return "brain.head.profile"
+        case .school: return "graduationcap.fill"
+        case .medical: return "cross.case.fill"
+        case .clothing: return "tshirt.fill"
+        case .investment: return "chart.line.uptrend.xyaxis"
+        case .social: return "person.2.fill"
         case .other: return "ellipsis.circle.fill"
         }
     }

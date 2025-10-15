@@ -742,14 +742,8 @@ struct PersonalRecordFormView: View {
                     }
                 }
             }
-            Section(header: Text(L.personalFieldCategory.localized)) {
-                Picker(L.personalFieldCategory.localized, selection: $viewModel.categoryKey) {
-                    ForEach(viewModel.categoryOptions, id: \.key) { option in
-                        Text(option.localizedName).tag(option.key)
-                    }
-                }
-            }
-            Section(header: Text(L.personalFieldAmount.localized)) {
+            // 基本信息
+            Section(header: Text(L.expenseBasicInfo.localized)) {
                 HStack {
                     TextField(L.personalFieldAmount.localized, text: $viewModel.amountText)
                         .keyboardType(.decimalPad)
@@ -791,8 +785,16 @@ struct PersonalRecordFormView: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
+                // 备注/来源
+                TextField(viewModel.kind == .expense ? L.expensePurpose.localized : "income.source".localized, text: $viewModel.note, axis: .vertical)
+                // 分类
+                Picker(L.personalFieldCategory.localized, selection: $viewModel.categoryKey) {
+                    ForEach(viewModel.categoryOptions, id: \.key) { option in
+                        Text(option.localizedName).tag(option.key)
+                    }
+                }
+                // 时间
                 DatePicker(L.personalFieldDate.localized, selection: $viewModel.occurredAt, displayedComponents: [.date, .hourAndMinute])
-                TextField(L.personalFieldNote.localized, text: $viewModel.note, axis: .vertical)
             }
         }
         .dismissKeyboardOnTap()

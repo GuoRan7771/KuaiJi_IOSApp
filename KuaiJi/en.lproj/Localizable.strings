@@ -48,6 +48,7 @@
 "expense.basicInfo" = "Basic Info";
 "expense.purpose" = "Purpose";
 "expense.purposePlaceholder" = "e.g.: Dinner / Taxi";
+"income.source" = "Source";
 "expense.date" = "Date";
 "expense.amount" = "Amount";
 "expense.category" = "Category";
@@ -79,6 +80,12 @@
 "category.accommodation" = "Accommodation";
 "category.entertainment" = "Entertainment";
 "category.utilities" = "Utilities";
+"category.selfImprovement" = "Self-Improvement";
+"category.school" = "School";
+"category.medical" = "Medical";
+"category.clothing" = "Clothing";
+"category.investment" = "Investment";
+"category.social" = "Social";
 "category.other" = "Other";
 
 /* Settlement */
