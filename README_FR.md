@@ -56,7 +56,12 @@ Consultez ce dépôt : [https://github.com/GuoRan7771/Guo_s_Apps](https://github
 * C’est mon tout premier projet, réalisé de A à Z — code, interface et distribution — sans expérience préalable, donc je suis déjà très satisfait.  
 * L’application n’est pas publiée sur l’App Store, car je pratique une « stratégie de tarification décentralisée ».  
   Elle sera peut-être disponible plus tard quand j’aurai du temps et 99 USD à investir.  
-* Avant cela, je n’avais étudié qu’un peu de Python avec Tkinter ; SwiftUI, c’est un peu le Tkinter d’Apple !
+* Avant cela, je n’avais étudié qu’un peu de Python avec Tkinter ; SwiftUI, c’est un peu le Tkinter d’Apple 
+<details>
+<summary>?</summary>
+Merci à ma copine pour tout son soutien discret dans l’ombre ! Heyhey 😁
+</details>
+
 
 ---
 

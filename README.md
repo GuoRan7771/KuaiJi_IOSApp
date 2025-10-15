@@ -56,7 +56,13 @@ Visit the main source repository:
 
 * This is my first project built from scratch, and I’m proud of it — from code to UI to distribution, everything was a challenge I managed to overcome.  
 * It’s not on the App Store yet because of a **“decentralized pricing policy”** — I just refuse to pay the USD 99 developer fee for now.  
-* I started with some Python and tkinter experience. SwiftUI feels like Apple’s own tkinter — just shinier.
+* I started with some Python and tkinter experience. SwiftUI feels like Apple’s own tkinter — just shinier.  
+<details>
+<summary>?</summary>
+Thanks to my girlfriend for all her silent support behind the scenes! Heyhey 😁
+</details>
+
+
 
 ---
 
