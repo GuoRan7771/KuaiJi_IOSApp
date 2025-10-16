@@ -55,6 +55,12 @@ struct LedgerFilterState: Hashable {
     var categories: Set<ExpenseCategory>
     var memberIds: Set<UUID>
 
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        return formatter
+    }()
+
     init(fromDate: Date? = nil, toDate: Date? = nil, categories: Set<ExpenseCategory> = [], memberIds: Set<UUID> = []) {
         self.fromDate = fromDate
         self.toDate = toDate
@@ -76,9 +82,7 @@ struct LedgerFilterState: Hashable {
     }
 
     private func formatted(date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        return formatter.string(from: date)
+        Self.dateFormatter.string(from: date)
     }
 }
 

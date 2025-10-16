@@ -1,6 +1,8 @@
 # macOS 系统文件
 .DS_Store
 
+.cursor/
+
 dist/
 # Xcode 用户状态文件
 KuaiJi.xcodeproj/project.xcworkspace/xcuserdata/
