@@ -2,3 +2,7 @@
 .DS_Store
 
 dist/
+# Xcode 用户状态文件
+KuaiJi.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcuserstate
+
