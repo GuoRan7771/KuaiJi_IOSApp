@@ -141,6 +141,7 @@
 "settings.about" = "关于";
 "settings.guide" = "简介";
 "settings.contactMe" = "联系我";
+"settings.version" = "版本";
 "settings.showSharedAndFriends" = "显示共享账本及朋友";
 "settings.showPersonalLedger" = "显示个人账本";
 "settings.clearData" = "抹掉共享账本及朋友数据";
@@ -469,6 +470,23 @@
 "personal.conversionFeeNote" = "换汇手续费";
 "personal.export.hint" = "同时导出个人账本 CSV。";
 "personal.clear.hint" = "将个人账本账户与记录全部删除（不影响共享账本）。";
+"personal.saveAndShare" = "保存并计入";
+"personal.saveAndShare.sheetTitle" = "保存到共享账本";
+"personal.saveAndShare.ledgerSection" = "选择共享账本";
+"personal.saveAndShare.splitMode" = "分账方式";
+"personal.saveAndShare.summary" = "记录概览";
+"personal.saveAndShare.noLedgers" = "暂无共享账本可用";
+"personal.saveAndShare.mode.equal" = "所有成员平分";
+"personal.saveAndShare.mode.treat" = "我请客（仅记录流水）";
+"personal.saveAndShare.currencyMismatch" = "当前账本币种为%@，与个人记录的%@不一致";
+"personal.saveAndShare.unavailable" = "共享账本数据暂不可用";
+"personal.saveAndShare.ledgerMissing" = "未找到对应的共享账本";
+"personal.saveAndShare.missingCurrentUser" = "未找到当前用户信息，无法添加到共享账本";
+"personal.saveAndShare.membersMissing" = "该共享账本没有成员信息，无法完成分账";
+"personal.saveAndShare.invalidAmount" = "请输入有效的金额后再尝试保存";
+"personal.saveAndShare.openFullSplit" = "在共享账本中设置更多分账方式…";
+
+"income.source" = "收入来源";
 
 /* 全量抹除 */
 "eraseAllData" = "抹掉全部数据";

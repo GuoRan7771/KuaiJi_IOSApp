@@ -1401,7 +1401,7 @@ struct ExpenseFormView<Model: ExpenseFormViewModelProtocol>: View {
                             Text(L.splitPayer.localized)
                             Spacer()
                             Text(selectedOtherPayerName)
-                                .foregroundStyle(.blue)
+                                .foregroundStyle(.primary)
                             Image(systemName: "chevron.right")
                                 .font(.caption)
                                 .foregroundStyle(Color.appSecondaryText)
@@ -1458,7 +1458,7 @@ struct ExpenseFormView<Model: ExpenseFormViewModelProtocol>: View {
                                 Text(L.splitBeneficiary.localized)
                                 Spacer()
                                 Text(selectedBeneficiaryName)
-                                    .foregroundStyle(.blue)
+                                    .foregroundStyle(.primary)
                                 Image(systemName: "chevron.right")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
@@ -1484,8 +1484,8 @@ struct ExpenseFormView<Model: ExpenseFormViewModelProtocol>: View {
             
             // 第四栏：基本信息（可选填写）
             Section {
-                // 先金额已在上方，保持此处为备注/来源、日期与分类
-                TextField(viewModel.draft.amount > 0 ? L.expensePurposePlaceholder.localized : L.expensePurposePlaceholder.localized, text: binding(
+                // 用途
+                TextField(L.expensePurpose.localized, text: binding(
                     get: { viewModel.draft.title },
                     set: { viewModel.draft.title = $0 }
                 ))
@@ -1496,7 +1496,7 @@ struct ExpenseFormView<Model: ExpenseFormViewModelProtocol>: View {
                     Text(L.expenseCategory.localized)
                     Spacer()
                     Text(viewModel.draft.category.displayName)
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(.primary)
                     Image(systemName: "chevron.right")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -1901,7 +1901,7 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                     case .list: return "list"
                     case .ledger(let id): return id.uuidString
                     }
-                }, set: { raw in
+                }, set: { (raw: String) in
                     if raw == "list" {
                         appState.setSharedLandingPreference(.list)
                     } else if let id = UUID(uuidString: raw) {
@@ -1984,6 +1984,14 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                             .font(.caption)
                             .foregroundStyle(Color.appSecondaryText)
                     }
+                }
+
+                // 版本信息
+                HStack {
+                    Text(L.settingsVersion.localized)
+                    Spacer()
+                    Text(versionString())
+                        .foregroundStyle(.primary)
                 }
             }
 
@@ -2340,6 +2348,14 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
     private func binding<Value>(get: @escaping () -> Value, set: @escaping (Value) -> Void) -> Binding<Value> {
         Binding(get: get, set: set)
     }
+
+    // Local helper for SettingsView scope
+    private func versionString() -> String {
+        let info = Bundle.main.infoDictionary
+        let version = (info?["CFBundleShortVersionString"] as? String) ?? ""
+        let build = (info?["CFBundleVersion"] as? String) ?? ""
+        return build.isEmpty ? version : "\(version) (\(build))"
+    }
 }
 
 struct ContactView: View {
@@ -2551,6 +2567,7 @@ struct ContentView: View {
         TabView(selection: $selectedTab) {
             if appState.showPersonalLedgerTab {
                 PersonalLedgerNavigator(root: personalLedgerRoot)
+                    .environmentObject(viewModel)
                     .tabItem { Label(L.tabPersonalLedger.localized, systemImage: "wallet.pass") }
                     .tag(RootTab.personal)
             }
@@ -2607,6 +2624,14 @@ struct ContentView: View {
     private func handleGlobalQuickAction() {
         guard case .shared = appState.quickActionTarget else { return }
         selectedTab = .ledgers
+    }
+
+    // MARK: - App Version Helper
+    private func versionString() -> String {
+        let info = Bundle.main.infoDictionary
+        let version = (info?["CFBundleShortVersionString"] as? String) ?? ""
+        let build = (info?["CFBundleVersion"] as? String) ?? ""
+        return build.isEmpty ? version : "\(version) (\(build))"
     }
 }
 
@@ -3856,9 +3881,13 @@ final class KeyboardDismissInstaller: NSObject, UIGestureRecognizerDelegate {
         PersonalPreferences.self
     ])
     let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: schema, configurations: [configuration])
-    let personalRoot = PersonalLedgerRootViewModel(modelContext: container.mainContext, defaultCurrency: .cny)
-    return ContentView(viewModel: AppRootViewModel(), personalLedgerRoot: personalRoot)
-        .modelContainer(container)
+    do {
+        let container = try ModelContainer(for: schema, configurations: [configuration])
+        let personalRoot = PersonalLedgerRootViewModel(modelContext: container.mainContext, defaultCurrency: .cny)
+        return ContentView(viewModel: AppRootViewModel(), personalLedgerRoot: personalRoot)
+            .modelContainer(container)
+    } catch {
+        return Text("Preview init failed: \(error.localizedDescription)")
+    }
 }
 

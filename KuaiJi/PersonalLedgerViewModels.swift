@@ -185,7 +185,24 @@ final class PersonalLedgerRootViewModel: ObservableObject {
         do {
             self.store = try PersonalLedgerStore(context: modelContext, defaultCurrency: defaultCurrency)
         } catch {
-            fatalError("Failed to create PersonalLedgerStore: \(error)")
+            #if DEBUG
+            preconditionFailure("Failed to create PersonalLedgerStore: \(error)")
+            #else
+            // Fallback: attempt to create an in-memory container and store
+            let schema = Schema([
+                PersonalAccount.self,
+                PersonalTransaction.self,
+                AccountTransfer.self,
+                PersonalPreferences.self
+            ])
+            let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            if let container = try? ModelContainer(for: schema, configurations: [configuration]),
+               let fallback = try? PersonalLedgerStore(context: container.mainContext, defaultCurrency: defaultCurrency) {
+                self.store = fallback
+            } else {
+                fatalError("Fatal: cannot initialize PersonalLedgerStore even in fallback: \(error)")
+            }
+            #endif
         }
     }
 

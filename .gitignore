@@ -3,6 +3,14 @@
 
 .cursor/
 
+.swiftformat
+
+.swiftlint.yml
+
+Makefile
+
+ios-ci.yml
+
 dist/
 # Xcode 用户状态文件
 KuaiJi.xcodeproj/project.xcworkspace/xcuserdata/

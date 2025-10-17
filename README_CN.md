@@ -94,3 +94,29 @@
 MIT License — 你可以随便玩，只要别怪我数据丢了。
 
 ---
+
+## 开发者指南（代码清理）
+
+本项目使用 SwiftFormat 与 SwiftLint 保持统一风格：
+
+### 安装（可选）
+- SwiftFormat: `brew install swiftformat`
+- SwiftLint: `brew install swiftlint`
+
+### 常用命令（根目录）
+```bash
+# 代码格式化
+make format
+
+# 代码检查
+make lint
+
+# 运行测试（需要 Xcode 命令行工具）
+make test
+```
+
+### 规则文件
+- `.swiftformat`：行宽、缩进、参数换行等
+- `.swiftlint.yml`：启用/关闭规则、行宽、函数体长度等
+
+> 清理流程：先格式化 → 再 lint → 修复剩余问题 → 运行测试。

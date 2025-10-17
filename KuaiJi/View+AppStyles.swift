@@ -28,4 +28,24 @@ extension View {
     func appSecondaryTextStyle() -> some View {
         modifier(SecondaryTextStyle())
     }
+
+    /// A full-width subtle separator that spans the readable width in forms.
+    func fullWidthSeparator(color: Color = Color.secondary.opacity(0.2)) -> some View {
+        Rectangle()
+            .fill(color)
+            .frame(height: 1 / UIScreen.main.scale)
+            .listRowInsets(EdgeInsets())
+    }
+}
+
+struct FullWidthSeparator: View {
+    var color: Color = Color.secondary.opacity(0.2)
+    var body: some View {
+        Rectangle()
+            .fill(color)
+            .frame(height: 1 / UIScreen.main.scale)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            // Remove default list row insets to span the full card width
+            .listRowInsets(EdgeInsets())
+    }
 }

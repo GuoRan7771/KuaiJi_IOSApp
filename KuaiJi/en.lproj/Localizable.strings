@@ -141,6 +141,7 @@
 "settings.about" = "About";
 "settings.guide" = "Introduction";
 "settings.contactMe" = "Contact Me";
+"settings.version" = "Version";
 "settings.showSharedAndFriends" = "Show shared ledger & friends";
 "settings.showPersonalLedger" = "Show personal ledger";
 "settings.clearData" = "Erase Shared Ledgers & Friends";
@@ -475,3 +476,20 @@
 "personal.conversionFeeNote" = "Conversion fee";
 "personal.export.hint" = "Includes personal ledger CSV.";
 "personal.clear.hint" = "Delete all personal ledger accounts and records (shared ledgers unaffected).";
+"personal.saveAndShare" = "Save & Add";
+"personal.saveAndShare.sheetTitle" = "Add to Shared Ledger";
+"personal.saveAndShare.ledgerSection" = "Shared Ledger";
+"personal.saveAndShare.splitMode" = "Split Method";
+"personal.saveAndShare.summary" = "Entry Review";
+"personal.saveAndShare.noLedgers" = "No shared ledgers available.";
+"personal.saveAndShare.mode.equal" = "Split evenly across members";
+"personal.saveAndShare.mode.treat" = "Payer treats (record only)";
+"personal.saveAndShare.currencyMismatch" = "Ledger currency %@ differs from the personal record %@.";
+"personal.saveAndShare.unavailable" = "Shared ledger data is currently unavailable.";
+"personal.saveAndShare.ledgerMissing" = "Unable to locate the selected shared ledger.";
+"personal.saveAndShare.missingCurrentUser" = "Your profile is missing from the shared ledger; refresh and try again.";
+"personal.saveAndShare.membersMissing" = "This shared ledger has no member information for splitting.";
+"personal.saveAndShare.invalidAmount" = "Enter a valid amount before saving to the shared ledger.";
+"personal.saveAndShare.openFullSplit" = "Configure more split options in Shared…";
+
+"income.source" = "Income source";

@@ -141,6 +141,7 @@
 "settings.about" = "À Propos";
 "settings.guide" = "Introduction";
 "settings.contactMe" = "Me Contacter";
+"settings.version" = "Version";
 "settings.showSharedAndFriends" = "Afficher le ledger partagé et les amis";
 "settings.showPersonalLedger" = "Afficher le ledger personnel";
 "settings.clearData" = "Effacer les comptes partagés et amis";
@@ -475,3 +476,20 @@
 "personal.conversionFeeNote" = "Frais de conversion";
 "personal.export.hint" = "Inclut l'export CSV du ledger personnel.";
 "personal.clear.hint" = "Supprime tous les comptes et écritures du ledger personnel (les comptes partagés ne sont pas affectés).";
+"personal.saveAndShare" = "Enregistrer et ajouter";
+"personal.saveAndShare.sheetTitle" = "Ajouter au ledger partagé";
+"personal.saveAndShare.ledgerSection" = "Ledger partagé";
+"personal.saveAndShare.splitMode" = "Méthode de répartition";
+"personal.saveAndShare.summary" = "Résumé de l'écriture";
+"personal.saveAndShare.noLedgers" = "Aucun ledger partagé disponible.";
+"personal.saveAndShare.mode.equal" = "Répartition égale entre les membres";
+"personal.saveAndShare.mode.treat" = "Le payeur invite (simple enregistrement)";
+"personal.saveAndShare.currencyMismatch" = "La devise du ledger (%@) ne correspond pas à celle de l'écriture personnelle (%@).";
+"personal.saveAndShare.unavailable" = "Les données des ledgers partagés sont momentanément indisponibles.";
+"personal.saveAndShare.ledgerMissing" = "Impossible de trouver le ledger partagé sélectionné.";
+"personal.saveAndShare.missingCurrentUser" = "Votre profil n'est pas présent dans ce ledger partagé. Actualisez puis réessayez.";
+"personal.saveAndShare.membersMissing" = "Ce ledger partagé ne dispose d'aucune information de membre pour répartir la dépense.";
+"personal.saveAndShare.invalidAmount" = "Saisissez un montant valide avant d'enregistrer dans le ledger partagé.";
+"personal.saveAndShare.openFullSplit" = "Configurer plus d'options de partage…";
+
+"income.source" = "Source de revenu";

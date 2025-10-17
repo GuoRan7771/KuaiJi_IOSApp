@@ -59,7 +59,16 @@ struct KuaiJiApp: App {
         do {
             return try ModelContainer(for: schema, configurations: [configuration])
         } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+            #if DEBUG
+            preconditionFailure("Could not create ModelContainer: \(error)")
+            #else
+            // Fallback to in-memory container to keep app usable
+            let fallbackConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            if let container = try? ModelContainer(for: schema, configurations: [fallbackConfig]) {
+                return container
+            }
+            fatalError("Could not create either persistent or in-memory ModelContainer: \(error)")
+            #endif
         }
     }()
 
