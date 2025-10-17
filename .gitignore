@@ -16,3 +16,6 @@ dist/
 KuaiJi.xcodeproj/project.xcworkspace/xcuserdata/
 *.xcuserstate
 
+**/xcuserdata/**
+*.xcuserstate
+
