@@ -53,6 +53,38 @@ struct PersonalLedgerStoreTests {
         #expect(totals.income == 30_000)
     }
 
+    @Test("Locale-aware parsing accepts comma decimals for amounts and rates")
+    func localeAwareParsing() throws {
+        let store = try makeStore()
+        let account = try store.createAccount(from: PersonalAccountDraft(name: "Wallet", type: .cash, initialBalance: 0))
+        let now = Date()
+
+        // Comma decimal for expense amount (e.g., French format)
+        let commaAmount = NumberParsing.parseDecimal("120,50", locale: Locale(identifier: "fr_FR"))
+        #expect(commaAmount == Decimal(string: "120.50"))
+        try store.saveTransaction(PersonalTransactionInput(kind: .expense,
+                                                            accountId: account.remoteId,
+                                                            categoryKey: "food",
+                                                            amount: commaAmount!,
+                                                            occurredAt: now))
+
+        // Comma decimal for transfer fx rate and fee
+        let from = try store.createAccount(from: PersonalAccountDraft(name: "Bank", type: .bankCard, initialBalance: 0))
+        let to = try store.createAccount(from: PersonalAccountDraft(name: "Savings", type: .bankCard, initialBalance: 0))
+        let fx = NumberParsing.parseDecimal("1,2", locale: Locale(identifier: "fr_FR"))
+        let fee = NumberParsing.parseDecimal("5,00", locale: Locale(identifier: "fr_FR"))
+        #expect(fx == Decimal(string: "1.2"))
+        #expect(fee == Decimal(string: "5"))
+        _ = try store.saveTransfer(PersonalTransferInput(fromAccountId: from.remoteId,
+                                                        toAccountId: to.remoteId,
+                                                        amountFrom: Decimal(string: "10")!,
+                                                        fxRate: fx!,
+                                                        occurredAt: now,
+                                                        feeAmount: fee,
+                                                        feeCurrency: from.currency,
+                                                        feeSide: .from))
+    }
+
     @Test("Transfers adjust balances and produce fee records")
     func transferWithFee() throws {
         let store = try makeStore()

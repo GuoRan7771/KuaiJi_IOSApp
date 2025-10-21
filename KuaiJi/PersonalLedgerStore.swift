@@ -761,6 +761,13 @@ final class PersonalLedgerStore: ObservableObject {
         return try? context.fetch(descriptor).first
     }
 
+    func transaction(with id: UUID) -> PersonalTransaction? {
+        let predicate = #Predicate<PersonalTransaction> { $0.remoteId == id }
+        var descriptor = FetchDescriptor<PersonalTransaction>(predicate: predicate)
+        descriptor.fetchLimit = 1
+        return try? context.fetch(descriptor).first
+    }
+
     func monthlyTotals(for month: Date, includeFees: Bool) throws -> (expense: Int, income: Int) {
         guard let interval = calendar.dateInterval(of: .month, for: month) else { return (0, 0) }
         var kinds: Set<PersonalTransactionKind> = [.expense, .income]

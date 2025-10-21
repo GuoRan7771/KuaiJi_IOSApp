@@ -6,6 +6,7 @@
 //
 
 import Charts
+import Combine
 import SwiftUI
 import UIKit
 
@@ -571,25 +572,59 @@ struct PersonalRecordDetailView: View {
     var record: PersonalRecordRowViewData
     var onEdit: (PersonalRecordRowViewData) -> Void
     @State private var showingDeleteAlert = false
+    @State private var storeChangeTick = 0
+
+    private var latest: PersonalTransaction? {
+        root.store.transaction(with: record.id)
+    }
 
     var body: some View {
         List {
             Section(header: Text(L.personalDetailSection.localized)) {
-                DetailRow(title: L.personalDetailCategory.localized, value: record.categoryName)
-                DetailRow(title: L.personalDetailAccount.localized, value: record.accountName)
-                DetailRow(title: L.personalDetailType.localized, value: record.kindDisplay)
-                DetailRow(title: L.personalDetailAmount.localized,
-                          value: AmountFormatter.string(minorUnits: record.amountMinorUnits,
-                                                         currency: record.currency,
-                                                         locale: Locale.current))
-                DetailRow(title: L.personalDetailDate.localized,
-                          value: record.occurredAt.formatted(date: .abbreviated, time: .shortened))
-                if !record.note.isEmpty {
-                    DetailRow(title: L.personalDetailNote.localized, value: record.note)
+                if let tx = latest, let account = root.store.account(with: tx.accountId) {
+                    let categoryName = localizedCategoryName(tx.categoryKey)
+                    DetailRow(title: L.personalDetailCategory.localized, value: categoryName)
+                    DetailRow(title: L.personalDetailAccount.localized, value: root.store.account(with: tx.accountId)?.name ?? record.accountName)
+                    let kindDisplay = PersonalRecordRowViewData(id: tx.remoteId,
+                                                                categoryKey: tx.categoryKey,
+                                                                categoryName: categoryName,
+                                                                systemImage: iconForCategory(key: tx.categoryKey),
+                                                                note: tx.note,
+                                                                amountMinorUnits: tx.amountMinorUnits,
+                                                                currency: account.currency,
+                                                                occurredAt: tx.occurredAt,
+                                                                createdAt: tx.createdAt,
+                                                                accountName: account.name,
+                                                                accountId: account.remoteId,
+                                                                entryNature: .transaction(tx.kind),
+                                                                transferDescription: nil).kindDisplay
+                    DetailRow(title: L.personalDetailType.localized, value: kindDisplay)
+                    DetailRow(title: L.personalDetailAmount.localized,
+                              value: AmountFormatter.string(minorUnits: tx.amountMinorUnits,
+                                                             currency: account.currency,
+                                                             locale: Locale.current))
+                    DetailRow(title: L.personalDetailDate.localized,
+                              value: tx.occurredAt.formatted(date: .abbreviated, time: .shortened))
+                    if !tx.note.isEmpty {
+                        DetailRow(title: L.personalDetailNote.localized, value: tx.note)
+                    }
+                } else {
+                    DetailRow(title: L.personalDetailCategory.localized, value: record.categoryName)
+                    DetailRow(title: L.personalDetailAccount.localized, value: record.accountName)
+                    DetailRow(title: L.personalDetailType.localized, value: record.kindDisplay)
+                    DetailRow(title: L.personalDetailAmount.localized,
+                              value: AmountFormatter.string(minorUnits: record.amountMinorUnits,
+                                                             currency: record.currency,
+                                                             locale: Locale.current))
+                    DetailRow(title: L.personalDetailDate.localized,
+                              value: record.occurredAt.formatted(date: .abbreviated, time: .shortened))
+                    if !record.note.isEmpty {
+                        DetailRow(title: L.personalDetailNote.localized, value: record.note)
+                    }
                 }
             }
         }
-        .navigationTitle(record.categoryName)
+        .navigationTitle(latest != nil ? localizedCategoryName(latest!.categoryKey) : record.categoryName)
         .toolbar {
             ToolbarItemGroup(placement: .navigationBarTrailing) {
                 Button(L.edit.localized) { onEdit(record) }
@@ -597,6 +632,10 @@ struct PersonalRecordDetailView: View {
                     Image(systemName: "trash")
                 }
             }
+        }
+        .onReceive(root.store.objectWillChange) { _ in
+            // bump a state to trigger view refresh when store changes (after edits)
+            storeChangeTick &+= 1
         }
         .alert(L.delete.localized, isPresented: $showingDeleteAlert) {
             Button(L.cancel.localized, role: .cancel) {}
@@ -1118,6 +1157,10 @@ struct PersonalRecordFormView: View {
                 HStack {
                     TextField(L.personalFieldAmount.localized, text: $viewModel.amountText)
                         .keyboardType(.decimalPad)
+                        .onChange(of: viewModel.amountText) { oldValue, newValue in
+                            let validated = NumberParsing.validateDecimalInput(newValue, maxDecimalPlaces: 2, locale: .current, oldValue: oldValue)
+                            if validated != newValue { viewModel.amountText = validated }
+                        }
                     Menu {
                         ForEach(viewModel.currencyOptions, id: \.self) { code in
                             Button(code.rawValue) { viewModel.selectAmountCurrency(code) }
@@ -1140,6 +1183,10 @@ struct PersonalRecordFormView: View {
                               text: $viewModel.fxRateText,
                               prompt: Text(viewModel.fxRatePlaceholder).foregroundStyle(.secondary))
                         .keyboardType(.decimalPad)
+                        .onChange(of: viewModel.fxRateText) { oldValue, newValue in
+                            let validated = NumberParsing.validateDecimalInput(newValue, maxDecimalPlaces: 6, locale: .current, oldValue: oldValue)
+                            if validated != newValue { viewModel.fxRateText = validated }
+                        }
                     HStack(spacing: 8) {
                         Text(viewModel.fxInfoText)
                             .foregroundStyle(.secondary)
@@ -1153,6 +1200,10 @@ struct PersonalRecordFormView: View {
                               text: $viewModel.feeText,
                               prompt: Text(viewModel.feePlaceholder).foregroundStyle(.secondary))
                         .keyboardType(.decimalPad)
+                        .onChange(of: viewModel.feeText) { oldValue, newValue in
+                            let validated = NumberParsing.validateDecimalInput(newValue, maxDecimalPlaces: 2, locale: .current, oldValue: oldValue)
+                            if validated != newValue { viewModel.feeText = validated }
+                        }
                     Text(L.personalTransferFeeHint.localized)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -1234,7 +1285,7 @@ struct PersonalRecordFormView: View {
         }
 
         let trimmedAmount = viewModel.amountText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let amount = Decimal(string: trimmedAmount), amount > 0 else {
+        guard let amount = NumberParsing.parseDecimal(trimmedAmount), amount > 0 else {
             viewModel.errorMessage = L.personalSaveAndShareInvalidAmount.localized
             return
         }
@@ -1508,8 +1559,16 @@ private struct FilterControls: View {
             HStack {
                 TextField(L.personalFilterMin.localized, text: $filterState.minAmountText)
                     .keyboardType(.decimalPad)
+                    .onChange(of: filterState.minAmountText) { oldValue, newValue in
+                        let validated = NumberParsing.validateDecimalInput(newValue, maxDecimalPlaces: 2, locale: .current, oldValue: oldValue)
+                        if validated != newValue { filterState.minAmountText = validated }
+                    }
                 TextField(L.personalFilterMax.localized, text: $filterState.maxAmountText)
                     .keyboardType(.decimalPad)
+                    .onChange(of: filterState.maxAmountText) { oldValue, newValue in
+                        let validated = NumberParsing.validateDecimalInput(newValue, maxDecimalPlaces: 2, locale: .current, oldValue: oldValue)
+                        if validated != newValue { filterState.maxAmountText = validated }
+                    }
             }
             Button(L.done.localized, action: onApply)
         } label: {
@@ -1709,11 +1768,13 @@ struct PersonalAccountFormView: View {
                 TextField(L.personalFieldBalance.localized, text: $balanceText)
                     .keyboardType(.decimalPad)
                     .focused($balanceFieldFocused)
-                    .onChange(of: balanceText) { _, newValue in
-                        let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+                    .onChange(of: balanceText) { oldValue, newValue in
+                        let validated = NumberParsing.validateDecimalInput(newValue, maxDecimalPlaces: 2, locale: .current, oldValue: oldValue)
+                        if validated != newValue { balanceText = validated }
+                        let trimmed = validated.trimmingCharacters(in: .whitespacesAndNewlines)
                         if trimmed.isEmpty {
                             viewModel.draft.initialBalance = 0
-                        } else if let decimal = Decimal(string: trimmed) {
+                        } else if let decimal = NumberParsing.parseDecimal(trimmed) {
                             viewModel.draft.initialBalance = decimal
                         }
                     }
@@ -1721,11 +1782,13 @@ struct PersonalAccountFormView: View {
                 if viewModel.draft.type == .creditCard {
                     TextField(L.personalFieldCreditLimit.localized, text: $creditLimitText)
                         .keyboardType(.decimalPad)
-                        .onChange(of: creditLimitText) { _, newValue in
-                            let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+                        .onChange(of: creditLimitText) { oldValue, newValue in
+                            let validated = NumberParsing.validateDecimalInput(newValue, maxDecimalPlaces: 2, locale: .current, oldValue: oldValue)
+                            if validated != newValue { creditLimitText = validated }
+                            let trimmed = validated.trimmingCharacters(in: .whitespacesAndNewlines)
                             if trimmed.isEmpty {
                                 viewModel.draft.creditLimit = nil
-                            } else if let decimal = Decimal(string: trimmed) {
+                            } else if let decimal = NumberParsing.parseDecimal(trimmed) {
                                 viewModel.draft.creditLimit = decimal
                             }
                         }
@@ -1815,10 +1878,18 @@ struct PersonalTransferFormView: View {
             Section(header: Text(L.personalTransferAmount.localized)) {
                 TextField(L.personalFieldAmount.localized, text: $viewModel.amountText)
                     .keyboardType(.decimalPad)
+                    .onChange(of: viewModel.amountText) { oldValue, newValue in
+                        let validated = NumberParsing.validateDecimalInput(newValue, maxDecimalPlaces: 2, locale: .current, oldValue: oldValue)
+                        if validated != newValue { viewModel.amountText = validated }
+                    }
                 TextField(L.personalFieldFXRate.localized,
                           text: $viewModel.fxRateText,
                           prompt: Text(viewModel.fxRatePlaceholder).foregroundStyle(.secondary))
                     .keyboardType(.decimalPad)
+                    .onChange(of: viewModel.fxRateText) { oldValue, newValue in
+                        let validated = NumberParsing.validateDecimalInput(newValue, maxDecimalPlaces: 6, locale: .current, oldValue: oldValue)
+                        if validated != newValue { viewModel.fxRateText = validated }
+                    }
                     .disabled(!viewModel.fxRateEditable)
                     .allowsHitTesting(viewModel.fxRateEditable)
                     .opacity(viewModel.fxRateEditable ? 1 : 0.6)
@@ -1837,6 +1908,10 @@ struct PersonalTransferFormView: View {
                           text: $viewModel.feeText,
                           prompt: Text(viewModel.feePlaceholder).foregroundStyle(.secondary))
                     .keyboardType(.decimalPad)
+                    .onChange(of: viewModel.feeText) { oldValue, newValue in
+                        let validated = NumberParsing.validateDecimalInput(newValue, maxDecimalPlaces: 2, locale: .current, oldValue: oldValue)
+                        if validated != newValue { viewModel.feeText = validated }
+                    }
                 Picker(L.personalTransferFeeSide.localized, selection: $viewModel.selectedFeeSide) {
                     Text(L.personalTransferFeeFrom.localized).tag(PersonalTransferFeeSide.from)
                     Text(L.personalTransferFeeTo.localized).tag(PersonalTransferFeeSide.to)

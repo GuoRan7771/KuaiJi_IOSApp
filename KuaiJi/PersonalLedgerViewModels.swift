@@ -129,11 +129,11 @@ struct PersonalRecordFilterState: Equatable {
 
     func toFilter() -> PersonalRecordFilter {
         var minimum: Int?
-        if let value = Decimal(string: minAmountText), value > 0 {
+        if let value = NumberParsing.parseDecimal(minAmountText), value > 0 {
             minimum = SettlementMath.minorUnits(from: value, scale: 2)
         }
         var maximum: Int?
-        if let value = Decimal(string: maxAmountText), value > 0 {
+        if let value = NumberParsing.parseDecimal(maxAmountText), value > 0 {
             maximum = SettlementMath.minorUnits(from: value, scale: 2)
         }
         return PersonalRecordFilter(dateRange: dateRange,
@@ -549,7 +549,7 @@ final class PersonalLedgerHomeViewModel: ObservableObject {
             var rows = try store.records(filter: monthlyFilter).compactMap(mapTransaction(_:))
             let transfers = try store.transfers(in: monthlyRange).compactMap(mapTransfer(_:))
             rows.append(contentsOf: transfers)
-            todayRecords = Array(sort(records: rows).prefix(3))
+            todayRecords = Array(sort(records: rows).prefix(5))
         } catch {
             lastErrorMessage = error.localizedDescription
         }
@@ -741,7 +741,7 @@ final class PersonalRecordFormViewModel: ObservableObject {
         let to = account.currency
         let trimmed = fxRateText.trimmingCharacters(in: .whitespacesAndNewlines)
         let rateText: String
-        if let parsed = Decimal(string: trimmed), parsed > 0 {
+        if let parsed = NumberParsing.parseDecimal(trimmed), parsed > 0 {
             rateText = NSDecimalNumber(decimal: parsed).stringValue
         } else {
             rateText = "?"
@@ -847,7 +847,7 @@ final class PersonalRecordFormViewModel: ObservableObject {
     // 一键反转汇率：fxRateText = 1 / 当前值
     func invertFXRate() {
         let trimmed = fxRateText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let parsed = Decimal(string: trimmed), parsed > 0 else { return }
+        guard let parsed = NumberParsing.parseDecimal(trimmed), parsed > 0 else { return }
         let inverted = 1 / parsed
         fxRateText = NSDecimalNumber(decimal: inverted).stringValue
     }
@@ -857,7 +857,7 @@ final class PersonalRecordFormViewModel: ObservableObject {
         defer { isSaving = false }
         do {
             guard let account = currentAccount() else { throw PersonalLedgerError.accountRequired }
-            guard let amount = Decimal(string: amountText), amount > 0 else {
+            guard let amount = NumberParsing.parseDecimal(amountText), amount > 0 else {
                 throw PersonalLedgerError.amountMustBePositive
             }
             var convertedAmount = amount
@@ -868,7 +868,7 @@ final class PersonalRecordFormViewModel: ObservableObject {
                 if trimmedRate.isEmpty {
                     effectiveRate = defaultFXRate(for: account)
                 } else {
-                    guard let rate = Decimal(string: trimmedRate), rate > 0 else {
+                    guard let rate = NumberParsing.parseDecimal(trimmedRate), rate > 0 else {
                         throw PersonalLedgerError.invalidExchangeRate
                     }
                     effectiveRate = rate
@@ -882,7 +882,7 @@ final class PersonalRecordFormViewModel: ObservableObject {
                 if trimmedFee.isEmpty {
                     feeValue = store.preferences.defaultConversionFee ?? 0
                 } else {
-                    guard let parsed = Decimal(string: trimmedFee), parsed >= 0 else {
+                    guard let parsed = NumberParsing.parseDecimal(trimmedFee), parsed >= 0 else {
                         throw PersonalLedgerError.amountMustBePositive
                     }
                     feeValue = parsed
@@ -1139,7 +1139,7 @@ final class PersonalTransferFormViewModel: ObservableObject {
               let to = currentToAccount()?.currency else { return "" }
         let trimmed = fxRateText.trimmingCharacters(in: .whitespacesAndNewlines)
         let rateText: String
-        if let parsed = Decimal(string: trimmed), parsed > 0 {
+        if let parsed = NumberParsing.parseDecimal(trimmed), parsed > 0 {
             rateText = NSDecimalNumber(decimal: parsed).stringValue
         } else {
             rateText = "?"
@@ -1199,7 +1199,7 @@ final class PersonalTransferFormViewModel: ObservableObject {
     // 一键反转汇率：fxRateText = 1 / 当前值
     func invertFXRate() {
         let trimmed = fxRateText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let parsed = Decimal(string: trimmed), parsed > 0 else { return }
+        guard let parsed = NumberParsing.parseDecimal(trimmed), parsed > 0 else { return }
         let inverted = 1 / parsed
         fxRateText = NSDecimalNumber(decimal: inverted).stringValue
     }
@@ -1211,7 +1211,7 @@ final class PersonalTransferFormViewModel: ObservableObject {
             guard let fromId = fromAccountId, let toId = toAccountId else {
                 throw PersonalLedgerError.accountRequired
             }
-            guard let amount = Decimal(string: amountText), amount > 0 else {
+            guard let amount = NumberParsing.parseDecimal(amountText), amount > 0 else {
                 throw PersonalLedgerError.amountMustBePositive
             }
             let fxRate: Decimal
@@ -1221,7 +1221,7 @@ final class PersonalTransferFormViewModel: ObservableObject {
                 if trimmed.isEmpty, let account = baseAccount {
                     fxRate = defaultFXRate(for: account)
                 } else {
-                    guard let parsed = Decimal(string: trimmed), parsed > 0 else {
+                    guard let parsed = NumberParsing.parseDecimal(trimmed), parsed > 0 else {
                         throw PersonalLedgerError.invalidExchangeRate
                     }
                     fxRate = parsed
@@ -1235,7 +1235,7 @@ final class PersonalTransferFormViewModel: ObservableObject {
             if trimmedFee.isEmpty {
                 effectiveFee = defaultFeeValue
             } else {
-                guard let parsed = Decimal(string: trimmedFee), parsed >= 0 else {
+                guard let parsed = NumberParsing.parseDecimal(trimmedFee), parsed >= 0 else {
                     throw PersonalLedgerError.amountMustBePositive
                 }
                 effectiveFee = parsed
@@ -1715,14 +1715,14 @@ final class PersonalLedgerSettingsViewModel: ObservableObject {
         do {
             let trimmedRate = defaultFXRateText.trimmingCharacters(in: .whitespacesAndNewlines)
             let trimmedFee = defaultFeeText.trimmingCharacters(in: .whitespacesAndNewlines)
-            let defaultRate = Decimal(string: trimmedRate)
-            var normalizedDefaultFee = Decimal(string: trimmedFee) ?? 0
+            let defaultRate = NumberParsing.parseDecimal(trimmedRate)
+            var normalizedDefaultFee = NumberParsing.parseDecimal(trimmedFee) ?? 0
             if normalizedDefaultFee < 0 {
                 normalizedDefaultFee = 0
             }
             var parsedRates: [CurrencyCode: Decimal] = [:]
             for (code, text) in fxRates {
-                if let value = Decimal(string: text), value > 0 {
+                if let value = NumberParsing.parseDecimal(text), value > 0 {
                     parsedRates[code] = value
                 }
             }
