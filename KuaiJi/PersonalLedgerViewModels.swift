@@ -43,10 +43,7 @@ struct PersonalYearMonth: Hashable, Identifiable, Comparable {
     }
 }
 
-struct PersonalMonthlyTotals: Equatable {
-    var expenseMinorUnits: Int
-    var incomeMinorUnits: Int
-}
+// Removed: PersonalMonthlyTotals (no longer needed after removing totals display in archive)
 
 struct PersonalRecordRowViewData: Identifiable, Hashable {
     enum EntryNature: Hashable {
@@ -443,7 +440,7 @@ final class PersonalLedgerHomeViewModel: ObservableObject {
     @Published private(set) var availableMonths: [PersonalYearMonth] = []
     @Published private(set) var isLoadingArchive = false
     @Published private(set) var archiveError: String?
-    @Published private(set) var totalsByMonth: [PersonalYearMonth: PersonalMonthlyTotals] = [:]
+    // Removed: totalsByMonth cache (no longer used by the archive screen)
 
     var displayCurrency: CurrencyCode { store.safePrimaryDisplayCurrency() }
 
@@ -576,7 +573,6 @@ final class PersonalLedgerHomeViewModel: ObservableObject {
     func prepareArchive() {
         isLoadingArchive = true
         archiveError = nil
-        totalsByMonth = [:]
         Task {
             do {
                 let bounds = try store.personalDataBounds()
@@ -600,14 +596,7 @@ final class PersonalLedgerHomeViewModel: ObservableObject {
         }
     }
 
-    func totals(for month: PersonalYearMonth) async throws -> (expense: Int, income: Int) {
-        if let cached = totalsByMonth[month] {
-            return (cached.expenseMinorUnits, cached.incomeMinorUnits)
-        }
-        let result = try store.monthlyTotals(for: month.date, includeFees: store.safeCountFeeInStats())
-        totalsByMonth[month] = PersonalMonthlyTotals(expenseMinorUnits: result.expense, incomeMinorUnits: result.income)
-        return result
-    }
+    // Removed: totals(for:) (no longer needed by the archive screen)
 
     private func makeYearMonths(range: ClosedRange<Date>) -> [PersonalYearMonth] {
         var months: [PersonalYearMonth] = []

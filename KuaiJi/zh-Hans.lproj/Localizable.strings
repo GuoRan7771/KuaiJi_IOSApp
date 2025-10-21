@@ -244,6 +244,10 @@
 "expense.validation.minAmount" = "金额必须大于 %@，且每人至少需分摊 0.01";
 "expense.optionalFields" = "用途、日期和分类为可选项，未填写将使用默认值";
 
+/* 错误 */
+"error.amount.positive" = "金额必须大于 0";
+"error.account.required" = "必须选择账户";
+
 /* 默认值 */
 "default.unknown" = "未知";
 "default.unknownMember" = "未知成员";

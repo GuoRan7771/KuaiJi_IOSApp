@@ -149,25 +149,6 @@ struct PersonalMonthlyArchiveView: View {
                             HStack {
                                 Text(String(format: "%04d-%02d", ym.year, ym.month))
                                 Spacer()
-                                if let totals = viewModel.totalsByMonth[ym] {
-                                    VStack(alignment: .trailing, spacing: 2) {
-                                        Text(AmountFormatter.string(minorUnits: totals.expenseMinorUnits,
-                                                                    currency: viewModel.displayCurrency,
-                                                                    locale: Locale.current))
-                                            .foregroundStyle(.red)
-                                        Text(AmountFormatter.string(minorUnits: totals.incomeMinorUnits,
-                                                                    currency: viewModel.displayCurrency,
-                                                                    locale: Locale.current))
-                                            .foregroundStyle(.green)
-                                    }
-                                } else {
-                                    ProgressView()
-                                        .onAppear {
-                                            Task {
-                                                _ = try? await viewModel.totals(for: ym)
-                                            }
-                                        }
-                                }
                                 Image(systemName: "chevron.right")
                                     .font(.caption)
                                     .foregroundStyle(Color.appSecondaryText)

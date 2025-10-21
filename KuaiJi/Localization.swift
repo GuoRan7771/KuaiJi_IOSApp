@@ -426,6 +426,10 @@ enum L {
     static let expenseValidationMinAmount = "expense.validation.minAmount"
     static let expenseOptionalFields = "expense.optionalFields"
     
+    // 错误提示
+    static let errorAmountMustBePositive = "error.amount.positive"
+    static let errorAccountRequired = "error.account.required"
+    
     // 默认值
     static let defaultUnknown = "default.unknown"
     static let defaultUnknownMember = "default.unknownMember"

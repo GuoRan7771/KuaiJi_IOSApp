@@ -250,6 +250,10 @@
 "expense.validation.minAmount" = "Le montant doit être supérieur à %@, et chaque personne doit partager au moins 0,01";
 "expense.optionalFields" = "L'objet, la date et la catégorie sont facultatifs. Les valeurs par défaut seront utilisées si non remplies";
 
+/* Erreurs */
+"error.amount.positive" = "Le montant doit être supérieur à zéro";
+"error.account.required" = "La sélection du compte est requise";
+
 /* Valeurs par Défaut */
 "default.unknown" = "Inconnu";
 "default.unknownMember" = "Membre Inconnu";

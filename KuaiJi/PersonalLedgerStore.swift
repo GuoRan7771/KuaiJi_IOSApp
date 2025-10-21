@@ -28,19 +28,19 @@ enum PersonalLedgerError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .accountNotFound: return "Account not found"
-        case .transactionNotFound: return "Transaction not found"
-        case .transferNotFound: return "Transfer not found"
-        case .amountMustBePositive: return "Amount must be greater than zero"
-        case .categoryRequired: return "Category is required"
-        case .accountRequired: return "Account selection is required"
-        case .cannotDeleteNonEmptyAccount: return "Balance must be zero before deletion"
-        case .duplicateAccountName: return "Account name already exists"
-        case .nameRequired: return "Account name is required"
-        case .sameTransferAccount: return "Source and target accounts must differ"
-        case .invalidExchangeRate: return "Exchange rate must be greater than zero"
-        case .invalidFeeSide: return "Fee side is required when fee exists"
-        case .invalidFeeCurrency: return "Fee currency does not match account"
+        case .accountNotFound: return "Account not found".localized
+        case .transactionNotFound: return "Transaction not found".localized
+        case .transferNotFound: return "Transfer not found".localized
+        case .amountMustBePositive: return L.errorAmountMustBePositive.localized
+        case .categoryRequired: return "Category is required".localized
+        case .accountRequired: return L.errorAccountRequired.localized
+        case .cannotDeleteNonEmptyAccount: return "Balance must be zero before deletion".localized
+        case .duplicateAccountName: return "Account name already exists".localized
+        case .nameRequired: return "Account name is required".localized
+        case .sameTransferAccount: return "Source and target accounts must differ".localized
+        case .invalidExchangeRate: return "Exchange rate must be greater than zero".localized
+        case .invalidFeeSide: return "Fee side is required when fee exists".localized
+        case .invalidFeeCurrency: return "Fee currency does not match account".localized
         }
     }
 }
