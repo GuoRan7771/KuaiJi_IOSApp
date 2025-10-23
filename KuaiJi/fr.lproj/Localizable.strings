@@ -297,7 +297,7 @@
 "sync.deviceAvailable" = "Disponible";
 "sync.deviceConnected" = "Connecté";
 "sync.currentDevice" = "Appareil Actuel";
-"sync.shareLedger" = "📡 Partager le Compte";
+"sync.shareLedger" = "Partager le Compte";
 "sync.completed" = "Synchro Terminée";
 "sync.waitingResponse" = "Données envoyées à %d appareil(s)\nEn attente de réponse...";
 "sync.bidirectionalComplete" = "Synchro Bidirectionnelle Terminée";

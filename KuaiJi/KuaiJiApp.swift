@@ -138,6 +138,7 @@ struct KuaiJiApp: App {
                 // 启动时检查快捷指令触发
                 appState.processPendingShortcutTriggers()
             }
+            .background(Color.appBackground)
             .onOpenURL { url in
                 if let action = DeepLinkParser.quickAction(for: url) {
                     debugLog("🔗 通过 URL Scheme 收到动作:", action.rawValue)

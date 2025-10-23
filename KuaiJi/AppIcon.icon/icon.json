@@ -1,39 +1,111 @@
 {
-  "fill" : "automatic",
+  "fill-specializations" : [
+    {
+      "value" : "automatic"
+    },
+    {
+      "appearance" : "dark",
+      "value" : {
+        "linear-gradient" : [
+          "display-p3:0.09714,0.15161,0.32526,1.00000",
+          "display-p3:0.07169,0.10768,0.19566,1.00000"
+        ],
+        "orientation" : {
+          "start" : {
+            "x" : 0.5,
+            "y" : 0
+          },
+          "stop" : {
+            "x" : 0.5,
+            "y" : 0.7
+          }
+        }
+      }
+    }
+  ],
   "groups" : [
     {
+      "blur-material" : 0.2,
       "layers" : [
         {
-          "blend-mode" : "multiply",
-          "fill" : "automatic",
-          "image-name" : "未命名作品-1 2.png",
-          "name" : "未命名作品-1 2",
-          "position-specializations" : [
-            {
-              "idiom" : "square",
-              "value" : {
-                "scale" : 1.05,
-                "translation-in-points" : [
-                  1.1368683772161603e-13,
-                  1.1368683772161603e-13
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "image-name" : "未命名作品-2 2.png",
-          "name" : "未命名作品-2 2"
+          "image-name" : "Kpencil.png",
+          "name" : "Kpencil"
         }
       ],
+      "position" : {
+        "scale" : 1,
+        "translation-in-points" : [
+          -3.9609375,
+          -3.8046875
+        ]
+      },
+      "shadow-specializations" : [
+        {
+          "value" : {
+            "kind" : "layer-color",
+            "opacity" : 1
+          }
+        },
+        {
+          "appearance" : "dark",
+          "value" : {
+            "kind" : "layer-color",
+            "opacity" : 0
+          }
+        }
+      ],
+      "specular" : true,
+      "translucency-specializations" : [
+        {
+          "value" : {
+            "enabled" : true,
+            "value" : 0.1
+          }
+        },
+        {
+          "appearance" : "dark",
+          "value" : {
+            "enabled" : true,
+            "value" : 0.45
+          }
+        }
+      ]
+    },
+    {
+      "blur-material" : 0.4,
+      "layers" : [
+        {
+          "image-name" : "Kbook.png",
+          "name" : "Kbook"
+        }
+      ],
+      "lighting" : "individual",
+      "position" : {
+        "scale" : 1,
+        "translation-in-points" : [
+          -3.9609375,
+          -3.8046875
+        ]
+      },
       "shadow" : {
-        "kind" : "neutral",
+        "kind" : "layer-color",
         "opacity" : 0.5
       },
-      "translucency" : {
-        "enabled" : true,
-        "value" : 0.5
-      }
+      "translucency-specializations" : [
+        {
+          "value" : {
+            "enabled" : true,
+            "value" : 0.4
+          }
+        },
+        {
+          "appearance" : "dark",
+          "value" : {
+            "enabled" : true,
+            "value" : 0.8
+          }
+        }
+      ]
     }
   ],
   "supported-platforms" : {

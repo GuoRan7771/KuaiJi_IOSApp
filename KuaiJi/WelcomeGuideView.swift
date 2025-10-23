@@ -98,11 +98,11 @@ struct WelcomeGuideView: View {
     
     var body: some View {
         ZStack {
-            // 背景渐变
+            // 背景渐变（使用品牌色阶梯，柔和奶油风格）
             LinearGradient(
                 colors: [
-                    pages[currentPage].accentColor.opacity(0.2),
-                    pages[currentPage].accentColor.opacity(0.05)
+                    Color.appBrand.opacity(0.20),
+                    Color.appBrand.opacity(0.05)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -121,7 +121,7 @@ struct WelcomeGuideView: View {
                     } label: {
                         Text(L.guideSkip.localized)
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.appLedgerContentText)
                             .padding(.horizontal, 20)
                             .padding(.vertical, 10)
                             .background(
@@ -386,7 +386,7 @@ struct GuidePageView: View {
                         .foregroundStyle(page.accentColor)
                     Text(L.guideExampleTrip.localized)
                         .font(.subheadline)
-                        .foregroundStyle(.primary)
+                            .foregroundStyle(Color.appTextPrimary)
                     Spacer()
                     Text(L.guideSampleAmount1.localized)
                         .font(.subheadline)
@@ -404,7 +404,7 @@ struct GuidePageView: View {
                         .foregroundStyle(page.accentColor)
                     Text(L.guideExampleDinner.localized)
                         .font(.subheadline)
-                        .foregroundStyle(.primary)
+                            .foregroundStyle(Color.appTextPrimary)
                     Spacer()
                     Text(L.guideSampleAmount2.localized)
                         .font(.subheadline)

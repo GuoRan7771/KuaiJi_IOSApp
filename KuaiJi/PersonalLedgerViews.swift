@@ -148,10 +148,11 @@ struct PersonalMonthlyArchiveView: View {
                         } label: {
                             HStack {
                                 Text(String(format: "%04d-%02d", ym.year, ym.month))
+                                    .foregroundStyle(Color.appLedgerContentText)
                                 Spacer()
                                 Image(systemName: "chevron.right")
                                     .font(.caption)
-                                    .foregroundStyle(Color.appSecondaryText)
+                                    .foregroundStyle(Color.appLedgerContentText)
                             }
                         }
                     }
@@ -159,6 +160,8 @@ struct PersonalMonthlyArchiveView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(Color.appBackground)
         .navigationTitle(L.personalArchiveTitle.localized)
     }
 }
@@ -186,7 +189,7 @@ struct PersonalLedgerHomeView: View {
                         Spacer()
                         Button(action: onShowArchive) {
                             Text(L.all.localized)
-                                .foregroundStyle(.blue)
+                                .foregroundStyle(Color.appLedgerContentText)
                         }
                     }
                     .padding(.horizontal)
@@ -207,16 +210,16 @@ struct PersonalLedgerHomeView: View {
                 Section(header: TodayHeader(onShowAll: onShowAllRecords)) {
                     if viewModel.todayRecords.isEmpty {
                         Text(L.personalTodayEmpty.localized)
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                        .listRowBackground(Color.red.opacity(0.1))
+                            .font(.system(size: 14, weight: .regular, design: .rounded))
+                            .foregroundStyle(Color.appSecondaryText)
+                        .listRowBackground(Color.clear)
                     } else {
                         ForEach(viewModel.todayRecords) { record in
                             PersonalRecordRow(record: record,
                                               onTap: { onOpenRecord(record) },
                                               onEdit: { onEditRecord(record) },
                                               onDelete: { deleteRecords([record.id]) })
-                            .listRowBackground(Color.red.opacity(0.1))
+                            .listRowBackground(Color.clear)
                         }
                         .onDelete { indexSet in
                             let ids = indexSet.compactMap { viewModel.todayRecords[$0].id }
@@ -226,14 +229,18 @@ struct PersonalLedgerHomeView: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(Color.appBackground)
             .toolbar {
                 ToolbarItemGroup(placement: .navigationBarLeading) {
                     Button(action: onShowExport) {
                         Label(L.personalExportCSV.localized, systemImage: "square.and.arrow.up")
                     }
+                    .tint(Color.appTextPrimary)
                     Button(action: onShowStats) {
                         Label(L.personalStatsTitle.localized, systemImage: "chart.line.uptrend.xyaxis")
                     }
+                    .tint(Color.appTextPrimary)
                 }
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
                     if !selection.isEmpty {
@@ -246,6 +253,7 @@ struct PersonalLedgerHomeView: View {
                     Button(action: onShowAccounts) {
                         Label(L.personalAccountsManage.localized, systemImage: "creditcard")
                     }
+                    .tint(Color.appTextPrimary)
                 }
             }
             .alert(L.delete.localized, isPresented: $showingDeleteConfirmation) {
@@ -285,7 +293,7 @@ private struct TodayHeader: View {
             Spacer()
             Button(action: onShowAll) {
                 Text(L.all.localized)
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(Color.appLedgerContentText)
             }
         }
     }
@@ -309,10 +317,10 @@ struct FloatingButtonLabel: View {
     var body: some View {
         Image(systemName: systemImage)
             .font(.title)
-            .foregroundStyle(.white)
+            .foregroundStyle(Color.appTextPrimary)
             .frame(width: 56, height: 56)
-            .background(Circle().fill(Color.blue))
-            .shadow(radius: 4, y: 2)
+            .background(Circle().fill(Color.appBackground))
+            .shadow(color: Color.black.opacity(0.15), radius: 6, y: 3)
     }
 }
 
@@ -341,6 +349,7 @@ struct PersonalOverviewCard: View {
                 Spacer(minLength: 8)
                 Text(Self.monthFormatter.string(from: selectedMonth))
                     .font(.headline)
+                    .foregroundStyle(Color.appLedgerContentText)
                     .accessibilityAddTraits(.isHeader)
                 Spacer(minLength: 8)
                 MonthArrow(direction: .next, enabled: canGoNext, action: onNext)
@@ -358,7 +367,7 @@ struct PersonalOverviewCard: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(L.personalMonthlyExpense.localized)
                                     .font(.subheadline)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Color.appLedgerContentText.opacity(0.7))
                                 AmountView(amountMinorUnits: entry.expenseMinorUnits,
                                            currency: entry.currency,
                                            tint: .red)
@@ -369,7 +378,7 @@ struct PersonalOverviewCard: View {
                             VStack(alignment: .trailing, spacing: 4) {
                                 Text(L.personalMonthlyIncome.localized)
                                     .font(.subheadline)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Color.appLedgerContentText.opacity(0.7))
                                 AmountView(amountMinorUnits: entry.incomeMinorUnits,
                                            currency: entry.currency,
                                            tint: .green,
@@ -382,11 +391,7 @@ struct PersonalOverviewCard: View {
         }
         .padding(.vertical, 20)
         .padding(.horizontal, 24)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color.blue.opacity(0.1))
-                .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 4)
-        )
+        .appCardStyle()
         .padding(.horizontal)
         .offset(x: dragOffset)
         .gesture(dragGesture)
@@ -512,7 +517,7 @@ struct PersonalRecordRow: View {
                 .frame(width: 32, height: 32)
             VStack(alignment: .leading, spacing: 4) {
                 Text(record.categoryName)
-                    .font(.headline)
+                .font(.system(size: 17, weight: .semibold, design: .rounded))
                 if !record.note.isEmpty {
                     Text(record.note)
                         .font(.subheadline)
@@ -526,8 +531,8 @@ struct PersonalRecordRow: View {
                                             locale: Locale.current))
                     .foregroundStyle(record.amountIsPositive ? Color.green : Color.red)
                 Text(timestampText ?? record.occurredAt.formatted(date: .omitted, time: .shortened))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 12, weight: .regular, design: .rounded))
+                    .foregroundStyle(Color.appSecondaryText)
             }
         }
         .contentShape(Rectangle())
@@ -543,7 +548,7 @@ struct PersonalRecordRow: View {
             Button(action: onEdit) {
                 Label(L.edit.localized, systemImage: "pencil")
             }
-            .tint(.blue)
+            .tint(Color.appBrand)
         }
     }
 }
@@ -842,7 +847,7 @@ private struct SaveToSharedSheet: View {
                     Button { selectedLedgerId = option.id } label: {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(option.name).foregroundStyle(.primary)
+                                Text(option.name).foregroundStyle(Color.appTextPrimary)
                                 Text(option.currency.rawValue)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
@@ -893,7 +898,7 @@ private struct SaveToSharedSheet: View {
                     HStack {
                         Image(systemName: splitOption == option ? "checkmark.circle.fill" : "circle")
                             .foregroundStyle(splitOption == option ? Color.blue : Color.appSecondaryText)
-                        Text(option.title).foregroundStyle(.primary)
+                        Text(option.title).foregroundStyle(Color.appTextPrimary)
                         Spacer()
                     }
                 }
@@ -1207,7 +1212,7 @@ struct PersonalRecordFormView: View {
                 Button(action: onDone) {
                     Text(L.cancel.localized)
                         .font(.headline)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Color.appTextPrimary)
                 }
             }
             ToolbarItem(placement: .confirmationAction) {
@@ -1215,7 +1220,7 @@ struct PersonalRecordFormView: View {
                     Button(action: { beginSaveAndShareFlow() }) {
                         Text(L.personalSaveAndShare.localized)
                             .font(.headline)
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(Color.appTextPrimary)
                     }
                     .disabled(viewModel.isSaving || isSharingWithSharedLedger)
                 }
@@ -1232,7 +1237,7 @@ struct PersonalRecordFormView: View {
                     }) {
                         Text(L.save.localized)
                             .font(.headline)
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(Color.appTextPrimary)
                     }
                 }
             }
@@ -1454,18 +1459,23 @@ struct PersonalAllRecordsView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(Color.appBackground)
         .navigationTitle(monthTitle())
         .toolbar {
             ToolbarItemGroup(placement: .navigationBarTrailing) {
                 Menu {
                     Picker("", selection: $viewModel.sortMode) {
                         ForEach(PersonalAllRecordsViewModel.SortMode.allCases) { mode in
-                            Text(mode.title).tag(mode)
+                            Text(mode.title)
+                                .foregroundStyle(Color.appLedgerContentText)
+                                .tag(mode)
                         }
                     }
                     .pickerStyle(.inline)
                 } label: {
                     Image(systemName: "arrow.up.arrow.down")
+                        .foregroundStyle(Color.appLedgerContentText)
                 }
                 if !viewModel.selection.isEmpty {
                     Button(L.delete.localized, role: .destructive) {
@@ -1487,7 +1497,7 @@ struct PersonalAllRecordsView: View {
     }
 
     private func monthTitle() -> String {
-        // 若 filterState 的范围正好是整月，则用“yyyy-MM 交易记录”，否则退回“全部记录”
+        // 若 filterState 的范围正好是整月，则用"yyyy-MM 交易记录"，否则退回"全部记录"
         if let range = viewModel.filterState.dateRange {
             let cal = Calendar.current
             if let interval = cal.dateInterval(of: .month, for: range.lowerBound), interval.start == range.lowerBound && interval.end == range.upperBound {
@@ -1592,6 +1602,7 @@ struct PersonalAccountsView: View {
             }
             Section {
                 Toggle(L.personalShowArchived.localized, isOn: $viewModel.showArchived)
+                    .tint(Color.appToggleOn)
             }
             Section(header: Text(L.personalAccountsList.localized)) {
                 ForEach(viewModel.accounts) { account in
@@ -1605,6 +1616,8 @@ struct PersonalAccountsView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(Color.appBackground)
         .navigationTitle(L.personalAccountsTitle.localized)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -1668,11 +1681,11 @@ private struct AccountRow: View {
         }
         .padding(.vertical, 6)
         .swipeActions {
-            Button(L.edit.localized, action: onEdit).tint(.blue)
+            Button(L.edit.localized, action: onEdit).tint(Color.appTextPrimary)
             if account.status == .active {
-                Button(L.personalArchive.localized, action: onArchive).tint(.orange)
+                Button(L.personalArchive.localized, action: onArchive).tint(Color.appTextPrimary)
             } else {
-                Button(L.personalActivate.localized, action: onActivate).tint(.green)
+                Button(L.personalActivate.localized, action: onActivate).tint(Color.appTextPrimary)
             }
             Button(role: .destructive, action: onDelete) {
                 Label(L.delete.localized, systemImage: "trash")
@@ -1760,6 +1773,7 @@ struct PersonalAccountFormView: View {
                         }
                     }
                 Toggle(L.personalIncludeInNet.localized, isOn: $viewModel.draft.includeInNetWorth)
+                    .tint(Color.appToggleOn)
                 if viewModel.draft.type == .creditCard {
                     TextField(L.personalFieldCreditLimit.localized, text: $creditLimitText)
                         .keyboardType(.decimalPad)
@@ -1987,7 +2001,7 @@ struct PersonalStatsView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 24)
         }
-        .background(Color(.systemGroupedBackground))
+        .background(Color.appBackground)
         .navigationTitle(L.personalStatsTitle.localized)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { currencyToolbar }
@@ -2024,6 +2038,7 @@ struct PersonalStatsView: View {
             if focus == .expense {
                 Toggle(L.personalStatsIncludeFee.localized, isOn: $viewModel.includeFees)
                     .toggleStyle(.switch)
+                    .tint(Color.appToggleOn)
             }
         }
     }
@@ -2651,6 +2666,8 @@ private struct PersonalCSVExportContent: View {
             }
         }
         .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(Color.appBackground)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {

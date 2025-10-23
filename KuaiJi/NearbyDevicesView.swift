@@ -85,6 +85,8 @@ struct NearbyDevicesView: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Color.appBackground)
         .navigationTitle(L.syncShareLedger.localized)
         .navigationBarTitleDisplayMode(.inline)
         .alert(L.syncWarningTitle.localized, isPresented: $showSyncWarning) {
@@ -324,6 +326,7 @@ struct NearbyDevicesHost: View {
         NavigationStack {
             NearbyDevicesView(rootViewModel: rootViewModel)
         }
+        .background(Color.appBackground)
     }
 }
 

@@ -1377,7 +1377,7 @@ struct ExpenseFormView<Model: ExpenseFormViewModelProtocol>: View {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(option.title)
                                             .font(.headline)
-                                            .foregroundStyle(.primary)
+                                            .foregroundStyle(Color.appTextPrimary)
                                         
                                         Text(option.description)
                                             .font(.caption)
@@ -1403,7 +1403,7 @@ struct ExpenseFormView<Model: ExpenseFormViewModelProtocol>: View {
                             Text(L.splitPayer.localized)
                             Spacer()
                             Text(selectedOtherPayerName)
-                                .foregroundStyle(.primary)
+                                .foregroundStyle(Color.appTextPrimary)
                             Image(systemName: "chevron.right")
                                 .font(.caption)
                                 .foregroundStyle(Color.appSecondaryText)
@@ -1460,7 +1460,7 @@ struct ExpenseFormView<Model: ExpenseFormViewModelProtocol>: View {
                                 Text(L.splitBeneficiary.localized)
                                 Spacer()
                                 Text(selectedBeneficiaryName)
-                                    .foregroundStyle(.primary)
+                                    .foregroundStyle(Color.appTextPrimary)
                                 Image(systemName: "chevron.right")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
@@ -1498,7 +1498,7 @@ struct ExpenseFormView<Model: ExpenseFormViewModelProtocol>: View {
                     Text(L.expenseCategory.localized)
                     Spacer()
                     Text(viewModel.draft.category.displayName)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Color.appTextPrimary)
                     Image(systemName: "chevron.right")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -1673,6 +1673,7 @@ struct SettlementHost: View {
                     ToolbarItem(placement: .cancellationAction) { Button(L.close.localized, action: dismiss.callAsFunction) }
                 }
         }
+        .background(Color.appBackground)
     }
 }
 
@@ -1728,6 +1729,8 @@ struct SettlementView<Model: SettlementViewModelProtocol>: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Color.appBackground)
         .onAppear(perform: viewModel.generatePlan)
         .alert(L.clearBalancesConfirmTitle.localized, isPresented: $showClearConfirmation) {
             Button(L.cancel.localized, role: .cancel) { }
@@ -1854,7 +1857,7 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(currentUser.name)
                                     .font(.headline)
-                                    .foregroundStyle(.primary)
+                                    .foregroundStyle(Color.appTextPrimary)
                                 Text(L.profileUserIdLabel.localized(currentUser.userId))
                                     .appSecondaryTextStyle()
                                 Text(L.profileCurrencyLabel.localized(currentUser.currency.rawValue))
@@ -1883,7 +1886,7 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                 } label: {
                     HStack {
                         Text(L.settingsLanguage.localized)
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(Color.appTextPrimary)
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.caption)
@@ -1897,8 +1900,12 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
 
             Section(L.settingsInterfaceDisplay.localized) {
                 Toggle(L.settingsShowSharedAndFriends.localized, isOn: $appState.showSharedLedgerTab)
+                    .tint(Color.appToggleOn)
+                    .foregroundStyle(Color.appLedgerContentText)
                 Toggle(L.settingsShowPersonalLedger.localized, isOn: $appState.showPersonalLedgerTab)
-                Picker(L.settingsSharedLanding.localized, selection: Binding(get: {
+                    .tint(Color.appToggleOn)
+                    .foregroundStyle(Color.appLedgerContentText)
+                Picker(selection: Binding(get: {
                     switch appState.getSharedLandingPreference() {
                     case .list: return "list"
                     case .ledger(let id): return id.uuidString
@@ -1914,14 +1921,18 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                     ForEach(rootViewModel.ledgerSummaries, id: \.id) { ledger in
                         Text(ledger.name).tag(ledger.id.uuidString)
                     }
+                } label: {
+                    Text(L.settingsSharedLanding.localized)
+                        .foregroundStyle(Color.appLedgerContentText)
                 }
                 .pickerStyle(.menu)
+                .tint(Color.appTextPrimary)
                 .accessibilityIdentifier("settings.sharedLandingPicker")
             }
             
             // 快速记账默认账本设置
             Section {
-                Picker(L.settingsDefaultLedger.localized, selection: $quickActionSelection) {
+                Picker(selection: $quickActionSelection) {
                     Text(L.settingsDefaultLedgerNone.localized)
                         .tag(QuickActionSelection.none)
                     Text(L.settingsQuickActionPersonal.localized)
@@ -1930,6 +1941,9 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                         Text(ledger.name)
                             .tag(QuickActionSelection.shared(ledger.id))
                     }
+                } label: {
+                    Text(L.settingsDefaultLedger.localized)
+                        .foregroundStyle(Color.appLedgerContentText)
                 }
                 .onChangeCompat(of: quickActionSelection) {
                     switch quickActionSelection {
@@ -1951,12 +1965,15 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
             // 个人账本设置
             Section {
                 Toggle(L.personalFeeInclude.localized, isOn: $personalSettingsViewModel.countFeeInStats)
+                    .tint(Color.appToggleOn)
+                    .foregroundStyle(Color.appLedgerContentText)
                     .onChangeCompat(of: personalSettingsViewModel.countFeeInStats) {
                         Task { await personalSettingsViewModel.save() }
                     }
                 NavigationLink(L.personalAccountsManage.localized) {
                     PersonalAccountsView(root: personalLedgerRoot, viewModel: personalLedgerRoot.makeAccountsViewModel())
                 }
+                .foregroundStyle(Color.appLedgerContentText)
             } header: {
                 Text(L.personalSettingsTitle.localized)
             }
@@ -1967,7 +1984,7 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                 } label: {
                     HStack {
                         Text(L.settingsGuide.localized)
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(Color.appLedgerContentText)
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.caption)
@@ -1980,7 +1997,7 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                 } label: {
                     HStack {
                         Text(L.settingsContactMe.localized)
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(Color.appLedgerContentText)
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.caption)
@@ -1991,9 +2008,10 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                 // 版本信息
                 HStack {
                     Text(L.settingsVersion.localized)
+                        .foregroundStyle(Color.appLedgerContentText)
                     Spacer()
                     Text(versionString())
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Color.appLedgerContentText)
                 }
             }
 
@@ -2004,7 +2022,7 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                 } label: {
                     HStack {
                         Text(L.settingsExportData.localized)
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(Color.appTextPrimary)
                         Spacer()
                         Image(systemName: "square.and.arrow.up")
                             .font(.caption)
@@ -2017,7 +2035,7 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                 } label: {
                     HStack {
                         Text(L.settingsImportData.localized)
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(Color.appTextPrimary)
                         Spacer()
                         Image(systemName: "square.and.arrow.down")
                             .font(.caption)
@@ -2036,7 +2054,7 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                 } label: {
                     HStack {
                         Text(L.settingsExportSharedCSV.localized)
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(Color.appTextPrimary)
                         Spacer()
                         Image(systemName: "square.and.arrow.up")
                             .font(.caption)
@@ -2046,7 +2064,7 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
 
                 NavigationLink(destination: PersonalCSVExportView(root: personalLedgerRoot, viewModel: personalLedgerRoot.makeCSVExportViewModel())) {
                     Text(L.personalExportCSV.localized)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Color.appTextPrimary)
                 }
             } header: {
                 Text(L.settingsDataSection.localized)
@@ -2100,6 +2118,8 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                     .appSecondaryTextStyle()
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Color.appBackground)
         .scrollDismissesKeyboard(.interactively)
         .dismissKeyboardOnTap()
         .navigationTitle(L.settingsTitle.localized)
@@ -2699,6 +2719,8 @@ struct ContentView: View {
                 appState.requestSharedTabLandingActivation()
             }
         }
+        .tint(Color.appTextPrimary)
+        .background(Color.appBackground.ignoresSafeArea())
     }
     
     private func hideKeyboard() {
@@ -2755,11 +2777,13 @@ struct LedgerNavigator: View {
                         Button(action: { showingShareLedger = true }) {
                             Label(L.syncShareLedger.localized, systemImage: "antenna.radiowaves.left.and.right")
                         }
+                        .tint(Color.appTextPrimary)
                     }
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button(action: { showingCreateLedger = true }) {
                             Label(L.ledgersNew.localized, systemImage: "plus")
                         }
+                        .tint(Color.appTextPrimary)
                     }
                 }
                 .navigationDestination(for: LedgerSummaryViewData.self) { summary in
@@ -2786,6 +2810,7 @@ struct LedgerNavigator: View {
                     activateSharedLandingIfNeeded()
                 }
         }
+        .background(Color.appBackground)
     }
     
     private func handleQuickAction() {
@@ -2846,6 +2871,7 @@ struct SettingsNavigator: View {
                         personalSettingsViewModel: personalSettingsModel,
                         personalLedgerRoot: personalLedgerRoot)
         }
+        .background(Color.appBackground)
     }
 }
 
@@ -2885,6 +2911,7 @@ struct FriendNavigator: View {
                         } label: {
                             Label(L.friendsAdd.localized, systemImage: "plus")
                         }
+                        .tint(Color.appTextPrimary)
                     }
                 }
                 .sheet(isPresented: $showingAddFriend) {
@@ -2925,6 +2952,7 @@ struct FriendNavigator: View {
                     Text(duplicateMessage)
                 }
         }
+        .background(Color.appBackground)
     }
 }
 
@@ -2945,6 +2973,8 @@ struct LedgerListView<Model: LedgerListViewModelProtocol>: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Color.appBackground)
     }
 }
 
@@ -2990,6 +3020,8 @@ struct FriendListView<Model: FriendListViewModelProtocol>: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Color.appBackground)
         .sheet(item: $editingFriend) { friend in
             EditFriendSheet(viewModel: viewModel, friend: friend)
         }
@@ -3094,6 +3126,7 @@ struct LedgerOverviewView<Model: LedgerOverviewViewModelProtocol>: View {
             }
             .padding()
         }
+        .background(Color.appBackground)
         .sheet(isPresented: $showAllMembers) {
             AllMembersSheet(memberExpenses: viewModel.memberExpenses)
         }
@@ -3137,7 +3170,7 @@ struct LedgerOverviewView<Model: LedgerOverviewViewModelProtocol>: View {
                 Button(action: { showAllMembers = true }) {
                     Text(L.ledgerCardAllButton.localized)
                         .font(.subheadline)
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(Color.appLedgerContentText)
                 }
             }
             
@@ -3183,7 +3216,7 @@ struct LedgerOverviewView<Model: LedgerOverviewViewModelProtocol>: View {
                 Button(action: { showAllRecords = true }) {
                     Text(L.ledgerCardAllButton.localized)
                         .font(.subheadline)
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(Color.appLedgerContentText)
                 }
             }
             
@@ -3337,11 +3370,14 @@ struct AllMembersSheet: View {
                     .padding(.vertical, 4)
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Color.appBackground)
             .navigationTitle(L.allMembersTitle.localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L.close.localized) { dismiss() }
+                    .tint(Color.appTextPrimary)
                 }
             }
         }
@@ -3399,6 +3435,8 @@ struct RecordsSheet<Model: LedgerOverviewViewModelProtocol>: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Color.appBackground)
             .navigationTitle(L.recordsTitle.localized)
             .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -3523,17 +3561,21 @@ struct AddFriendSheet<Model: FriendListViewModelProtocol>: View {
                     .padding(.vertical, 8)
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Color.appBackground)
             .navigationTitle(L.friendsAddTitle.localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L.cancel.localized) { dismiss() }
+                    .tint(Color.appTextPrimary)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(L.save.localized) {
                         viewModel.addFriend(named: name, emoji: selectedEmoji, currency: selectedCurrency)
                         dismiss()
                     }
+                    .tint(Color.appTextPrimary)
                     .disabled(name.isEmpty)
                 }
             }
@@ -3647,17 +3689,21 @@ struct EditFriendSheet<Model: FriendListViewModelProtocol>: View {
                     .padding(.vertical, 8)
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Color.appBackground)
             .navigationTitle(L.friendsEditTitle.localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L.cancel.localized) { dismiss() }
+                    .tint(Color.appTextPrimary)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(L.save.localized) {
                         viewModel.updateFriend(id: friend.id, name: name, currency: selectedCurrency, emoji: selectedEmoji)
                         dismiss()
                     }
+                    .tint(Color.appTextPrimary)
                     .disabled(name.isEmpty)
                 }
             }
@@ -3716,7 +3762,7 @@ struct CreateLedgerSheet: View {
                                 Text(member.displayAvatar)
                                     .font(.title2)
                                 Text(member.name)
-                                    .foregroundStyle(.primary)
+                                    .foregroundStyle(Color.appTextPrimary)
                         Spacer()
                                 if selectedMemberIds.contains(member.id) {
                                     Image(systemName: "checkmark")
@@ -3726,7 +3772,9 @@ struct CreateLedgerSheet: View {
             }
         }
     }
-}
+            }
+            .scrollContentBackground(.hidden)
+            .background(Color.appBackground)
             .navigationTitle(L.createLedgerTitle.localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -3811,10 +3859,13 @@ struct ProfileEditView: View {
                 }
                 
                 Section {
-                    Picker(L.profileCurrencyPicker.localized, selection: $selectedCurrency) {
+                    Picker(selection: $selectedCurrency) {
                         ForEach(CurrencyCode.allCases) { currency in
                             Text(currency.rawValue).tag(currency)
                         }
+                    } label: {
+                        Text(L.profileCurrencyPicker.localized)
+                            .foregroundStyle(Color.appLedgerContentText)
                     }
                     .pickerStyle(.menu)
                 } header: {
@@ -3844,7 +3895,7 @@ struct ProfileEditView: View {
                         HStack {
                             Text(L.onboardingAvatarSection.localized)
                                 .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.appLedgerContentText)
                             
                             Spacer()
                             
@@ -3853,7 +3904,7 @@ struct ProfileEditView: View {
                             } label: {
                                 Text(L.all.localized)
                                     .font(.subheadline)
-                                    .foregroundStyle(.blue)
+                                    .foregroundStyle(Color.appLedgerContentText)
                             }
                         }
                         
@@ -3887,6 +3938,8 @@ struct ProfileEditView: View {
                         .font(.caption)
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Color.appBackground)
             .navigationTitle(L.profileEdit.localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

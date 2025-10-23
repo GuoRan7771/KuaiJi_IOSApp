@@ -297,7 +297,7 @@
 "sync.deviceAvailable" = "Available";
 "sync.deviceConnected" = "Connected";
 "sync.currentDevice" = "Current Device";
-"sync.shareLedger" = "📡 Share Ledger";
+"sync.shareLedger" = "Share Ledger";
 "sync.completed" = "Sync Completed";
 "sync.waitingResponse" = "Data sent to %d device(s)\nWaiting for response...";
 "sync.bidirectionalComplete" = "Bidirectional Sync Completed";

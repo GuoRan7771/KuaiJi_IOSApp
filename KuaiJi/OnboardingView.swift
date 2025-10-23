@@ -52,17 +52,21 @@ struct OnboardingView: View {
     
     var body: some View {
         NavigationStack {
-            ScrollView {
+            ZStack {
+                Color.appBackground
+                    .ignoresSafeArea()
+                ScrollView {
                 VStack(spacing: 24) {
                     // 标题和描述
                     VStack(spacing: 12) {
                         Text(L.onboardingTitle.localized)
                             .font(.largeTitle)
                             .fontWeight(.bold)
+                            .foregroundStyle(Color.appLedgerContentText)
                         
                         Text(L.onboardingDescription.localized)
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.appLedgerContentText)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
                     }
@@ -74,6 +78,7 @@ struct OnboardingView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             Text(L.onboardingNameSection.localized)
                                 .font(.headline)
+                                .foregroundStyle(Color.appLedgerContentText)
                             
                             TextField(L.onboardingNamePlaceholder.localized, text: $name)
                                 .textFieldStyle(.roundedBorder)
@@ -81,7 +86,7 @@ struct OnboardingView: View {
                             
                             Text(L.onboardingNameFooter.localized)
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.appLedgerContentText)
                                 .padding(.horizontal)
                         }
                         
@@ -89,6 +94,7 @@ struct OnboardingView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             Text(L.onboardingCurrencySection.localized)
                                 .font(.headline)
+                                .foregroundStyle(Color.appLedgerContentText)
                             
                             Picker(L.onboardingCurrencyPicker.localized, selection: $selectedCurrency) {
                                 Text(L.onboardingCurrencyCNY.localized).tag(CurrencyCode.cny)
@@ -100,7 +106,7 @@ struct OnboardingView: View {
                             
                             Text(L.onboardingCurrencyFooter.localized)
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.appLedgerContentText)
                                 .padding(.horizontal)
                         }
                         
@@ -109,15 +115,16 @@ struct OnboardingView: View {
                             HStack {
                                 Text(L.onboardingAvatarSection.localized)
                                     .font(.headline)
+                                    .foregroundStyle(Color.appLedgerContentText)
                                 
                                 Spacer()
                                 
-                                Button {
+                        Button {
                                     showAllEmojis = true
                                 } label: {
-                                    Text(L.all.localized)
-                                        .font(.subheadline)
-                                        .foregroundStyle(.blue)
+                            Text(L.all.localized)
+                                .font(.subheadline)
+                                .foregroundStyle(Color.appLedgerContentText)
                                 }
                             }
                             .padding(.horizontal)
@@ -145,7 +152,7 @@ struct OnboardingView: View {
                             
                             Text(L.onboardingAvatarFooter.localized)
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.appLedgerContentText)
                                 .padding(.horizontal)
                         }
                     }
@@ -154,9 +161,10 @@ struct OnboardingView: View {
                     // 底部提示文字
                     Text(L.onboardingCompleteFooter.localized)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.appLedgerContentText)
                         .padding(.top, 20)
                         .padding(.bottom, 40)
+                }
                 }
             }
             .scrollDismissesKeyboard(.interactively)
@@ -174,6 +182,7 @@ struct OnboardingView: View {
                     } label: {
                         Text(L.onboardingStartButton.localized)
                             .fontWeight(.semibold)
+                            .foregroundStyle(Color.appLedgerContentText)
                     }
                     .disabled(!isFormComplete)
                 }
@@ -188,6 +197,7 @@ struct OnboardingView: View {
                 AllEmojisSheet(selectedEmoji: $selectedEmoji, emojiOptions: emojiOptions)
             }
         }
+        .background(Color.appBackground)
     }
 }
 
