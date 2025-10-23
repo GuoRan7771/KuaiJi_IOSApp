@@ -709,7 +709,7 @@ class PersistentDataManager: ObservableObject {
             try jsonData.write(to: tempURL)
             return tempURL
         } catch {
-            print("❌ 导出数据失败: \(error)")
+            debugLog("❌ 导出数据失败:", error)
             return nil
         }
     }

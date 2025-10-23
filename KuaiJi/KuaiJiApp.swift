@@ -129,7 +129,7 @@ struct KuaiJiApp: App {
                 
                 // 处理启动时的 Quick Action（如果有）
                 if let shortcutItem = appDelegate.launchShortcutItem {
-                    print("📲 处理启动时的 Quick Action")
+                    debugLog("📲 处理启动时的 Quick Action")
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                         appState.handleQuickAction(shortcutItem.type)
                     }
@@ -140,7 +140,7 @@ struct KuaiJiApp: App {
             }
             .onOpenURL { url in
                 if let action = DeepLinkParser.quickAction(for: url) {
-                    print("🔗 通过 URL Scheme 收到动作: \(action.rawValue)")
+                    debugLog("🔗 通过 URL Scheme 收到动作:", action.rawValue)
                     ShortcutBridge.requestQuickAdd()
                     appState.processPendingShortcutTriggers()
                 }
@@ -275,17 +275,17 @@ class AppState: ObservableObject {
         case .shared(let ledgerId):
             defaults.set(ledgerId.uuidString, forKey: defaultQuickActionKey)
             defaults.set(ledgerId.uuidString, forKey: defaultLedgerIdKey)
-            print("✅ 默认账本已设置: \(ledgerId.uuidString)")
+            debugLog("✅ 默认账本已设置:", ledgerId.uuidString)
             updateQuickActions()
         case .personal:
             defaults.set("personal", forKey: defaultQuickActionKey)
             defaults.removeObject(forKey: defaultLedgerIdKey)
-            print("✅ 默认账本已设置为个人账本")
+            debugLog("✅ 默认账本已设置为个人账本")
             updateQuickActions()
         case .none:
             defaults.removeObject(forKey: defaultQuickActionKey)
             defaults.removeObject(forKey: defaultLedgerIdKey)
-            print("✅ 默认账本已清除")
+            debugLog("✅ 默认账本已清除")
             clearQuickActions()
         }
         objectWillChange.send()
@@ -293,10 +293,10 @@ class AppState: ObservableObject {
     
     /// 处理 Quick Action
     func handleQuickAction(_ type: String) {
-        print("🚀 收到 Quick Action: \(type)")
+        debugLog("🚀 收到 Quick Action:", type)
         if type == QuickActionType.quickAddExpense.rawValue {
             let target = getQuickActionTarget()
-            print("📱 设置 quickActionTarget: \(String(describing: target))")
+            debugLog("📱 设置 quickActionTarget:", String(describing: target))
             quickActionTarget = target
         }
     }
@@ -304,7 +304,7 @@ class AppState: ObservableObject {
     /// 处理来自快捷指令的挂起请求
     func processPendingShortcutTriggers() {
         if ShortcutBridge.consumeQuickAddRequest() {
-            print("🔐 收到快捷指令 Quick Add 请求")
+            debugLog("🔐 收到快捷指令 Quick Add 请求")
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                 self.handleQuickAction(QuickActionType.quickAddExpense.rawValue)
             }
@@ -314,7 +314,7 @@ class AppState: ObservableObject {
     /// 更新动态 Quick Actions
     private func updateQuickActions() {
         guard let target = getQuickActionTarget() else {
-            print("⚠️ 未设置默认账本")
+            debugLog("⚠️ 未设置默认账本")
             clearQuickActions()
             return
         }
@@ -324,15 +324,15 @@ class AppState: ObservableObject {
         switch target {
         case .shared(let ledgerId):
             guard let manager = dataManager else {
-                print("⚠️ DataManager 未初始化")
+                debugLog("⚠️ DataManager 未初始化")
                 clearQuickActions()
                 return
             }
 
             guard let ledger = manager.allLedgers.first(where: { $0.remoteId == ledgerId }) else {
-                print("⚠️ 找不到账本: \(ledgerId.uuidString)")
+                debugLog("⚠️ 找不到账本:", ledgerId.uuidString)
                 let available = manager.allLedgers.map { "\($0.name) (\($0.remoteId.uuidString))" }.joined(separator: ", ")
-                print("📋 可用账本: \(available)")
+                debugLog("📋 可用账本:", available)
                 clearQuickActions()
                 return
             }
@@ -350,7 +350,7 @@ class AppState: ObservableObject {
         )
 
         UIApplication.shared.shortcutItems = [quickAddAction]
-        print("✅ Quick Action 已更新: \(subtitle)")
+        debugLog("✅ Quick Action 已更新:", subtitle)
     }
     
     /// 清除 Quick Actions
@@ -379,7 +379,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     ) -> UISceneConfiguration {
         // 保存启动时的 Quick Action，稍后在 onAppear 中处理
         if let shortcutItem = options.shortcutItem {
-            print("💾 保存启动时的 Quick Action: \(shortcutItem.type)")
+            debugLog("💾 保存启动时的 Quick Action:", shortcutItem.type)
             launchShortcutItem = shortcutItem
         }
         
@@ -398,7 +398,7 @@ class SceneDelegate: NSObject, UIWindowSceneDelegate {
         performActionFor shortcutItem: UIApplicationShortcutItem,
         completionHandler: @escaping (Bool) -> Void
     ) {
-        print("🎬 应用运行中收到 Quick Action: \(shortcutItem.type)")
+        debugLog("🎬 应用运行中收到 Quick Action:", shortcutItem.type)
         Task { @MainActor in
             if let appState = AppDelegate.appState {
                 // 延迟一下确保UI已经准备好
@@ -407,7 +407,7 @@ class SceneDelegate: NSObject, UIWindowSceneDelegate {
                     completionHandler(true)
                 }
             } else {
-                print("❌ appState 未初始化")
+                debugLog("❌ appState 未初始化")
                 completionHandler(false)
             }
         }

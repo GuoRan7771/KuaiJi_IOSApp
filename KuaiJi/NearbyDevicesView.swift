@@ -262,6 +262,16 @@ struct NearbyDevicesView: View {
             return
         }
         
+        // 基于 exchangeId / replyTo 防止 Ping-Pong
+        struct ExchangeGuard {
+            static var seen = Set<UUID>()
+        }
+        // 若我们已经处理过该交换ID，则忽略
+        if ExchangeGuard.seen.contains(syncPackage.exchangeId) {
+            return
+        }
+        ExchangeGuard.seen.insert(syncPackage.exchangeId)
+        
         // 合并数据
         let result = SyncEngine.mergeSyncData(
             syncPackage,
@@ -272,9 +282,15 @@ struct NearbyDevicesView: View {
         // 刷新视图
         rootViewModel.loadFromPersistence()
         
-        // 自动回传本地数据（实现双向同步）
-        if let myData = SyncEngine.prepareSyncData(from: dataManager, currentUserId: currentUser.userId),
-           let encodedData = try? JSONEncoder().encode(myData) {
+        // 自动回传本地数据（实现双向同步）。若这是对方的回复（replyTo 非空），则不再回传，避免循环。
+        if syncPackage.replyTo == nil, var myData = SyncEngine.prepareSyncData(from: dataManager, currentUserId: currentUser.userId) {
+            // 设置回复链路，避免对方再次回传
+            myData.replyTo = syncPackage.exchangeId
+            guard let encodedData = try? JSONEncoder().encode(myData) else {
+                syncResultMessage = L.syncErrorEncoding.localized
+                showSyncResult = true
+                return
+            }
             do {
                 try multipeerManager.sendData(encodedData, to: [peer])
                 

@@ -22,6 +22,7 @@ enum SyncStatus: Equatable {
 
 @MainActor
 final class MultipeerManager: NSObject, ObservableObject {
+    private static let peerIdStorageKey = "MultipeerManager.savedPeerID"
     @Published var availablePeers: [MCPeerID] = []
     @Published var connectedPeers: [MCPeerID] = []
     @Published var isAdvertising = false
@@ -68,12 +69,21 @@ final class MultipeerManager: NSObject, ObservableObject {
     }
     
     override init() {
-        let deviceName = Self.getDeviceName()
-        self.peerID = MCPeerID(displayName: deviceName)
+        // 优先从本地持久化中恢复稳定的 MCPeerID，避免设备名称变更导致的身份漂移
+        if let saved = UserDefaults.standard.data(forKey: Self.peerIdStorageKey),
+           let restored = try? NSKeyedUnarchiver.unarchivedObject(ofClass: MCPeerID.self, from: saved) {
+            self.peerID = restored
+        } else {
+            let deviceName = Self.getDeviceName()
+            let trimmed = String(deviceName.prefix(63)) // MC 要求最长 63
+            let newPeer = MCPeerID(displayName: trimmed)
+            self.peerID = newPeer
+            if let data = try? NSKeyedArchiver.archivedData(withRootObject: newPeer, requiringSecureCoding: true) {
+                UserDefaults.standard.set(data, forKey: Self.peerIdStorageKey)
+            }
+        }
         self.session = MCSession(peer: peerID, securityIdentity: nil, encryptionPreference: .required)
-        
         super.init()
-        
         self.session.delegate = self
     }
     

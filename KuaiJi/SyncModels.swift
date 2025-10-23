@@ -10,7 +10,10 @@ import Foundation
 // MARK: - 同步数据包
 
 struct SyncPackage: Codable {
-    var version: String = "1.1"
+    var version: String = "1.2"
+    // 消息去重与防 Ping-Pong
+    var exchangeId: UUID = UUID()      // 本次交换的唯一ID
+    var replyTo: UUID? = nil           // 若为响应，指向请求的 exchangeId
     var senderUserId: String  // 发送方的唯一用户ID
     var senderName: String    // 发送方姓名（用于显示）
     // 新增：发送方资料（可选，兼容旧版本）
@@ -46,6 +49,29 @@ struct SyncExpense: Codable {
     var isSettlement: Bool
     var metadata: ExpenseMetadata
     var participants: [SyncParticipant]
+}
+
+// 兼容旧版本字段缺失的自定义解码
+extension SyncExpense {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        remoteId = try container.decode(UUID.self, forKey: .remoteId)
+        ledgerId = try container.decode(UUID.self, forKey: .ledgerId)
+        payerId = try container.decode(UUID.self, forKey: .payerId)
+        title = try container.decode(String.self, forKey: .title)
+        amountMinorUnits = try container.decode(Int.self, forKey: .amountMinorUnits)
+        currency = try container.decode(CurrencyCode.self, forKey: .currency)
+        date = try container.decode(Date.self, forKey: .date)
+        note = try container.decode(String.self, forKey: .note)
+        category = try container.decode(ExpenseCategory.self, forKey: .category)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+        splitStrategy = try container.decode(SplitStrategy.self, forKey: .splitStrategy)
+        // isSettlement 在更早版本可能缺失，缺省为 false
+        isSettlement = (try? container.decode(Bool.self, forKey: .isSettlement)) ?? false
+        metadata = try container.decode(ExpenseMetadata.self, forKey: .metadata)
+        participants = try container.decode([SyncParticipant].self, forKey: .participants)
+    }
 }
 
 struct SyncParticipant: Codable {

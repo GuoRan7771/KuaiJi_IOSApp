@@ -113,7 +113,7 @@ final class SettingsScreenModel: ObservableObject, SettingsViewModelProtocol {
         do {
             personalSnapshot = try personalStore.exportSnapshot()
         } catch {
-            print("❌ 导出个人账本失败: \(error)")
+            debugLog("❌ 导出个人账本失败:", error)
             return nil
         }
 
@@ -140,7 +140,7 @@ final class SettingsScreenModel: ObservableObject, SettingsViewModelProtocol {
             try jsonData.write(to: tempURL)
             return tempURL
         } catch {
-            print("❌ 导出数据失败: \(error)")
+            debugLog("❌ 导出数据失败:", error)
             return nil
         }
     }
