@@ -6,9 +6,11 @@
 //
 
 import SwiftUI
+import UIKit
 import Combine
 import UniformTypeIdentifiers
 import SwiftData
+import Darwin
 
 // MARK: - View Data Models
 
@@ -2360,6 +2362,7 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
 
 struct ContactView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     @State private var rotationAngle: Double = 0
     @State private var pulseScale: CGFloat = 1.0
     
@@ -2425,20 +2428,57 @@ struct ContactView: View {
                         )
                         .shadow(color: .white.opacity(0.5), radius: 8)
                     
-                    Text(L.contactEmail.localized)
-                        .font(.system(size: 16, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.9))
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 12)
-                        .background(
-                            RoundedRectangle(cornerRadius: 20)
-                                .fill(.ultraThinMaterial)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 20)
-                                        .stroke(.white.opacity(0.3), lineWidth: 1)
-                                )
-                        )
-                        .shadow(color: .black.opacity(0.2), radius: 10)
+                    Button {
+                        let email = "rangertars777@gmail.com"
+                        let subject = "KuaiJi Feedback"
+                        let info = Bundle.main.infoDictionary
+                        let appVersion = (info?["CFBundleShortVersionString"] as? String) ?? ""
+                        let appBuild = (info?["CFBundleVersion"] as? String) ?? ""
+                        let osVersion = UIDevice.current.systemVersion
+                        let osBuild = ContactView.fetchOSBuildVersion() ?? ""
+                        let language = Locale.current.identifier
+                        let device = ContactView.marketingDeviceName()
+
+                        let lines: [String] = [
+                            "Device: \(device)",
+                            "iOS: \(osVersion)\(osBuild.isEmpty ? "" : " (\(osBuild))")",
+                            "App: \(appVersion) (\(appBuild))",
+                            "Language: \(language)",
+                            "",
+                            "",
+                            "Please write your suggestions below (you can add screenshots):",
+                            "",
+                            ""
+                        ]
+                        let body = lines.joined(separator: "\r\n")
+
+                        var components = URLComponents()
+                        components.scheme = "mailto"
+                        components.path = email
+                        components.queryItems = [
+                            URLQueryItem(name: "subject", value: subject),
+                            URLQueryItem(name: "body", value: body)
+                        ]
+                        if let url = components.url {
+                            openURL(url)
+                        }
+                    } label: {
+                        Text(L.contactEmail.localized)
+                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.9))
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .fill(.ultraThinMaterial)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 20)
+                                            .stroke(.white.opacity(0.3), lineWidth: 1)
+                                    )
+                            )
+                            .shadow(color: .black.opacity(0.2), radius: 10)
+                    }
+                    .buttonStyle(.plain)
                 }
                 
                 Spacer()
@@ -2453,6 +2493,67 @@ struct ContactView: View {
                 pulseScale = 1.1
             }
         }
+    }
+}
+
+private extension ContactView {
+    static func fetchOSBuildVersion() -> String? {
+        var size: size_t = 0
+        sysctlbyname("kern.osversion", nil, &size, nil, 0)
+        guard size > 0 else { return nil }
+        var buffer = [CChar](repeating: 0, count: Int(size))
+        sysctlbyname("kern.osversion", &buffer, &size, nil, 0)
+        return String(cString: buffer)
+    }
+
+    static func hardwareIdentifier() -> String {
+        var size: size_t = 0
+        sysctlbyname("hw.machine", nil, &size, nil, 0)
+        var buffer = [CChar](repeating: 0, count: Int(size))
+        sysctlbyname("hw.machine", &buffer, &size, nil, 0)
+        return String(cString: buffer)
+    }
+
+    static func marketingDeviceName() -> String {
+        let id = hardwareIdentifier()
+        let map: [String: String] = [
+            // iPhone 15 family
+            "iPhone15,4": "iPhone 15",
+            "iPhone15,5": "iPhone 15 Plus",
+            "iPhone16,1": "iPhone 15 Pro",
+            "iPhone16,2": "iPhone 15 Pro Max",
+            // iPhone 14 family
+            "iPhone14,7": "iPhone 14",
+            "iPhone14,8": "iPhone 14 Plus",
+            "iPhone15,2": "iPhone 14 Pro",
+            "iPhone15,3": "iPhone 14 Pro Max",
+            // iPhone 13 family
+            "iPhone14,4": "iPhone 13 mini",
+            "iPhone14,5": "iPhone 13",
+            "iPhone14,2": "iPhone 13 Pro",
+            "iPhone14,3": "iPhone 13 Pro Max",
+            // iPhone 12 family
+            "iPhone13,1": "iPhone 12 mini",
+            "iPhone13,2": "iPhone 12",
+            "iPhone13,3": "iPhone 12 Pro",
+            "iPhone13,4": "iPhone 12 Pro Max",
+            // iPhone 11 family
+            "iPhone12,1": "iPhone 11",
+            "iPhone12,3": "iPhone 11 Pro",
+            "iPhone12,5": "iPhone 11 Pro Max",
+            // iPhone X / XS / XR / 8
+            "iPhone10,3": "iPhone X",
+            "iPhone10,6": "iPhone X",
+            "iPhone11,2": "iPhone XS",
+            "iPhone11,4": "iPhone XS Max",
+            "iPhone11,6": "iPhone XS Max",
+            "iPhone11,8": "iPhone XR",
+            "iPhone10,1": "iPhone 8",
+            "iPhone10,4": "iPhone 8",
+            "iPhone10,2": "iPhone 8 Plus",
+            "iPhone10,5": "iPhone 8 Plus"
+        ]
+        return map[id] ?? "iPhone (\(id))"
     }
 }
 
