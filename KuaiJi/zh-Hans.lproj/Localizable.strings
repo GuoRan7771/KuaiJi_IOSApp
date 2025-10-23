@@ -118,7 +118,7 @@
 "settings.quickActionSection" = "快速操作";
 "settings.defaultLedger" = "默认账本";
 "settings.defaultLedgerNone" = "未设置";
-"settings.defaultLedgerDesc" = "长按应用图标可快速进入默认账本的记账界面";
+"settings.defaultLedgerDesc" = "长按应用图标或使用快捷指令可快速进入默认账本的记账界面";
 "settings.quickActionPersonal" = "个人账本";
 "settings.dataSection" = "数据管理";
 "settings.exportData" = "全数据导出";
@@ -164,7 +164,7 @@
 
 /* 联系页面 */
 "contact.author" = "Guo";
-"contact.email" = "rwg184849@gmail.com";
+"contact.email" = "rangertars777@gmail.com";
 
 /* 首次设置 */
 "onboarding.title" = "设置个人资料";

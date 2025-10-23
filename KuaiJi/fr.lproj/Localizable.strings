@@ -118,7 +118,7 @@
 "settings.quickActionSection" = "Actions Rapides";
 "settings.defaultLedger" = "Compte par Défaut";
 "settings.defaultLedgerNone" = "Non Défini";
-"settings.defaultLedgerDesc" = "Appuyez longuement sur l'icône de l'application pour ajouter rapidement une dépense au compte par défaut";
+"settings.defaultLedgerDesc" = "Appuyez longuement sur l'icône de l'application ou utilisez les Raccourcis pour ajouter rapidement une dépense au compte par défaut";
 "settings.quickActionPersonal" = "Ledger personnel";
 "settings.dataSection" = "Gestion des Données";
 "settings.exportData" = "Exporter toutes les données";
@@ -170,7 +170,7 @@
 
 /* Page de contact */
 "contact.author" = "Guo";
-"contact.email" = "rwg184849@gmail.com";
+"contact.email" = "rangertars777@gmail.com";
 
 /* Configuration initiale */
 "onboarding.title" = "Configurer votre Profil";

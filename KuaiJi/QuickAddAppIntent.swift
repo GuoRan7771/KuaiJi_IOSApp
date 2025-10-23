@@ -1,6 +1,8 @@
+#if canImport(AppIntents)
 import AppIntents
 
 // iOS 18 项目，AppIntent 和 AppShortcutsProvider 已完全支持
+@available(iOS 16.0, *)
 struct QuickAddExpenseIntent: AppIntent {
     static var title: LocalizedStringResource = "Quick Add Expense"
     static var description = IntentDescription("Open the quick add expense form for your default ledger in KuaiJi.")
@@ -13,6 +15,7 @@ struct QuickAddExpenseIntent: AppIntent {
     }
 }
 
+@available(iOS 16.0, *)
 struct KuaiJiAppShortcuts: AppShortcutsProvider {
     static var shortcutTileColor: ShortcutTileColor = .orange
 
@@ -29,3 +32,5 @@ struct KuaiJiAppShortcuts: AppShortcutsProvider {
         )
     }
 }
+
+#endif

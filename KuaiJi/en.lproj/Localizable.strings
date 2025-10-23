@@ -118,7 +118,7 @@
 "settings.quickActionSection" = "Quick Actions";
 "settings.defaultLedger" = "Default Ledger";
 "settings.defaultLedgerNone" = "Not Set";
-"settings.defaultLedgerDesc" = "Long press app icon to quickly add expense to default ledger";
+"settings.defaultLedgerDesc" = "Long press app icon or ues the Shortcuts to quickly add expense to default ledger";
 "settings.quickActionPersonal" = "Personal ledger";
 "settings.dataSection" = "Data Management";
 "settings.exportData" = "Export All Data";
@@ -170,7 +170,7 @@
 
 /* Contact Page */
 "contact.author" = "Guo";
-"contact.email" = "rwg184849@gmail.com";
+"contact.email" = "rangertars777@gmail.com";
 
 /* Onboarding */
 "onboarding.title" = "Set Up Your Profile";
