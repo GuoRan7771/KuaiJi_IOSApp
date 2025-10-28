@@ -541,7 +541,9 @@ final class PersonalLedgerStore: ObservableObject {
 
     func deleteAccount(id: UUID) throws {
         guard let account = try findAccount(by: id) else { throw PersonalLedgerError.accountNotFound }
-        guard account.balanceMinorUnits == 0 else { throw PersonalLedgerError.cannotDeleteNonEmptyAccount }
+        if preferences.lastUsedAccountId == account.remoteId {
+            preferences.lastUsedAccountId = nil
+        }
         context.delete(account)
         try context.save()
         try refreshAccounts()

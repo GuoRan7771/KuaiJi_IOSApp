@@ -1451,10 +1451,15 @@ struct PersonalAllRecordsView: View {
                                           editingRecord = record
                                       },
                                       onDelete: {
-                                          viewModel.selection = [record.id]
-                                          Task { await viewModel.deleteSelected() }
+                                          Task { await viewModel.deleteRecord(id: record.id) }
                                       },
                                       timestampText: timestampText(for: record))
+                }
+                .onDelete { indexSet in
+                    for index in indexSet {
+                        let id = viewModel.records[index].id
+                        Task { await viewModel.deleteRecord(id: id) }
+                    }
                 }
             }
         }
@@ -1485,6 +1490,9 @@ struct PersonalAllRecordsView: View {
             }
         }
         .task { await viewModel.refresh() }
+        .alert(viewModel.lastError ?? "", isPresented: Binding(get: { viewModel.lastError != nil }, set: { _ in viewModel.lastError = nil })) {
+            Button(L.ok.localized, action: {})
+        }
         .sheet(item: $editingRecord) { record in
             PersonalRecordFormHost(root: root, existing: record) {
                 editingRecord = nil
@@ -1574,6 +1582,7 @@ struct PersonalAccountsView: View {
     @State private var showingAccountForm = false
     @State private var editingAccount: UUID?
     @State private var showingTransferForm = false
+    @State private var pendingDeleteId: UUID?
 
     init(root: PersonalLedgerRootViewModel, viewModel: PersonalAccountsViewModel) {
         self.root = root
@@ -1610,9 +1619,12 @@ struct PersonalAccountsView: View {
                                onEdit: { editingAccount = account.id; showingAccountForm = true },
                                onArchive: { Task { await viewModel.archiveAccount(account.id) } },
                                onActivate: { Task { await viewModel.activateAccount(account.id) } },
-                               onDelete: { Task { await viewModel.deleteAccount(account.id) } })
+                               onDelete: { pendingDeleteId = account.id })
                 }
                 .onMove(perform: viewModel.move)
+                .onDelete { indexSet in
+                    pendingDeleteId = indexSet.first.map { viewModel.accounts[$0].id }
+                }
             }
         }
         .listStyle(.insetGrouped)
@@ -1648,6 +1660,20 @@ struct PersonalAccountsView: View {
         }
         .task { await viewModel.refresh() }
         .refreshable { await viewModel.refresh() }
+        .alert(viewModel.lastError ?? "", isPresented: Binding(get: { viewModel.lastError != nil }, set: { _ in viewModel.lastError = nil })) {
+            Button(L.ok.localized, action: {})
+        }
+        .alert(L.delete.localized, isPresented: Binding(get: { pendingDeleteId != nil }, set: { v in if !v { pendingDeleteId = nil } })) {
+            Button(L.cancel.localized, role: .cancel) { pendingDeleteId = nil }
+            Button(L.delete.localized, role: .destructive) {
+                if let id = pendingDeleteId {
+                    Task { await viewModel.deleteAccount(id) }
+                    pendingDeleteId = nil
+                }
+            }
+        } message: {
+            Text(L.personalDeleteConfirm.localized)
+        }
     }
 }
 

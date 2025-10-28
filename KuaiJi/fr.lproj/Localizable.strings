@@ -480,7 +480,7 @@
 "personal.conversionFeeNote" = "Frais de conversion";
 "personal.export.hint" = "Inclut l'export CSV du ledger personnel.";
 "personal.clear.hint" = "Supprime tous les comptes et écritures du ledger personnel (les comptes partagés ne sont pas affectés).";
-"personal.saveAndShare" = "Enregistrer et ajouter";
+"personal.saveAndShare" = "Enregistrer +";
 "personal.saveAndShare.sheetTitle" = "Ajouter au ledger partagé";
 "personal.saveAndShare.ledgerSection" = "Ledger partagé";
 "personal.saveAndShare.splitMode" = "Méthode de répartition";

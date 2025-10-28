@@ -1327,6 +1327,15 @@ final class PersonalAllRecordsViewModel: ObservableObject {
         }
     }
 
+    func deleteRecord(id: UUID) async {
+        do {
+            try store.deleteTransactionsOrTransfers(ids: [id])
+            await refresh()
+        } catch {
+            lastError = error.localizedDescription
+        }
+    }
+
     private func sort(records: [PersonalRecordRowViewData]) -> [PersonalRecordRowViewData] {
         switch sortMode {
         case .occurredAt:
