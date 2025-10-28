@@ -1903,32 +1903,36 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                 Toggle(L.settingsShowSharedAndFriends.localized, isOn: $appState.showSharedLedgerTab)
                     .tint(Color.appToggleOn)
                     .foregroundStyle(Color.appLedgerContentText)
+                
                 Toggle(L.settingsShowPersonalLedger.localized, isOn: $appState.showPersonalLedgerTab)
                     .tint(Color.appToggleOn)
                     .foregroundStyle(Color.appLedgerContentText)
-                Picker(selection: Binding(get: {
-                    switch appState.getSharedLandingPreference() {
-                    case .list: return "list"
-                    case .ledger(let id): return id.uuidString
-                    }
-                }, set: { (raw: String) in
-                    if raw == "list" {
-                        appState.setSharedLandingPreference(.list)
-                    } else if let id = UUID(uuidString: raw) {
-                        appState.setSharedLandingPreference(.ledger(id))
-                    }
-                })) {
-                    Text(L.settingsSharedLandingList.localized).tag("list")
-                    ForEach(rootViewModel.ledgerSummaries, id: \.id) { ledger in
-                        Text(ledger.name).tag(ledger.id.uuidString)
-                    }
-                } label: {
+                
+                HStack {
                     Text(L.settingsSharedLanding.localized)
                         .foregroundStyle(Color.appLedgerContentText)
+                    Spacer()
+                    Picker(selection: Binding(get: {
+                        switch appState.getSharedLandingPreference() {
+                        case .list: return "list"
+                        case .ledger(let id): return id.uuidString
+                        }
+                    }, set: { (raw: String) in
+                        if raw == "list" {
+                            appState.setSharedLandingPreference(.list)
+                        } else if let id = UUID(uuidString: raw) {
+                            appState.setSharedLandingPreference(.ledger(id))
+                        }
+                    })) {
+                        Text(L.settingsSharedLandingList.localized).tag("list")
+                        ForEach(rootViewModel.ledgerSummaries, id: \.id) { ledger in
+                            Text(ledger.name).tag(ledger.id.uuidString)
+                        }
+                    } label: { EmptyView() }
+                    .pickerStyle(.menu)
+                    .tint(Color(red: 245/255, green: 151/255, blue: 60/255))
+                    .accessibilityIdentifier("settings.sharedLandingPicker")
                 }
-                .pickerStyle(.menu)
-                .tint(Color.appTextPrimary)
-                .accessibilityIdentifier("settings.sharedLandingPicker")
             }
             
             // 快速记账默认账本设置
@@ -1956,6 +1960,7 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                         appState.setQuickActionTarget(.shared(id))
                     }
                 }
+                .tint(Color(red: 245/255, green: 151/255, blue: 60/255))
             } header: {
                 Text(L.settingsQuickActionSection.localized)
             } footer: {
@@ -2002,7 +2007,7 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                         Spacer()
                         Image(systemName: "heart.fill")
                             .font(.caption)
-                            .foregroundStyle(Color.appSecondaryText)
+                            .foregroundStyle(Color(red: 245/255, green: 151/255, blue: 60/255))
                     }
                 }
 
@@ -2148,7 +2153,7 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
         }
         .sheet(isPresented: $showingSupport) {
             SupportMeView()
-                .presentationDetents([.fraction(0.65), .large])
+                .presentationDetents([.fraction(0.67), .large])
                 .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showingProfileEdit) {
@@ -2999,7 +3004,7 @@ private struct TipCard: View {
                     Text(price).font(.system(size: 14, weight: .medium, design: .rounded)).foregroundStyle(color)
                 }
                 Spacer()
-                Image(systemName: "heart.fill").foregroundStyle(color)
+                Image(systemName: "heart.fill").foregroundStyle(Color(red: 245/255, green: 151/255, blue: 60/255))
             }
             .padding(16)
             .scaleEffect(pressed ? 0.97 : 1.0)

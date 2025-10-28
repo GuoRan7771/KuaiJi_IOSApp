@@ -10,7 +10,7 @@
 "all" = "All";
 
 /* Tab Bar */
-"tab.ledgers" = "Shared Ledgers";
+"tab.ledgers" = "Shared";
 "tab.friends" = "Friends";
 "tab.settings" = "Settings";
 
@@ -133,7 +133,7 @@
 /* Support Me */
 "support.title" = "Support Me";
 "support.subtitle" = "Thank you!";
-"support.disclaimer" = "I’m a solo developer. Your tip helps keep updates coming.";
+"support.disclaimer" = "I’m a solo developer, I usually get hungry, but once I’m full, I start adding new features and fixing bugs! LoL!";
 "support.noFeatureNote" = "Tips do not unlock extra features. The full app remains free to use.";
 "support.coffee" = "Coffee";
 "support.cheesecake" = "Cheese Cake";
@@ -279,7 +279,7 @@
 "sync.menuTitle" = "Nearby Devices Sync";
 "sync.importantWarning" = "⚠️ Important Warning";
 "sync.warningTitle" = "Sync Warning";
-"sync.warningMessage" = "⚠️ Sync will hard merge all expense records\nPlease ensure each expense is recorded on only one device\nDuplicate records will cause accounting errors and cannot be auto-deduplicated\n\nRecommendation: Confirm with friends who recorded which expenses before syncing";
+"sync.warningMessage" = "\nSyncing will force-merge all expense records. The app cannot automatically remove duplicates.\n\nBefore syncing, make sure each expense is recorded on only one device.";
 "sync.warningConfirm" = "I Understand, Continue";
 "sync.warningConfirmNoRemind" = "I Understand, Don't Remind Again";
 "sync.warning1" = "Sync will hard merge all expense records";
@@ -353,7 +353,7 @@
 "guide.sample.amount2" = "¥580";
 
 
-"tab.personalLedger" = "Personal Ledger";
+"tab.personalLedger" = "Personal";
 "personal.homeTitle" = "Personal Ledger";
 "personal.todayTitle" = "Records";
 "personal.todayEmpty" = "No entries yet.";

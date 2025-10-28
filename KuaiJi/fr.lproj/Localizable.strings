@@ -10,7 +10,7 @@
 "all" = "Tout";
 
 /* Barre d'onglets */
-"tab.ledgers" = "Comptes Partagés";
+"tab.ledgers" = "Partagés";
 "tab.friends" = "Amis";
 "tab.settings" = "Réglages";
 
@@ -152,7 +152,7 @@
 /* Soutenir */
 "support.title" = "Soutenir";
 "support.subtitle" = "Merci !";
-"support.disclaimer" = "Je suis développeur solo. Votre pourboire aide à continuer les mises à jour.";
+"support.disclaimer" = "Je suis un développeur solo, j’ai toujours faim, mais une fois que j’ai bien mangé, j’ajoute des nouvelles fonctions et je corrige les bugs! Mdr!";
 "support.noFeatureNote" = "Le pourboire n'ajoute aucune fonctionnalité. L'app reste entièrement utilisable gratuitement.";
 "support.coffee" = "Café";
 "support.cheesecake" = "Gâteau au fromage";
@@ -279,7 +279,7 @@
 "sync.menuTitle" = "Synchronisation des Appareils à Proximité";
 "sync.importantWarning" = "⚠️ Avertissement Important";
 "sync.warningTitle" = "Avertissement de Synchronisation";
-"sync.warningMessage" = "⚠️ La synchronisation fusionnera toutes les dépenses\nAssurez-vous que chaque dépense n'est enregistrée que sur un seul appareil\nLes enregistrements dupliqués causeront des erreurs comptables et ne peuvent pas être dédupliqués automatiquement\n\nRecommandation: Confirmer avec vos amis qui a enregistré quelles dépenses avant de synchroniser";
+"sync.warningMessage" = "\nLa synchronisation fusionnera de force toutes les dépenses. L’application ne peut pas supprimer automatiquement les doublons.\n\nAvant de synchroniser, assurez-vous que chaque dépense n’est enregistrée que sur un seul appareil.";
 "sync.warningConfirm" = "Je Comprends, Continuer";
 "sync.warningConfirmNoRemind" = "Je Comprends, Ne Plus Rappeler";
 "sync.warning1" = "La synchronisation fusionnera toutes les dépenses";
@@ -353,7 +353,7 @@
 "guide.sample.amount2" = "¥580";
 
 
-"tab.personalLedger" = "Ledger personnel";
+"tab.personalLedger" = "Personnel";
 "personal.homeTitle" = "Ledger personnel";
 "personal.todayTitle" = "Enregistrements";
 "personal.todayEmpty" = "Aucune écriture aujourd'hui.";

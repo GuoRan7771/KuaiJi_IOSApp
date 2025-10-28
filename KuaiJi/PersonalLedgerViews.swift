@@ -373,7 +373,7 @@ struct PersonalOverviewCard: View {
                                            tint: .red)
                             }
 
-                            Spacer(minLength: 24)
+                            Spacer(minLength: 50)
 
                             VStack(alignment: .trailing, spacing: 4) {
                                 Text(L.personalMonthlyIncome.localized)
