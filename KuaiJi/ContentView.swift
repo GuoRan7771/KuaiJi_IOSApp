@@ -1807,6 +1807,7 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
     @State private var showingEraseAbsolutelyAllAlert = false
     @State private var quickActionSelection: QuickActionSelection = .none
     @State private var showingSharedCSVPicker = false
+    @State private var showingSupport = false
 
     private enum QuickActionSelection: Hashable, Identifiable {
         case none
@@ -1993,6 +1994,19 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                 }
 
                 Button {
+                    showingSupport = true
+                } label: {
+                    HStack {
+                        Text(L.settingsSupportMe.localized)
+                            .foregroundStyle(Color.appLedgerContentText)
+                        Spacer()
+                        Image(systemName: "heart.fill")
+                            .font(.caption)
+                            .foregroundStyle(Color.appSecondaryText)
+                    }
+                }
+
+                Button {
                     showingContactSheet = true
                 } label: {
                     HStack {
@@ -2130,6 +2144,11 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
         .sheet(isPresented: $showingContactSheet) {
             ContactView()
                 .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showingSupport) {
+            SupportMeView()
+                .presentationDetents([.fraction(0.65), .large])
                 .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showingProfileEdit) {
@@ -2872,6 +2891,122 @@ struct SettingsNavigator: View {
                         personalLedgerRoot: personalLedgerRoot)
         }
         .background(Color.appBackground)
+    }
+}
+
+// MARK: - Support Me Page (Sheet)
+
+struct SupportMeView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var isProcessing = false
+    @AppStorage("support.hasSupported") private var hasSupported = false
+
+    var body: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 20) {
+                VStack(spacing: 8) {
+                    Text(L.supportTitle.localized)
+                        .font(.system(size: 30, weight: .bold, design: .rounded))
+                        .frame(maxWidth: .infinity)
+                        .multilineTextAlignment(.center)
+                    if hasSupported {
+                        Text(L.supportSuccess.localized)
+                            .font(.system(size: 18, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Color.appSuccess)
+                            .frame(maxWidth: .infinity)
+                            .multilineTextAlignment(.center)
+                    }
+                }
+                .padding(.top, 28)
+
+                Text(L.supportDisclaimer.localized)
+                    .multilineTextAlignment(.center)
+                    .font(.system(size: 15, weight: .regular, design: .rounded))
+                    .foregroundStyle(Color.appSecondaryText)
+                    .padding(.horizontal)
+                    .padding(.bottom, 10)
+
+                VStack(spacing: 12) {
+                    TipCard(title: L.supportCoffee.localized, emoji: "☕️", price: "$0.99", color: .appTextPrimary) {
+                        purchase(productId: "tip.coffee.099")
+                    }
+                    TipCard(title: L.supportCheesecake.localized, emoji: "🍰", price: "$2.99", color: .appTextPrimary) {
+                        purchase(productId: "tip.bakery.299")
+                    }
+                    TipCard(title: L.supportSushi.localized, emoji: "🍱", price: "$9.99", color: .appTextPrimary) {
+                        purchase(productId: "tip.sushi.999")
+                    }
+                }
+                .padding(.horizontal)
+
+                // Move the feature note below the tip options
+                Text(L.supportNoFeatureNote.localized)
+                    .multilineTextAlignment(.center)
+                    .font(.system(size: 15, weight: .regular, design: .rounded))
+                    .foregroundStyle(Color.appSecondaryText)
+                    .padding(.horizontal)
+                    .padding(.top, 4)
+
+                Spacer(minLength: 20)
+            }
+            .padding(.bottom, 24)
+        }
+        .background(
+            LinearGradient(colors: [Color.appSurfaceAlt, Color.appBackground], startPoint: .top, endPoint: .bottom)
+        )
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                if isProcessing { ProgressView().controlSize(.small) }
+            }
+        }
+    }
+
+    private func purchase(productId: String) {
+        // Placeholder for StoreKit; integrate real IAP later
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+            isProcessing = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+            withAnimation(.easeOut) {
+                isProcessing = false
+                hasSupported = true
+            }
+        }
+    }
+}
+
+private struct TipCard: View {
+    let title: String
+    let emoji: String
+    let price: String
+    let color: Color
+    let action: () -> Void
+
+    @State private var pressed = false
+
+    var body: some View {
+        Button(action: {
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) { pressed = true }
+            action()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                withAnimation(.spring()) { pressed = false }
+            }
+        }) {
+            HStack(spacing: 16) {
+                Text(emoji).font(.system(size: 40))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title).font(.system(size: 18, weight: .semibold, design: .rounded)).foregroundStyle(Color.appTextPrimary)
+                    Text(price).font(.system(size: 14, weight: .medium, design: .rounded)).foregroundStyle(color)
+                }
+                Spacer()
+                Image(systemName: "heart.fill").foregroundStyle(color)
+            }
+            .padding(16)
+            .scaleEffect(pressed ? 0.97 : 1.0)
+            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.appSurface))
+            .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 4)
+        }
+        .buttonStyle(.plain)
     }
 }
 

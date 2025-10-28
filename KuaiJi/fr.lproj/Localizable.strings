@@ -141,12 +141,23 @@
 "settings.about" = "À Propos";
 "settings.guide" = "Introduction";
 "settings.contactMe" = "Me Contacter";
+"settings.supportMe" = "Soutenir";
 "settings.version" = "Version";
 "settings.showSharedAndFriends" = "Afficher le ledger partagé et les amis";
 "settings.showPersonalLedger" = "Afficher le ledger personnel";
 "settings.clearData" = "Effacer les comptes partagés et amis";
 "settings.clearDataWarning" = "Cette action supprime définitivement tous les comptes partagés et données des amis. Votre profil et vos réglages personnels seront conservés.";
 "settings.confirmDelete" = "Confirmer la Suppression";
+
+/* Soutenir */
+"support.title" = "Soutenir";
+"support.subtitle" = "Merci !";
+"support.disclaimer" = "Je suis développeur solo. Votre pourboire aide à continuer les mises à jour.";
+"support.noFeatureNote" = "Le pourboire n'ajoute aucune fonctionnalité. L'app reste entièrement utilisable gratuitement.";
+"support.coffee" = "Café";
+"support.cheesecake" = "Gâteau au fromage";
+"support.sushi" = "Bento sushi";
+"support.success" = "Merci pour votre soutien !";
 "settings.deleteMessage" = "Cette action supprime définitivement tous les comptes partagés et données des amis (votre profil et vos réglages sont conservés) et ne peut pas être annulée. Continuer?";
 "settings.interfaceDisplay" = "Affichage de l'interface";
 "settings.sharedLanding" = "Page par défaut de l'onglet partagé";

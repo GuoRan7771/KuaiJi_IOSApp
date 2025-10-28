@@ -174,6 +174,7 @@ enum L {
     static let settingsAbout = "settings.about"
     static let settingsGuide = "settings.guide"
     static let settingsContactMe = "settings.contactMe"
+    static let settingsSupportMe = "settings.supportMe"
     static let settingsVersion = "settings.version"
     static let settingsClearData = "settings.clearData"
     static let settingsClearDataWarning = "settings.clearDataWarning"
@@ -190,6 +191,16 @@ enum L {
     static let settingsExportSharedCSVEmptyMessage = "settings.exportSharedCSV.emptyMessage"
     static let settingsExportSharedCSVNotFound = "settings.exportSharedCSV.notFound"
     
+    // Support Me
+    static let supportTitle = "support.title"
+    static let supportSubtitle = "support.subtitle"
+    static let supportDisclaimer = "support.disclaimer"
+    static let supportNoFeatureNote = "support.noFeatureNote"
+    static let supportCoffee = "support.coffee"
+    static let supportCheesecake = "support.cheesecake"
+    static let supportSushi = "support.sushi"
+    static let supportSuccess = "support.success"
+
     // Quick Actions
     static let quickActionAddExpense = "quickAction.addExpense"
     static let quickActionPersonalSubtitle = "quickAction.personalSubtitle"

@@ -141,6 +141,7 @@
 "settings.about" = "关于";
 "settings.guide" = "简介";
 "settings.contactMe" = "联系我";
+"settings.supportMe" = "支持我";
 "settings.version" = "版本";
 "settings.showSharedAndFriends" = "显示共享账本及朋友";
 "settings.showPersonalLedger" = "显示个人账本";
@@ -497,3 +498,13 @@
 "eraseAllData.warning" = "此操作将删除包括共享账本、朋友、个人账本、个人账户与全部设置在内的所有数据，仅可通过全数据导入恢复。";
 "eraseAllData.confirmTitle" = "确认抹掉一切信息";
 "eraseAllData.confirmMessage" = "此操作将彻底清空所有数据与偏好设置，应用将回到首次安装状态。确定要继续吗？";
+
+/* 支持我 */
+"support.title" = "支持我";
+"support.subtitle" = "谢谢你！";
+"support.disclaimer" = "我是独立开发者，你的小额打赏能帮助我持续更新。";
+"support.noFeatureNote" = "该付费不解锁任何额外功能，不付费也可继续使用全部功能。";
+"support.coffee" = "咖啡";
+"support.cheesecake" = "芝士蛋糕";
+"support.sushi" = "寿司便当";
+"support.success" = "感谢你的支持！";

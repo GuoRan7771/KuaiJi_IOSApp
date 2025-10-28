@@ -129,6 +129,16 @@
 "settings.exportSharedCSV.emptyTitle" = "No shared ledgers";
 "settings.exportSharedCSV.emptyMessage" = "Create a shared ledger first before exporting.";
 "settings.exportSharedCSV.notFound" = "Unable to locate the selected shared ledger.";
+
+/* Support Me */
+"support.title" = "Support Me";
+"support.subtitle" = "Thank you!";
+"support.disclaimer" = "I’m a solo developer. Your tip helps keep updates coming.";
+"support.noFeatureNote" = "Tips do not unlock extra features. The full app remains free to use.";
+"support.coffee" = "Coffee";
+"support.cheesecake" = "Cheese Cake";
+"support.sushi" = "Sushi Bento";
+"support.success" = "Thanks for your support!";
 "settings.exportSuccess" = "Export Successful";
 "settings.exportError" = "Export Failed";
 "settings.exportErrorMessage" = "Unable to create export file";
@@ -141,6 +151,7 @@
 "settings.about" = "About";
 "settings.guide" = "Introduction";
 "settings.contactMe" = "Contact Me";
+"settings.supportMe" = "Support Me";
 "settings.version" = "Version";
 "settings.showSharedAndFriends" = "Show shared ledger & friends";
 "settings.showPersonalLedger" = "Show personal ledger";
