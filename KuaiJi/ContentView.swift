@@ -2903,8 +2903,8 @@ struct SettingsNavigator: View {
 
 struct SupportMeView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var isProcessing = false
     @AppStorage("support.hasSupported") private var hasSupported = false
+    @StateObject private var store = StoreKitManager()
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -2932,14 +2932,23 @@ struct SupportMeView: View {
                     .padding(.bottom, 10)
 
                 VStack(spacing: 12) {
-                    TipCard(title: L.supportCoffee.localized, emoji: "☕️", price: "$0.99", color: .appTextPrimary) {
-                        purchase(productId: "tip.coffee.099")
+                    TipCard(title: L.supportCoffee.localized,
+                            emoji: "☕️",
+                            price: store.displayPrice(for: "tip.coffee.099", fallback: "$0.99"),
+                            color: .appTextPrimary) {
+                        Task { await store.buy("tip.coffee.099") }
                     }
-                    TipCard(title: L.supportCheesecake.localized, emoji: "🍰", price: "$2.99", color: .appTextPrimary) {
-                        purchase(productId: "tip.bakery.299")
+                    TipCard(title: L.supportCheesecake.localized,
+                            emoji: "🍰",
+                            price: store.displayPrice(for: "tip.bakery.299", fallback: "$2.99"),
+                            color: .appTextPrimary) {
+                        Task { await store.buy("tip.bakery.299") }
                     }
-                    TipCard(title: L.supportSushi.localized, emoji: "🍱", price: "$9.99", color: .appTextPrimary) {
-                        purchase(productId: "tip.sushi.999")
+                    TipCard(title: L.supportSushi.localized,
+                            emoji: "🍱",
+                            price: store.displayPrice(for: "tip.sushi.999", fallback: "$9.99"),
+                            color: .appTextPrimary) {
+                        Task { await store.buy("tip.sushi.999") }
                     }
                 }
                 .padding(.horizontal)
@@ -2961,21 +2970,12 @@ struct SupportMeView: View {
         )
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                if isProcessing { ProgressView().controlSize(.small) }
+                if store.purchasing { ProgressView().controlSize(.small) }
             }
         }
-    }
-
-    private func purchase(productId: String) {
-        // Placeholder for StoreKit; integrate real IAP later
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-            isProcessing = true
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-            withAnimation(.easeOut) {
-                isProcessing = false
-                hasSupported = true
-            }
+        .task {
+            await store.load()
+            store.listenForUpdates()
         }
     }
 }
@@ -4184,4 +4184,5 @@ final class KeyboardDismissInstaller: NSObject, UIGestureRecognizerDelegate {
         return Text("Preview init failed: \(error.localizedDescription)")
     }
 }
+
 
