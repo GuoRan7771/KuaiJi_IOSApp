@@ -33,6 +33,7 @@ struct KuaiJiApp: App {
     @StateObject private var rootViewModel = AppRootViewModel()
     @StateObject private var appState = AppState()
     @StateObject private var personalLedgerRoot: PersonalLedgerRootViewModel
+    @StateObject private var celebration = CelebrationManager.shared
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     init() {
@@ -97,6 +98,9 @@ struct KuaiJiApp: App {
                     // 显示主界面
                     ContentView(viewModel: rootViewModel, personalLedgerRoot: personalLedgerRoot)
                         .environmentObject(appState)
+                        .overlay(
+                            CelebrationOverlay(manager: celebration)
+                        )
                 }
             }
             .onAppear {
@@ -149,6 +153,11 @@ struct KuaiJiApp: App {
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
                 appState.processPendingShortcutTriggers()
             }
+            .alert(isPresented: Binding(get: { (appState.iapAlertMessage?.isEmpty == false) && !appState.isSupportSheetVisible }, set: { _ in appState.iapAlertTitle = nil; appState.iapAlertMessage = nil })) {
+                Alert(title: Text(appState.iapAlertTitle ?? L.supportPurchaseTitle.localized),
+                      message: Text(appState.iapAlertMessage ?? ""),
+                      dismissButton: .default(Text(L.ok.localized)))
+            }
         }
         .modelContainer(sharedModelContainer)
     }
@@ -180,6 +189,10 @@ class AppState: ObservableObject {
     }
     // 当选择共享账本 Tab 时触发，用于根据偏好进行页面导航
     @Published var sharedTabActivateAt: Date?
+    // Global IAP alert
+    @Published var iapAlertTitle: String?
+    @Published var iapAlertMessage: String?
+    @Published var isSupportSheetVisible: Bool = false
     
     private let hasSeenWelcomeGuideKey = "hasSeenWelcomeGuide"
     private let defaultLedgerIdKey = "defaultLedgerIdForQuickAction"

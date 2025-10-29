@@ -1,0 +1,117 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "DA61D8FF",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "6754612275",
+      "localizations" : [
+        {
+          "description" : "Soutenir uniquement le développeur",
+          "displayName" : "Gâteau au fromage",
+          "locale" : "fr"
+        },
+        {
+          "description" : "不解锁其他功能，仅支持作者",
+          "displayName" : "一块芝士蛋糕",
+          "locale" : "zh_Hans"
+        },
+        {
+          "description" : "Support the developer only",
+          "displayName" : "A piece of cheesecake",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "tip.bakery.299",
+      "referenceName" : "Cheese Cake",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "0.99",
+      "familyShareable" : false,
+      "internalID" : "6754612128",
+      "localizations" : [
+        {
+          "description" : "Support the developer only",
+          "displayName" : "A cup of coffee",
+          "locale" : "en_US"
+        },
+        {
+          "description" : "不解锁其他功能，仅支持作者",
+          "displayName" : "一杯咖啡",
+          "locale" : "zh_Hans"
+        },
+        {
+          "description" : "Soutenir uniquement le développeur",
+          "displayName" : "Un Café",
+          "locale" : "fr"
+        }
+      ],
+      "productID" : "tip.coffee.099",
+      "referenceName" : "Coffee Tip",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "9.99",
+      "familyShareable" : false,
+      "internalID" : "6754612423",
+      "localizations" : [
+        {
+          "description" : "Soutenir uniquement le développeur",
+          "displayName" : "Sushi Bento",
+          "locale" : "fr"
+        },
+        {
+          "description" : "不解锁其他功能，仅支持作者",
+          "displayName" : "一盒寿司",
+          "locale" : "zh_Hans"
+        },
+        {
+          "description" : "Support the developer only",
+          "displayName" : "Sushi Bento",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "tip.sushi.999",
+      "referenceName" : "Sushi Bento",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6754407498",
+    "_askToBuyEnabled" : false,
+    "_billingGracePeriodEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_developerTeamID" : "FDZN885HN3",
+    "_disableDialogs" : false,
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 783437381.68821394,
+    "_locale" : "en_US",
+    "_renewalBillingIssuesEnabled" : false,
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+
+    ],
+    "_timeRate" : 0
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

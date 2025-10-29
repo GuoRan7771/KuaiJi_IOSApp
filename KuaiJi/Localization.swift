@@ -199,6 +199,11 @@ enum L {
     static let supportCoffee = "support.coffee"
     static let supportCheesecake = "support.cheesecake"
     static let supportSushi = "support.sushi"
+    static let supportPurchaseTitle = "support.purchase.title"
+    static let supportPurchaseSuccess = "support.purchase.success"
+    static let supportPurchaseFailed = "support.purchase.failed"
+    static let supportPurchaseCancelled = "support.purchase.cancelled"
+    static let supportPurchasePending = "support.purchase.pending"
     static let supportSuccess = "support.success"
 
     // Quick Actions

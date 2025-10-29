@@ -507,4 +507,9 @@
 "support.coffee" = "咖啡";
 "support.cheesecake" = "芝士蛋糕";
 "support.sushi" = "寿司便当";
+"support.purchase.title" = "打赏";
+"support.purchase.success" = "感谢你的支持！支付已完成。";
+"support.purchase.failed" = "支付失败，请稍后再试。";
+"support.purchase.cancelled" = "已取消支付。";
+"support.purchase.pending" = "支付处理中。如果开启了“家人共享-请求购买”，请等待批准。";
 "support.success" = "感谢你的支持！";

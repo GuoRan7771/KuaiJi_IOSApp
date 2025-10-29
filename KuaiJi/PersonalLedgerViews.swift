@@ -2590,11 +2590,25 @@ private enum ShareSheet {
 struct PersonalCSVExportView: View {
     @ObservedObject var root: PersonalLedgerRootViewModel
     @StateObject var viewModel: PersonalCSVExportViewModel
+    @State private var showingRecordForm = false
 
     var body: some View {
-        PersonalCSVExportContent(viewModel: viewModel, store: root.store)
-            .navigationTitle(L.personalExportCSV.localized)
-            .navigationBarTitleDisplayMode(.inline)
+        ZStack(alignment: .bottomTrailing) {
+            PersonalCSVExportContent(viewModel: viewModel, store: root.store)
+            FloatingActionButton(systemImage: "plus") {
+                showingRecordForm = true
+            }
+            .padding(.trailing, 24)
+            .padding(.bottom, 24)
+        }
+        .navigationTitle(L.personalExportCSV.localized)
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showingRecordForm) {
+            PersonalRecordFormHost(root: root, existing: nil) {
+                showingRecordForm = false
+                Task { await viewModel.refresh() }
+            }
+        }
     }
 }
 
@@ -2669,6 +2683,29 @@ private struct PersonalCSVExportContent: View {
                                         .background(RoundedRectangle(cornerRadius: 10).fill(selected ? Color.accentColor.opacity(0.2) : Color(.systemGray6)))
                                 }
                             }
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+            }
+
+            Section(header: Text(L.personalAccountsSummary.localized)) {
+                let selectedIds = viewModel.selectedAccountIds
+                let accounts = store.activeAccounts.filter { selectedIds.isEmpty || selectedIds.contains($0.remoteId) }
+                if accounts.isEmpty {
+                    Text(L.recordsEmpty.localized)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(accounts) { account in
+                        HStack {
+                            Text(account.name)
+                                .font(.footnote)
+                            Spacer()
+                            Text(AmountFormatter.string(minorUnits: account.balanceMinorUnits,
+                                                        currency: account.currency,
+                                                        locale: Locale.current))
+                                .font(.footnote)
                         }
                         .padding(.vertical, 2)
                     }

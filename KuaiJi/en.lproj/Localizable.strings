@@ -138,6 +138,11 @@
 "support.coffee" = "Coffee";
 "support.cheesecake" = "Cheese Cake";
 "support.sushi" = "Sushi Bento";
+"support.purchase.title" = "Purchase";
+"support.purchase.success" = "Thanks for your support! The purchase was successful.";
+"support.purchase.failed" = "Purchase failed. Please try again later.";
+"support.purchase.cancelled" = "Purchase cancelled.";
+"support.purchase.pending" = "Purchase is pending. If Ask to Buy is enabled, please wait for approval.";
 "support.success" = "Thanks for your support!";
 "settings.exportSuccess" = "Export Successful";
 "settings.exportError" = "Export Failed";

@@ -301,7 +301,7 @@ class QRCodeScannerViewController: UIViewController, AVCaptureMetadataOutputObje
             guard let readableObject = metadataObject as? AVMetadataMachineReadableCodeObject else { return }
             guard let stringValue = readableObject.stringValue else { return }
             
-            AudioServicesPlaySystemSound(SystemSoundID(kSystemSoundID_Vibrate))
+            Haptics.vibrate()
             onScanSuccess?(stringValue)
             
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in

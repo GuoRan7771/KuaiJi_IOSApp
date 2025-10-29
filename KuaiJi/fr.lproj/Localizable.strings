@@ -157,6 +157,11 @@
 "support.coffee" = "Café";
 "support.cheesecake" = "Gâteau au fromage";
 "support.sushi" = "Bento sushi";
+"support.purchase.title" = "Pourboire";
+"support.purchase.success" = "Merci pour votre soutien ! L'achat a réussi.";
+"support.purchase.failed" = "Échec de l'achat. Réessayez plus tard.";
+"support.purchase.cancelled" = "Achat annulé.";
+"support.purchase.pending" = "Achat en attente. Si Demander l'achat est activé, veuillez attendre l'approbation.";
 "support.success" = "Merci pour votre soutien !";
 "settings.deleteMessage" = "Cette action supprime définitivement tous les comptes partagés et données des amis (votre profil et vos réglages sont conservés) et ne peut pas être annulée. Continuer?";
 "settings.interfaceDisplay" = "Affichage de l'interface";

@@ -40,9 +40,8 @@ struct SyncEngine {
             }
             
             
-            // 获取账本的所有支出（排除清账记录）
+            // 获取账本的所有支出（包含清账记录）
             let expenses = dataManager.getLedgerExpenses(ledgerId: ledger.remoteId)
-                .filter { $0.isSettlement != true }  // 不同步清账记录
             
             
             // 转换为同步格式
