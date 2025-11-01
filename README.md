@@ -96,30 +96,3 @@ Thanks to my girlfriend for all her silent support behind the scenes! Heyhey �
 
 MIT License — use it freely, just don’t blame me if your data disappears.
 
----
-
-## Developer Guide (Cleaning)
-
-This repo uses SwiftFormat and SwiftLint to keep style consistent.
-
-### Install (optional)
-- SwiftFormat: `brew install swiftformat`
-- SwiftLint: `brew install swiftlint`
-
-### Commands (root directory)
-```bash
-# Format code
-make format
-
-# Lint code
-make lint
-
-# Run tests (requires Xcode CLT)
-make test
-```
-
-### Config files
-- `.swiftformat`: indentation, max width, wrapping, etc.
-- `.swiftlint.yml`: enabled rules, limits, and reporter.
-
-> Workflow: format → lint → fix remaining issues → test.
