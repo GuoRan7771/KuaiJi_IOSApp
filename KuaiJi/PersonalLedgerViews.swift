@@ -2726,30 +2726,13 @@ private struct PersonalCategoryRow: View {
                     Image(systemName: item.iconName.isEmpty ? "tag" : item.iconName)
                         .foregroundStyle(categoryColor)
                 )
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(item.name)
-                        .font(.headline)
-                    if item.isSystem {
-                        Text(L.personalCategorySystemBadge.localized)
-                            .font(.caption2)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.appSecondaryText.opacity(0.15), in: Capsule())
-                    }
-                    if item.isHidden {
-                        Text(L.personalCategoryHiddenBadge.localized)
-                            .font(.caption2)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.orange.opacity(0.2), in: Capsule())
-                    }
-                }
-                if item.isSystem {
-                    Text(item.key)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.name)
+                    .font(.headline)
+                    .foregroundStyle(Color.appTextPrimary)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
             Button {

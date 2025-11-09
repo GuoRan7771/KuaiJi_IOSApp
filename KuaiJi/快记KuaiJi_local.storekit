@@ -94,7 +94,7 @@
     "_applicationInternalID" : "6754407498",
     "_askToBuyEnabled" : false,
     "_billingGracePeriodEnabled" : false,
-    "_billingIssuesEnabled" : true,
+    "_billingIssuesEnabled" : false,
     "_developerTeamID" : "FDZN885HN3",
     "_disableDialogs" : false,
     "_failTransactionsEnabled" : false,
