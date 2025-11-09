@@ -568,13 +568,13 @@ struct PersonalRecordDetailView: View {
         List {
             Section(header: Text(L.personalDetailSection.localized)) {
                 if let tx = latest, let account = root.store.account(with: tx.accountId) {
-                    let categoryName = localizedCategoryName(tx.categoryKey)
+                    let categoryName = root.store.resolvedCategoryName(for: tx.categoryKey)
                     DetailRow(title: L.personalDetailCategory.localized, value: categoryName)
                     DetailRow(title: L.personalDetailAccount.localized, value: root.store.account(with: tx.accountId)?.name ?? record.accountName)
                     let kindDisplay = PersonalRecordRowViewData(id: tx.remoteId,
                                                                 categoryKey: tx.categoryKey,
                                                                 categoryName: categoryName,
-                                                                systemImage: iconForCategory(key: tx.categoryKey),
+                                                                systemImage: root.store.resolvedCategoryIcon(for: tx.categoryKey),
                                                                 note: tx.note,
                                                                 amountMinorUnits: tx.amountMinorUnits,
                                                                 currency: account.currency,
@@ -610,7 +610,7 @@ struct PersonalRecordDetailView: View {
                 }
             }
         }
-        .navigationTitle(latest != nil ? localizedCategoryName(latest!.categoryKey) : record.categoryName)
+        .navigationTitle(latest != nil ? root.store.resolvedCategoryName(for: latest!.categoryKey) : record.categoryName)
         .toolbar {
             ToolbarItemGroup(placement: .navigationBarTrailing) {
                 Button(L.edit.localized) { onEdit(record) }
@@ -758,7 +758,9 @@ private struct SharedExpenseDraft: Identifiable, Hashable {
     var amount: Decimal
     var currency: CurrencyCode
     var occurredAt: Date
-    var category: ExpenseCategory
+    var sharedCategory: ExpenseCategory
+    var personalCategoryKey: String
+    var isCustomCategory: Bool
     var note: String
 }
 
@@ -796,7 +798,7 @@ private struct SaveToSharedSheet: View {
     var draft: SharedExpenseDraft
     var ledgers: [SharedLedgerOption]
     @Binding var selectedLedgerId: UUID?
-    var onConfirm: (QuickSplitConfiguration) -> Void
+    var onConfirm: (SharedExpenseDraft, QuickSplitConfiguration) -> Void
     var onCancel: () -> Void
 
     private var selectedLedger: SharedLedgerOption? {
@@ -816,11 +818,26 @@ private struct SaveToSharedSheet: View {
     @State private var selectedOtherPayerId: UUID?
     @State private var selectedHelpPayPayerId: UUID?
     @State private var selectedBeneficiaryId: UUID?
+    @State private var selectedSharedCategory: ExpenseCategory
+
+    init(draft: SharedExpenseDraft,
+         ledgers: [SharedLedgerOption],
+         selectedLedgerId: Binding<UUID?>,
+         onConfirm: @escaping (SharedExpenseDraft, QuickSplitConfiguration) -> Void,
+         onCancel: @escaping () -> Void) {
+        self.draft = draft
+        self.ledgers = ledgers
+        self._selectedLedgerId = selectedLedgerId
+        self.onConfirm = onConfirm
+        self.onCancel = onCancel
+        _selectedSharedCategory = State(initialValue: draft.sharedCategory)
+    }
 
     var body: some View {
         NavigationStack {
             Form {
                 ledgerPickerSection()
+                categoryMappingSection()
                 splitModeSection()
                 summarySection()
             }
@@ -886,6 +903,20 @@ private struct SaveToSharedSheet: View {
     private func selectedLedgerFrom(options: [SharedLedgerOption]) -> SharedLedgerOption? {
         guard let selectedLedgerId else { return nil }
         return options.first { $0.id == selectedLedgerId }
+    }
+
+    @ViewBuilder private func categoryMappingSection() -> some View {
+        if draft.isCustomCategory {
+            Section(header: Text(L.personalSaveAndShareCategorySection.localized),
+                    footer: Text(L.personalSaveAndShareCategoryHint.localized)) {
+                Picker(L.personalSaveAndShareCategoryLabel.localized, selection: $selectedSharedCategory) {
+                    ForEach(ExpenseCategory.allCases, id: \.self) { category in
+                        Text(category.localizedName).tag(category)
+                    }
+                }
+                .pickerStyle(.menu)
+            }
+        }
     }
 
     @ViewBuilder private func splitModeSection() -> some View {
@@ -956,7 +987,7 @@ private struct SaveToSharedSheet: View {
             HStack {
                 Text(L.personalFieldCategory.localized)
                 Spacer()
-                Text(draft.category.localizedName)
+                Text(effectiveSharedCategory.localizedName)
                     .foregroundStyle(.secondary)
             }
             HStack {
@@ -984,7 +1015,9 @@ private struct SaveToSharedSheet: View {
         ToolbarItem(placement: .confirmationAction) {
             Button(L.personalSaveAndShare.localized) {
                 if let config = try? buildConfiguration() {
-                    onConfirm(config)
+                    var updatedDraft = draft
+                    updatedDraft.sharedCategory = effectiveSharedCategory
+                    onConfirm(updatedDraft, config)
                 }
             }
             .disabled(!canConfirm)
@@ -1109,6 +1142,10 @@ private struct SaveToSharedSheet: View {
 
         return QuickSplitConfiguration(payerId: payerId, splitStrategy: strategy, includePayer: includePayer, participants: participants)
     }
+
+    private var effectiveSharedCategory: ExpenseCategory {
+        draft.isCustomCategory ? selectedSharedCategory : draft.sharedCategory
+    }
 }
 
 struct PersonalRecordFormView: View {
@@ -1199,7 +1236,13 @@ struct PersonalRecordFormView: View {
                 // 分类
                 Picker(L.personalFieldCategory.localized, selection: $viewModel.categoryKey) {
                     ForEach(viewModel.categoryOptions, id: \.key) { option in
-                        Text(option.localizedName).tag(option.key)
+                        HStack {
+                            Image(systemName: option.iconName.isEmpty ? "tag" : option.iconName)
+                                .foregroundStyle(colorFromHex(option.colorHex) ?? Color.appSecondaryText)
+                            Text(option.name)
+                        }
+                        .tag(option.key)
+                        .opacity(option.isHidden ? 0.4 : 1)
                     }
                 }
                 // 时间
@@ -1249,7 +1292,9 @@ struct PersonalRecordFormView: View {
             SaveToSharedSheet(draft: draft,
                               ledgers: sharedLedgerOptions,
                               selectedLedgerId: $selectedSharedLedgerId,
-                              onConfirm: { config in confirmSaveAndShare(with: draft, configuration: config) },
+                              onConfirm: { updatedDraft, config in
+                                  confirmSaveAndShare(with: updatedDraft, configuration: config)
+                              },
                               onCancel: { cancelSaveToSharedFlow() })
         }
     }
@@ -1276,11 +1321,23 @@ struct PersonalRecordFormView: View {
             return
         }
 
-        let category = ExpenseCategory(rawValue: viewModel.categoryKey) ?? .other
+        let personalCategoryKey = viewModel.categoryKey
+        let isSystemCategory = viewModel.isSystemCategory(personalCategoryKey)
+        let defaultSharedCategory: ExpenseCategory
+        if isSystemCategory, let direct = ExpenseCategory(rawValue: personalCategoryKey) {
+            defaultSharedCategory = direct
+        } else if let preferred = viewModel.preferredSharedCategory(for: personalCategoryKey) {
+            defaultSharedCategory = preferred
+        } else {
+            defaultSharedCategory = .other
+        }
+
         let draft = SharedExpenseDraft(amount: amount,
                                        currency: viewModel.amountCurrency,
                                        occurredAt: viewModel.occurredAt,
-                                       category: category,
+                                       sharedCategory: defaultSharedCategory,
+                                       personalCategoryKey: personalCategoryKey,
+                                       isCustomCategory: !isSystemCategory,
                                        note: viewModel.note)
 
         // Prefer shared ledgers from root view model; fallback to data manager if needed
@@ -1318,6 +1375,9 @@ struct PersonalRecordFormView: View {
             defer { isSharingWithSharedLedger = false }
             do {
                 try shareToSharedLedger(ledgerId: ledgerId, draft: draft, config: configuration)
+                if draft.isCustomCategory {
+                    viewModel.updateSharedCategoryMapping(for: draft.personalCategoryKey, sharedCategory: draft.sharedCategory)
+                }
                 let success = await viewModel.submit()
                 if success { onDone() }
             } catch {
@@ -1350,7 +1410,7 @@ private func shareToSharedLedger(ledgerId: UUID, draft: SharedExpenseDraft, conf
                            amount: draft.amount,
                            currency: draft.currency,
                            date: draft.occurredAt,
-                           category: draft.category,
+                           category: draft.sharedCategory,
                            note: draft.note,
                            splitStrategy: config.splitStrategy,
                            includePayer: config.includePayer,
@@ -1425,7 +1485,7 @@ private struct SharedExpensePrefillHost: View {
             viewModel.draft.amount = prefill.amount
             viewModel.draft.date = prefill.occurredAt
             viewModel.draft.note = prefill.note
-            viewModel.draft.category = prefill.category
+            viewModel.draft.category = prefill.sharedCategory
             viewModel.regeneratePreview()
         }
     }
@@ -2138,7 +2198,7 @@ struct PersonalStatsView: View {
                         let streakText = L.personalStatsInsightStreak.localized(insight.increasingStreak)
                         let growthText = L.personalStatsInsightRecentGrowth.localized
                         let detailText = L.personalStatsInsightDetail.localized(
-                            localizedCategoryName(insight.categoryKey),
+                            insight.displayName,
                             streakText,
                             growthText,
                             formatPercent(insight.recentGrowthRate)
@@ -2424,12 +2484,12 @@ struct PersonalStatsView: View {
                 Circle()
                     .fill(color.opacity(0.15))
                     .frame(width: 46, height: 46)
-                Image(systemName: iconForCategory(key: item.categoryKey))
+                Image(systemName: item.iconName.isEmpty ? "tag" : item.iconName)
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(color)
             }
             VStack(alignment: .leading, spacing: 4) {
-                Text(localizedCategoryName(item.categoryKey))
+                Text(item.displayName)
                     .font(.headline)
                 Text(L.personalStatsRecordCount.localized(item.transactionCount))
                     .font(.caption)
@@ -2513,6 +2573,345 @@ extension PersonalStatsViewModel.Period {
     }
 }
 
+private func colorFromHex(_ hex: String?) -> Color? {
+    guard let hex, !hex.isEmpty else { return nil }
+    var string = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+    if string.hasPrefix("#") {
+        string = String(string.dropFirst())
+    }
+    guard let value = UInt64(string, radix: 16) else { return nil }
+    switch string.count {
+    case 6:
+        let r = Double((value & 0xFF0000) >> 16) / 255.0
+        let g = Double((value & 0x00FF00) >> 8) / 255.0
+        let b = Double(value & 0x0000FF) / 255.0
+        return Color(red: r, green: g, blue: b)
+    case 8:
+        let r = Double((value & 0xFF000000) >> 24) / 255.0
+        let g = Double((value & 0x00FF0000) >> 16) / 255.0
+        let b = Double((value & 0x0000FF00) >> 8) / 255.0
+        let a = Double(value & 0x000000FF) / 255.0
+        return Color(red: r, green: g, blue: b, opacity: a)
+    default:
+        return nil
+    }
+}
+
+struct PersonalCategoryManagerView: View {
+    @ObservedObject var viewModel: PersonalCategoryManagerViewModel
+    @State private var editorMode: CategoryEditorMode?
+    @State private var editorDraft = PersonalCategoryEditorDraft()
+    @State private var alertMessage: String?
+
+    private enum CategoryEditorMode: Identifiable {
+        case add(PersonalTransactionKind)
+        case edit(PersonalCategoryPickerItem)
+
+        var id: String {
+            switch self {
+            case .add(let kind):
+                return "add-\(kind.rawValue)"
+            case .edit(let item):
+                return "edit-\(item.key)"
+            }
+        }
+
+        var title: String {
+            switch self {
+            case .add(let kind):
+                switch kind {
+                case .expense: return L.personalCategoryAddExpense.localized
+                case .income: return L.personalCategoryAddIncome.localized
+                case .fee: return L.personalCategoryAddFee.localized
+                }
+            case .edit:
+                return L.personalCategoryEditTitle.localized
+            }
+        }
+    }
+
+    var body: some View {
+        List {
+            categorySection(title: L.personalCategoryExpense.localized, kind: .expense, items: viewModel.expenseCategories)
+            categorySection(title: L.personalCategoryIncome.localized, kind: .income, items: viewModel.incomeCategories)
+            categorySection(title: L.personalCategoryFee.localized, kind: .fee, items: viewModel.feeCategories)
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle(L.personalCategoryManagerTitle.localized)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                EditButton()
+            }
+        }
+        .alert(L.personalCategoryErrorTitle.localized, isPresented: Binding(get: { alertMessage != nil }, set: { _ in alertMessage = nil })) {
+            Button(L.ok.localized, role: .cancel) { }
+        } message: {
+            Text(alertMessage ?? "")
+        }
+        .sheet(item: $editorMode) { mode in
+            NavigationStack {
+                PersonalCategoryEditorView(title: mode.title, draft: $editorDraft, onSave: { draft in
+                    switch mode {
+                    case .add(let kind):
+                        viewModel.addCategory(kind: kind, name: draft.name, iconName: draft.iconName, colorHex: draft.colorHex)
+                    case .edit(let item):
+                        viewModel.updateCategory(item, name: draft.name, iconName: draft.iconName, colorHex: draft.colorHex)
+                    }
+                    editorMode = nil
+                })
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(L.cancel.localized) { editorMode = nil }
+                    }
+                }
+            }
+        }
+        .onReceive(viewModel.$lastError.compactMap { $0 }) { error in
+            alertMessage = error
+            viewModel.lastError = nil
+        }
+    }
+
+    @ViewBuilder
+    private func categorySection(title: String, kind: PersonalTransactionKind, items: [PersonalCategoryPickerItem]) -> some View {
+        Section {
+            if items.isEmpty {
+                Text(L.personalCategoryEmpty.localized)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(items) { item in
+                    PersonalCategoryRow(item: item,
+                                        onEdit: { beginEdit(item) },
+                                        onToggleHidden: { hidden in viewModel.toggleHidden(item, hidden: hidden) },
+                                        onDelete: { viewModel.deleteCategory(item) })
+                }
+                .onMove { offsets, offset in
+                    viewModel.move(kind: kind, from: offsets, to: offset)
+                }
+            }
+
+            Button {
+                beginAdd(kind: kind)
+            } label: {
+                Label(L.personalCategoryAdd.localized, systemImage: "plus.circle")
+            }
+        } header: {
+            Text(title)
+        }
+    }
+
+    private func beginAdd(kind: PersonalTransactionKind) {
+        editorDraft = PersonalCategoryEditorDraft()
+        editorMode = .add(kind)
+    }
+
+    private func beginEdit(_ item: PersonalCategoryPickerItem) {
+        editorDraft = PersonalCategoryEditorDraft(name: item.name, iconName: item.iconName, colorHex: item.colorHex)
+        editorMode = .edit(item)
+    }
+}
+
+private struct PersonalCategoryRow: View {
+    let item: PersonalCategoryPickerItem
+    var onEdit: () -> Void
+    var onToggleHidden: (Bool) -> Void
+    var onDelete: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Circle()
+                .fill(categoryColor.opacity(0.15))
+                .frame(width: 36, height: 36)
+                .overlay(
+                    Image(systemName: item.iconName.isEmpty ? "tag" : item.iconName)
+                        .foregroundStyle(categoryColor)
+                )
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(item.name)
+                        .font(.headline)
+                    if item.isSystem {
+                        Text(L.personalCategorySystemBadge.localized)
+                            .font(.caption2)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.appSecondaryText.opacity(0.15), in: Capsule())
+                    }
+                    if item.isHidden {
+                        Text(L.personalCategoryHiddenBadge.localized)
+                            .font(.caption2)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.orange.opacity(0.2), in: Capsule())
+                    }
+                }
+                if item.isSystem {
+                    Text(item.key)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+            Button {
+                onToggleHidden(!item.isHidden)
+            } label: {
+                Image(systemName: item.isHidden ? "eye.slash" : "eye")
+                    .foregroundStyle(item.isHidden ? .orange : .secondary)
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 4)
+            Button(action: onEdit) {
+                Image(systemName: "pencil")
+            }
+            .buttonStyle(.plain)
+            .disabled(item.isSystem)
+        }
+        .opacity(item.isHidden ? 0.5 : 1)
+        .swipeActions(edge: .trailing, allowsFullSwipe: !item.isSystem) {
+            if !item.isSystem {
+                Button(role: .destructive, action: onDelete) {
+                    Label(L.delete.localized, systemImage: "trash")
+                }
+            }
+            Button {
+                onToggleHidden(!item.isHidden)
+            } label: {
+                Label(item.isHidden ? L.personalCategoryShow.localized : L.personalCategoryHide.localized,
+                      systemImage: item.isHidden ? "eye" : "eye.slash")
+            }
+            .tint(.orange)
+        }
+    }
+
+    private var categoryColor: Color {
+        colorFromHex(item.colorHex) ?? .appBrand
+    }
+}
+
+struct PersonalCategoryEditorDraft {
+    var name: String = ""
+    var iconName: String = "tag"
+    var colorHex: String?
+}
+
+private struct PersonalCategoryIconOption: Identifiable {
+    var id: String { systemName }
+    let systemName: String
+    let titleKey: String
+
+    var localizedTitle: String { titleKey.localized }
+}
+
+struct PersonalCategoryEditorView: View {
+    fileprivate static let iconOptions: [PersonalCategoryIconOption] = [
+        PersonalCategoryIconOption(systemName: "tag", titleKey: L.personalCategoryIconGeneric),
+        PersonalCategoryIconOption(systemName: "fork.knife", titleKey: L.personalCategoryIconFood),
+        PersonalCategoryIconOption(systemName: "cup.and.saucer.fill", titleKey: L.personalCategoryIconDrinks),
+        PersonalCategoryIconOption(systemName: "cart.fill", titleKey: L.personalCategoryIconShopping),
+        PersonalCategoryIconOption(systemName: "bag.fill", titleKey: L.personalCategoryIconGroceries),
+        PersonalCategoryIconOption(systemName: "creditcard", titleKey: L.personalCategoryIconBills),
+        PersonalCategoryIconOption(systemName: "house.fill", titleKey: L.personalCategoryIconHousing),
+        PersonalCategoryIconOption(systemName: "car.fill", titleKey: L.personalCategoryIconTransport),
+        PersonalCategoryIconOption(systemName: "airplane", titleKey: L.personalCategoryIconTravel),
+        PersonalCategoryIconOption(systemName: "bolt.fill", titleKey: L.personalCategoryIconUtilities),
+        PersonalCategoryIconOption(systemName: "gamecontroller.fill", titleKey: L.personalCategoryIconEntertainment),
+        PersonalCategoryIconOption(systemName: "tshirt.fill", titleKey: L.personalCategoryIconClothing),
+        PersonalCategoryIconOption(systemName: "cross.case.fill", titleKey: L.personalCategoryIconMedical),
+        PersonalCategoryIconOption(systemName: "heart.fill", titleKey: L.personalCategoryIconWellness),
+        PersonalCategoryIconOption(systemName: "gift.fill", titleKey: L.personalCategoryIconGift),
+        PersonalCategoryIconOption(systemName: "sparkles", titleKey: L.personalCategoryIconCelebration),
+        PersonalCategoryIconOption(systemName: "graduationcap.fill", titleKey: L.personalCategoryIconEducation),
+        PersonalCategoryIconOption(systemName: "brain.head.profile", titleKey: L.personalCategoryIconGrowth),
+        PersonalCategoryIconOption(systemName: "chart.line.uptrend.xyaxis", titleKey: L.personalCategoryIconInvestment),
+        PersonalCategoryIconOption(systemName: "theatermasks.fill", titleKey: L.personalCategoryIconCulture),
+        PersonalCategoryIconOption(systemName: "music.note", titleKey: L.personalCategoryIconMusic),
+        PersonalCategoryIconOption(systemName: "camera.fill", titleKey: L.personalCategoryIconPhotography),
+        PersonalCategoryIconOption(systemName: "book.fill", titleKey: L.personalCategoryIconBooks),
+        PersonalCategoryIconOption(systemName: "leaf.fill", titleKey: L.personalCategoryIconLifestyle),
+        PersonalCategoryIconOption(systemName: "pawprint.fill", titleKey: L.personalCategoryIconPet),
+        PersonalCategoryIconOption(systemName: "moon.stars.fill", titleKey: L.personalCategoryIconNightlife),
+        PersonalCategoryIconOption(systemName: "tram.fill", titleKey: L.personalCategoryIconTransit),
+        PersonalCategoryIconOption(systemName: "bicycle", titleKey: L.personalCategoryIconSports),
+        PersonalCategoryIconOption(systemName: "figure.run.circle", titleKey: L.personalCategoryIconFitness)
+    ]
+
+    static let colorOptions: [String] = [
+        "#F5973C", "#7A4A2A", "#FF6B6B", "#FFD166", "#06D6A0",
+        "#118AB2", "#8338EC", "#3A86FF", "#FF006E", "#1AAE9F"
+    ]
+
+    let title: String
+    @Binding var draft: PersonalCategoryEditorDraft
+    var onSave: (PersonalCategoryEditorDraft) -> Void
+
+    var body: some View {
+        Form {
+            Section {
+                TextField(L.personalCategoryNameField.localized, text: $draft.name)
+            }
+            Section(header: Text(L.personalCategoryIconField.localized)) {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 4), spacing: 14) {
+                    ForEach(Self.iconOptions) { option in
+                        Button {
+                            draft.iconName = option.systemName
+                        } label: {
+                            Image(systemName: option.systemName)
+                                .frame(width: 34, height: 34)
+                                .foregroundStyle(draft.iconName == option.systemName ? Color.white : Color.appTextPrimary)
+                                .padding(8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(draft.iconName == option.systemName ? Color.appBrand : Color.appSurface)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+            Section(header: Text(L.personalCategoryColorField.localized)) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        Button {
+                            draft.colorHex = nil
+                        } label: {
+                            Text(L.personalCategoryColorDefault.localized)
+                                .font(.caption)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(
+                                    Capsule().fill((draft.colorHex == nil) ? Color.appBrand.opacity(0.2) : Color.appSurface)
+                                )
+                        }
+                        ForEach(Self.colorOptions, id: \.self) { hex in
+                            let color = colorFromHex(hex) ?? .appBrand
+                            Button {
+                                draft.colorHex = hex
+                            } label: {
+                                Circle()
+                                    .fill(color)
+                                    .frame(width: 32, height: 32)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.white, lineWidth: draft.colorHex == hex ? 3 : 0)
+                                    )
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+        }
+        .navigationTitle(title)
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button(L.save.localized) { onSave(draft) }
+                    .disabled(draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+        }
+    }
+}
+
 // MARK: - Helpers for Stats UI
 
 private func formatCurrency(_ minor: Int) -> String {
@@ -2528,13 +2927,6 @@ private func formatPercent(_ v: Double) -> String {
     f.numberStyle = .percent
     f.maximumFractionDigits = 1
     return f.string(from: NSNumber(value: v)) ?? String(format: "%.1f%%", v * 100)
-}
-
-private func localizedCategoryName(_ key: String) -> String {
-    if let match = (expenseCategories + incomeCategories + feeCategories).first(where: { $0.key == key }) {
-        return match.localizedName
-    }
-    return key
 }
 
 extension PersonalRecordRowViewData {

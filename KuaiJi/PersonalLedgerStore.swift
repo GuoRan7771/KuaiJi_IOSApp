@@ -25,6 +25,7 @@ enum PersonalLedgerError: LocalizedError {
     case invalidExchangeRate
     case invalidFeeSide
     case invalidFeeCurrency
+    case cannotHideAllCategories
 
     var errorDescription: String? {
         switch self {
@@ -41,6 +42,7 @@ enum PersonalLedgerError: LocalizedError {
         case .invalidExchangeRate: return "Exchange rate must be greater than zero".localized
         case .invalidFeeSide: return "Fee side is required when fee exists".localized
         case .invalidFeeCurrency: return "Fee currency does not match account".localized
+        case .cannotHideAllCategories: return L.personalCategoryHideError.localized
         }
     }
 }
@@ -60,6 +62,7 @@ struct PersonalLedgerSnapshot: Codable {
         var defaultFeeCategoryKey: String?
         var defaultConversionFee: Decimal?
         var lastBackupAt: Date?
+        var sharedCategoryMappings: [String: String]
 
         init(from preferences: PersonalPreferences) {
             self.primaryDisplayCurrency = preferences.primaryDisplayCurrency
@@ -73,6 +76,7 @@ struct PersonalLedgerSnapshot: Codable {
             self.defaultFeeCategoryKey = preferences.defaultFeeCategoryKey
             self.defaultConversionFee = preferences.defaultConversionFee
             self.lastBackupAt = preferences.lastBackupAt
+            self.sharedCategoryMappings = preferences.sharedCategoryMappings
         }
     }
 
@@ -168,10 +172,41 @@ struct PersonalLedgerSnapshot: Codable {
         }
     }
 
+    struct Category: Codable {
+        var remoteId: UUID
+        var key: String
+        var name: String
+        var localizationKey: String?
+        var iconName: String
+        var colorHex: String?
+        var kind: PersonalTransactionKind
+        var isSystem: Bool
+        var isHidden: Bool
+        var sortIndex: Int
+        var createdAt: Date
+        var updatedAt: Date
+
+        init(from category: PersonalCategory) {
+            self.remoteId = category.remoteId
+            self.key = category.key
+            self.name = category.name
+            self.localizationKey = category.localizationKey
+            self.iconName = category.iconName
+            self.colorHex = category.colorHex
+            self.kind = category.kind
+            self.isSystem = category.isSystem
+            self.isHidden = category.isHidden
+            self.sortIndex = category.sortIndex
+            self.createdAt = category.createdAt
+            self.updatedAt = category.updatedAt
+        }
+    }
+
     var preferences: Preferences
     var accounts: [Account]
     var transactions: [Transaction]
     var transfers: [Transfer]
+    var categories: [Category]
 }
 
 struct PersonalAccountDraft {
@@ -335,6 +370,7 @@ final class PersonalLedgerStore: ObservableObject {
     @Published private(set) var preferences: PersonalPreferences
     @Published private(set) var activeAccounts: [PersonalAccount] = []
     @Published private(set) var archivedAccounts: [PersonalAccount] = []
+    @Published private(set) var categories: [PersonalCategory] = []
 
     init(context: ModelContext, defaultCurrency: CurrencyCode = .cny, calendar: Calendar = .current) throws {
         self.context = context
@@ -342,6 +378,8 @@ final class PersonalLedgerStore: ObservableObject {
         self.recoveryDefaultCurrency = defaultCurrency
         self.preferences = try PersonalLedgerStore.ensurePreferences(in: context, defaultCurrency: defaultCurrency)
         try refreshAccounts()
+        try refreshCategories()
+        try ensureDefaultCategories()
     }
 
     // MARK: - Preferences
@@ -438,6 +476,235 @@ final class PersonalLedgerStore: ObservableObject {
         return preferences.fxRates[currency]
     }
 
+    func sharedCategoryMapping(for key: String) -> ExpenseCategory? {
+        ensurePreferencesConsistency()
+        guard let raw = preferences.sharedCategoryMappings[key] else { return nil }
+        return ExpenseCategory(rawValue: raw)
+    }
+
+    func setSharedCategoryMapping(for key: String, to category: ExpenseCategory) throws {
+        ensurePreferencesConsistency()
+        preferences.sharedCategoryMappings[key] = category.rawValue
+        try context.save()
+    }
+
+    func removeSharedCategoryMapping(for key: String) throws {
+        ensurePreferencesConsistency()
+        if preferences.sharedCategoryMappings.removeValue(forKey: key) != nil {
+            try context.save()
+        }
+    }
+
+    // MARK: - Categories
+
+    func refreshCategories() throws {
+        let descriptor = FetchDescriptor<PersonalCategory>(
+            sortBy: [
+                SortDescriptor(\.sortIndex, order: .forward),
+                SortDescriptor(\.createdAt, order: .forward)
+            ])
+        categories = try context.fetch(descriptor)
+        try backfillCategoryKindsIfNeeded()
+    }
+
+    private func ensureDefaultCategories() throws {
+        let existingKeys = Set(categories.map { $0.key })
+        var didInsert = false
+        for (index, seed) in PersonalCategorySeedCatalog.all.enumerated() {
+            guard !existingKeys.contains(seed.key) else { continue }
+            let category = PersonalCategory(key: seed.key,
+                                            name: seed.displayName,
+                                            localizationKey: seed.localizationKey,
+                                            iconName: seed.systemImage,
+                                            colorHex: seed.colorHex,
+                                            kind: seed.kind,
+                                            isSystem: true,
+                                            sortIndex: index)
+            context.insert(category)
+            didInsert = true
+        }
+        if didInsert {
+            try context.save()
+            try refreshCategories()
+        }
+        try normalizeCategorySortOrder()
+    }
+
+    private func normalizeCategorySortOrder() throws {
+        var didChange = false
+        for kind in PersonalTransactionKind.allCases {
+            let filtered = categories
+                .filter { $0.kind == kind }
+                .sorted {
+                    if $0.sortIndex == $1.sortIndex {
+                        return $0.createdAt < $1.createdAt
+                    }
+                    return $0.sortIndex < $1.sortIndex
+                }
+            for (idx, category) in filtered.enumerated() {
+                if category.sortIndex != idx {
+                    category.sortIndex = idx
+                    category.updatedAt = Date.now
+                    didChange = true
+                }
+            }
+        }
+        if didChange {
+            try context.save()
+            try refreshCategories()
+        }
+    }
+
+    private func backfillCategoryKindsIfNeeded() throws {
+        var didUpdate = false
+        for category in categories where category.needsKindBackfill {
+            let fallback: PersonalTransactionKind
+            if let seed = PersonalCategorySeedCatalog.all.first(where: { $0.key == category.key }) {
+                fallback = seed.kind
+            } else {
+                fallback = .expense
+            }
+            category.backfillKindIfNeeded(defaultKind: fallback)
+            didUpdate = true
+        }
+        if didUpdate {
+            try context.save()
+            categories = try context.fetch(FetchDescriptor(
+                sortBy: [
+                    SortDescriptor(\.sortIndex, order: .forward),
+                    SortDescriptor(\.createdAt, order: .forward)
+                ]))
+        }
+    }
+
+    func categories(for kind: PersonalTransactionKind, includeHidden: Bool = false) -> [PersonalCategory] {
+        categories
+            .filter { $0.kind == kind && (includeHidden || !$0.isHidden) }
+            .sorted { lhs, rhs in
+                if lhs.sortIndex == rhs.sortIndex {
+                    return lhs.createdAt < rhs.createdAt
+                }
+                return lhs.sortIndex < rhs.sortIndex
+            }
+    }
+
+    func defaultCategoryKey(for kind: PersonalTransactionKind) -> String {
+        if let first = categories(for: kind).first {
+            return first.key
+        }
+        return PersonalCategorySeedCatalog.defaultKey(for: kind)
+    }
+
+    func categoryExists(key: String, kind: PersonalTransactionKind) -> Bool {
+        categories.contains { $0.key == key && $0.kind == kind }
+    }
+
+    func isSystemCategory(key: String) -> Bool {
+        categories.first(where: { $0.key == key })?.isSystem ?? false
+    }
+
+    func createCustomCategory(name: String, iconName: String, colorHex: String?, kind: PersonalTransactionKind) throws {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { throw PersonalLedgerError.nameRequired }
+        let key = "custom.\(UUID().uuidString)"
+        let sortIndex = categories(for: kind, includeHidden: true).count
+        let category = PersonalCategory(key: key,
+                                        name: trimmed,
+                                        localizationKey: nil,
+                                        iconName: iconName,
+                                        colorHex: colorHex,
+                                        kind: kind,
+                                        isSystem: false,
+                                        sortIndex: sortIndex)
+        context.insert(category)
+        try context.save()
+        try refreshCategories()
+    }
+
+    func updateCustomCategory(id: UUID, name: String, iconName: String, colorHex: String?) throws {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { throw PersonalLedgerError.nameRequired }
+        guard let category = try findCategory(by: id), !category.isSystem else { return }
+        category.name = trimmed
+        category.iconName = iconName
+        category.colorHex = colorHex
+        category.updatedAt = Date.now
+        try context.save()
+        try refreshCategories()
+    }
+
+    func setCategory(_ id: UUID, hidden: Bool) throws {
+        guard let category = try findCategory(by: id) else { return }
+        if hidden {
+            let visible = categories(for: category.kind).filter { $0.remoteId != id }
+            guard !visible.isEmpty else { throw PersonalLedgerError.cannotHideAllCategories }
+        }
+        category.isHidden = hidden
+        category.updatedAt = Date.now
+        try context.save()
+        try refreshCategories()
+    }
+
+    func deleteCustomCategory(id: UUID) throws {
+        guard let category = try findCategory(by: id), !category.isSystem else { return }
+        let candidates = categories(for: category.kind).filter { $0.key != category.key }
+        let fallbackKey = candidates.first?.key ?? PersonalCategorySeedCatalog.defaultKey(for: category.kind)
+        try reassignTransactions(from: category.key, to: fallbackKey)
+        try removeSharedCategoryMapping(for: category.key)
+        context.delete(category)
+        try context.save()
+        try refreshCategories()
+    }
+
+    func reorderCategories(kind: PersonalTransactionKind, orderedIds: [UUID]) throws {
+        let map = Dictionary(uniqueKeysWithValues: categories(for: kind, includeHidden: true).map { ($0.remoteId, $0) })
+        for (idx, id) in orderedIds.enumerated() {
+            if let category = map[id], category.sortIndex != idx {
+                category.sortIndex = idx
+                category.updatedAt = Date.now
+            }
+        }
+        try context.save()
+        try refreshCategories()
+    }
+
+    private func findCategory(by id: UUID) throws -> PersonalCategory? {
+        let predicate = #Predicate<PersonalCategory> { $0.remoteId == id }
+        var descriptor = FetchDescriptor<PersonalCategory>(predicate: predicate)
+        descriptor.fetchLimit = 1
+        return try context.fetch(descriptor).first
+    }
+
+    private func reassignTransactions(from key: String, to fallback: String) throws {
+        guard key != fallback else { return }
+        let predicate = #Predicate<PersonalTransaction> { $0.categoryKey == key }
+        let descriptor = FetchDescriptor<PersonalTransaction>(predicate: predicate)
+        let results = try context.fetch(descriptor)
+        guard !results.isEmpty else { return }
+        for transaction in results {
+            transaction.categoryKey = fallback
+            transaction.updatedAt = Date.now
+        }
+        try context.save()
+    }
+
+    func resolvedCategoryName(for key: String) -> String {
+        if let category = categories.first(where: { $0.key == key }) {
+            return category.displayName
+        }
+        if let seed = PersonalCategorySeedCatalog.all.first(where: { $0.key == key }) {
+            return seed.displayName
+        }
+        return key
+    }
+
+    func resolvedCategoryIcon(for key: String) -> String {
+        if let category = categories.first(where: { $0.key == key }) {
+            return category.iconName
+        }
+        return iconForCategory(key: key)
+    }
+
     // MARK: - Accounts
 
     func refreshAccounts() throws {
@@ -463,6 +730,7 @@ final class PersonalLedgerStore: ObservableObject {
         }
         try context.save()
         try refreshAccounts()
+        try refreshCategories()
     }
 
     func createAccount(from draft: PersonalAccountDraft) throws -> PersonalAccount {
@@ -1016,9 +1284,14 @@ final class PersonalLedgerStore: ObservableObject {
         for account in accounts {
             context.delete(account)
         }
+        let categories = try context.fetch(FetchDescriptor<PersonalCategory>())
+        for category in categories {
+            context.delete(category)
+        }
         preferences.lastUsedAccountId = nil
         preferences.lastUsedCategoryKey = nil
         preferences.fxRates = [:]
+        preferences.sharedCategoryMappings = [:]
         try context.save()
         try refreshAccounts()
     }
@@ -1029,16 +1302,19 @@ final class PersonalLedgerStore: ObservableObject {
         let accountDescriptor = FetchDescriptor<PersonalAccount>()
         let transactionDescriptor = FetchDescriptor<PersonalTransaction>()
         let transferDescriptor = FetchDescriptor<AccountTransfer>()
+        let categoryDescriptor = FetchDescriptor<PersonalCategory>()
 
         let accounts = try context.fetch(accountDescriptor)
         let transactions = try context.fetch(transactionDescriptor)
         let transfers = try context.fetch(transferDescriptor)
+        let categories = try context.fetch(categoryDescriptor)
 
         let snapshot = PersonalLedgerSnapshot(
             preferences: .init(from: preferences),
             accounts: accounts.map(PersonalLedgerSnapshot.Account.init(from:)),
             transactions: transactions.map(PersonalLedgerSnapshot.Transaction.init(from:)),
-            transfers: transfers.map(PersonalLedgerSnapshot.Transfer.init(from:))
+            transfers: transfers.map(PersonalLedgerSnapshot.Transfer.init(from:)),
+            categories: categories.map(PersonalLedgerSnapshot.Category.init(from:))
         )
 
         return snapshot
@@ -1059,6 +1335,23 @@ final class PersonalLedgerStore: ObservableObject {
             prefs.defaultFeeCategoryKey = snapshot.preferences.defaultFeeCategoryKey
             prefs.defaultConversionFee = snapshot.preferences.defaultConversionFee
             prefs.lastBackupAt = snapshot.preferences.lastBackupAt
+            prefs.sharedCategoryMappings = snapshot.preferences.sharedCategoryMappings
+        }
+
+        for category in snapshot.categories {
+            let model = PersonalCategory(remoteId: category.remoteId,
+                                         key: category.key,
+                                         name: category.name,
+                                         localizationKey: category.localizationKey,
+                                         iconName: category.iconName,
+                                         colorHex: category.colorHex,
+                                         kind: category.kind,
+                                         isSystem: category.isSystem,
+                                         isHidden: category.isHidden,
+                                         sortIndex: category.sortIndex,
+                                         createdAt: category.createdAt,
+                                         updatedAt: category.updatedAt)
+            context.insert(model)
         }
 
         for account in snapshot.accounts {
@@ -1118,6 +1411,7 @@ final class PersonalLedgerStore: ObservableObject {
 
         try context.save()
         try refreshAccounts()
+        try refreshCategories()
     }
 
     // MARK: - Analytics

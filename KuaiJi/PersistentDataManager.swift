@@ -885,6 +885,11 @@ class PersistentDataManager: ObservableObject {
         if let items = try? modelContext.fetch(pPrefsDesc) {
             for item in items { modelContext.delete(item) }
         }
+        // 删除 PersonalCategory
+        let pCategoryDesc = FetchDescriptor<PersonalCategory>()
+        if let items = try? modelContext.fetch(pCategoryDesc) {
+            for item in items { modelContext.delete(item) }
+        }
         
         try? modelContext.save()
         

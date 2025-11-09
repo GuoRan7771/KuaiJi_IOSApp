@@ -83,6 +83,27 @@ struct PersonalRecordRowViewData: Identifiable, Hashable {
     }
 }
 
+struct PersonalCategoryPickerItem: Identifiable, Hashable {
+    var id: String { key }
+    let categoryId: UUID
+    let key: String
+    let name: String
+    let iconName: String
+    let colorHex: String?
+    let isSystem: Bool
+    let isHidden: Bool
+
+    init(category: PersonalCategory) {
+        self.categoryId = category.remoteId
+        self.key = category.key
+        self.name = category.displayName
+        self.iconName = category.iconName
+        self.colorHex = category.colorHex
+        self.isSystem = category.isSystem
+        self.isHidden = category.isHidden
+    }
+}
+
 struct PersonalAccountRowViewData: Identifiable, Hashable {
     var id: UUID
     var name: String
@@ -155,6 +176,8 @@ struct PersonalStatsCategoryShare: Identifiable, Hashable {
     var categoryKey: String
     var amountMinorUnits: Int
     var transactionCount: Int
+    var displayName: String
+    var iconName: String
 }
 
 // MARK: - Stats Enhancements (Structure, Growth, Insights)
@@ -172,6 +195,7 @@ struct CategoryTrendInsight: Identifiable, Hashable {
     let categoryKey: String
     let increasingStreak: Int
     let recentGrowthRate: Double
+    let displayName: String
 }
 
 @MainActor
@@ -190,7 +214,8 @@ final class PersonalLedgerRootViewModel: ObservableObject {
                 PersonalAccount.self,
                 PersonalTransaction.self,
                 AccountTransfer.self,
-                PersonalPreferences.self
+                PersonalPreferences.self,
+                PersonalCategory.self
             ])
             let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
             if let container = try? ModelContainer(for: schema, configurations: [configuration]),
@@ -239,6 +264,10 @@ final class PersonalLedgerRootViewModel: ObservableObject {
 
     func makeSettingsViewModel() -> PersonalLedgerSettingsViewModel {
         PersonalLedgerSettingsViewModel(store: store)
+    }
+
+    func makeCategoryManagerViewModel() -> PersonalCategoryManagerViewModel {
+        PersonalCategoryManagerViewModel(store: store)
     }
 
     func makeCSVExportViewModel() -> PersonalCSVExportViewModel {
@@ -359,11 +388,12 @@ final class PersonalCSVExportViewModel: ObservableObject {
         guard let account = store.account(with: transaction.accountId) else {
             return nil
         }
-        let category = (expenseCategories + incomeCategories + feeCategories).first(where: { $0.key == transaction.categoryKey })
+        let categoryName = store.resolvedCategoryName(for: transaction.categoryKey)
+        let icon = store.resolvedCategoryIcon(for: transaction.categoryKey)
         return PersonalRecordRowViewData(id: transaction.remoteId,
                                          categoryKey: transaction.categoryKey,
-                                         categoryName: category?.localizedName ?? transaction.categoryKey.capitalized,
-                                         systemImage: category?.systemImage ?? iconForCategory(key: transaction.categoryKey),
+                                         categoryName: categoryName,
+                                         systemImage: icon,
                                          note: transaction.note,
                                          amountMinorUnits: transaction.amountMinorUnits,
                                          currency: account.currency,
@@ -407,6 +437,7 @@ final class PersonalCSVExportViewModel: ObservableObject {
             return records.sorted { lhs, rhs in rhs.createdAt < lhs.createdAt }
         }
     }
+
 }
 
 @MainActor
@@ -627,11 +658,12 @@ final class PersonalLedgerHomeViewModel: ObservableObject {
         guard let account = store.account(with: transaction.accountId) else {
             return nil
         }
-        let category = (expenseCategories + incomeCategories + feeCategories).first(where: { $0.key == transaction.categoryKey })
+        let categoryName = store.resolvedCategoryName(for: transaction.categoryKey)
+        let icon = store.resolvedCategoryIcon(for: transaction.categoryKey)
         return PersonalRecordRowViewData(id: transaction.remoteId,
                                          categoryKey: transaction.categoryKey,
-                                         categoryName: category?.localizedName ?? transaction.categoryKey.capitalized,
-                                         systemImage: category?.systemImage ?? iconForCategory(key: transaction.categoryKey),
+                                         categoryName: categoryName,
+                                         systemImage: icon,
                                          note: transaction.note,
                                          amountMinorUnits: transaction.amountMinorUnits,
                                          currency: account.currency,
@@ -691,7 +723,7 @@ final class PersonalRecordFormViewModel: ObservableObject {
         }
     }
     @Published var accountId: UUID?
-    @Published var categoryKey: String = PersonalCategoryOption.commonExpenseKeys.first ?? ""
+    @Published var categoryKey: String = ""
     @Published var amountText: String = ""
     @Published var amountCurrency: CurrencyCode
     @Published var occurredAt: Date = Date()
@@ -741,6 +773,7 @@ final class PersonalRecordFormViewModel: ObservableObject {
     private let store: PersonalLedgerStore
     private let editingRecord: PersonalRecordRowViewData?
     private var userSetCustomCurrency = false
+    private var cancellables: Set<AnyCancellable> = []
 
     init(store: PersonalLedgerStore, editingRecord: PersonalRecordRowViewData? = nil) {
         self.store = store
@@ -761,17 +794,27 @@ final class PersonalRecordFormViewModel: ObservableObject {
             } else {
                 self.amountCurrency = store.safePrimaryDisplayCurrency()
             }
-            updateDefaultCategory()
+            self.categoryKey = store.defaultCategoryKey(for: kind)
             self.amountText = ""
             self.note = ""
             self.occurredAt = Date()
         }
+        updateDefaultCategory()
         userSetCustomCurrency = currentAccount()?.currency != amountCurrency
         updateFXState()
+
+        store.$categories
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                self.updateDefaultCategory()
+                self.objectWillChange.send()
+            }
+            .store(in: &cancellables)
     }
 
-    var categoryOptions: [PersonalCategoryOption] {
-        PersonalCategoryOption.defaultCategories(for: kind)
+    var categoryOptions: [PersonalCategoryPickerItem] {
+        store.categories(for: kind).map(PersonalCategoryPickerItem.init)
     }
 
     func selectAccount(_ id: UUID?) {
@@ -791,6 +834,18 @@ final class PersonalRecordFormViewModel: ObservableObject {
         amountCurrency = currency
         userSetCustomCurrency = currentAccount()?.currency != currency
         updateFXState()
+    }
+
+    func isSystemCategory(_ key: String) -> Bool {
+        store.isSystemCategory(key: key)
+    }
+
+    func preferredSharedCategory(for key: String) -> ExpenseCategory? {
+        store.sharedCategoryMapping(for: key)
+    }
+
+    func updateSharedCategoryMapping(for key: String, sharedCategory: ExpenseCategory) {
+        try? store.setSharedCategoryMapping(for: key, to: sharedCategory)
     }
 
     private func currentAccount() -> PersonalAccount? {
@@ -919,17 +974,10 @@ final class PersonalRecordFormViewModel: ObservableObject {
     }
 
     private func updateDefaultCategory() {
-        switch kind {
-        case .expense:
-            if !PersonalCategoryOption.commonExpenseKeys.contains(categoryKey) {
-                categoryKey = PersonalCategoryOption.commonExpenseKeys.first ?? "food"
-            }
-        case .income:
-            if !PersonalCategoryOption.commonIncomeKeys.contains(categoryKey) {
-                categoryKey = PersonalCategoryOption.commonIncomeKeys.first ?? "salary"
-            }
-        case .fee:
-            categoryKey = "fees"
+        let visibleKeys = Set(store.categories(for: kind).map { $0.key })
+        guard visibleKeys.contains(categoryKey) else {
+            categoryKey = store.defaultCategoryKey(for: kind)
+            return
         }
     }
 
@@ -1376,11 +1424,12 @@ final class PersonalAllRecordsViewModel: ObservableObject {
         guard let account = store.account(with: transaction.accountId) else {
             return nil
         }
-        let category = (expenseCategories + incomeCategories + feeCategories).first(where: { $0.key == transaction.categoryKey })
+        let categoryName = store.resolvedCategoryName(for: transaction.categoryKey)
+        let icon = store.resolvedCategoryIcon(for: transaction.categoryKey)
         return PersonalRecordRowViewData(id: transaction.remoteId,
                                          categoryKey: transaction.categoryKey,
-                                         categoryName: category?.localizedName ?? transaction.categoryKey.capitalized,
-                                         systemImage: category?.systemImage ?? iconForCategory(key: transaction.categoryKey),
+                                         categoryName: categoryName,
+                                         systemImage: icon,
                                          note: transaction.note,
                                          amountMinorUnits: transaction.amountMinorUnits,
                                          currency: account.currency,
@@ -1514,14 +1563,18 @@ final class PersonalStatsViewModel: ObservableObject {
             expenseBreakdown = expenseTotals.map {
                 PersonalStatsCategoryShare(categoryKey: $0.key,
                                            amountMinorUnits: $0.value,
-                                           transactionCount: expenseCounts[$0.key] ?? 0)
+                                           transactionCount: expenseCounts[$0.key] ?? 0,
+                                           displayName: store.resolvedCategoryName(for: $0.key),
+                                           iconName: store.resolvedCategoryIcon(for: $0.key))
             }
             .sorted { $0.amountMinorUnits > $1.amountMinorUnits }
 
             incomeBreakdown = incomeTotals.map {
                 PersonalStatsCategoryShare(categoryKey: $0.key,
                                            amountMinorUnits: $0.value,
-                                           transactionCount: incomeCounts[$0.key] ?? 0)
+                                           transactionCount: incomeCounts[$0.key] ?? 0,
+                                           displayName: store.resolvedCategoryName(for: $0.key),
+                                           iconName: store.resolvedCategoryIcon(for: $0.key))
             }
             .sorted { $0.amountMinorUnits > $1.amountMinorUnits }
 
@@ -1650,7 +1703,11 @@ final class PersonalStatsViewModel: ObservableObject {
                 if let last = series.last, let prev = series.dropLast().last, prev > 0 {
                     let grow = (last - prev) / prev
                     if streak >= 3 || grow >= 0.2 {
-                        alerts.append(CategoryTrendInsight(categoryKey: key, increasingStreak: streak, recentGrowthRate: grow))
+                        let name = store.resolvedCategoryName(for: key)
+                        alerts.append(CategoryTrendInsight(categoryKey: key,
+                                                           increasingStreak: streak,
+                                                           recentGrowthRate: grow,
+                                                           displayName: name))
                     }
                 }
             }
@@ -1769,4 +1826,97 @@ final class PersonalLedgerSettingsViewModel: ObservableObject {
             }
         }
     }
+}
+
+@MainActor
+final class PersonalCategoryManagerViewModel: ObservableObject {
+    @Published private(set) var expenseCategories: [PersonalCategoryPickerItem] = []
+    @Published private(set) var incomeCategories: [PersonalCategoryPickerItem] = []
+    @Published private(set) var feeCategories: [PersonalCategoryPickerItem] = []
+    @Published var lastError: String?
+
+    private let store: PersonalLedgerStore
+    private var cancellables: Set<AnyCancellable> = []
+
+    init(store: PersonalLedgerStore) {
+        self.store = store
+        refresh()
+        store.$categories
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.refresh()
+            }
+            .store(in: &cancellables)
+    }
+
+    func refresh() {
+        expenseCategories = store.categories(for: .expense, includeHidden: true).map(PersonalCategoryPickerItem.init)
+        incomeCategories = store.categories(for: .income, includeHidden: true).map(PersonalCategoryPickerItem.init)
+        feeCategories = store.categories(for: .fee, includeHidden: true).map(PersonalCategoryPickerItem.init)
+    }
+
+    func addCategory(kind: PersonalTransactionKind, name: String, iconName: String, colorHex: String?) {
+        lastError = nil
+        do {
+            try store.createCustomCategory(name: name, iconName: iconName, colorHex: colorHex, kind: kind)
+            refresh()
+        } catch {
+            lastError = error.localizedDescription
+        }
+    }
+
+    func updateCategory(_ item: PersonalCategoryPickerItem, name: String, iconName: String, colorHex: String?) {
+        lastError = nil
+        do {
+            try store.updateCustomCategory(id: item.categoryId, name: name, iconName: iconName, colorHex: colorHex)
+            refresh()
+        } catch {
+            lastError = error.localizedDescription
+        }
+    }
+
+    func deleteCategory(_ item: PersonalCategoryPickerItem) {
+        lastError = nil
+        guard !item.isSystem else {
+            lastError = L.personalCategorySystemLock.localized
+            return
+        }
+        do {
+            try store.deleteCustomCategory(id: item.categoryId)
+            refresh()
+        } catch {
+            lastError = error.localizedDescription
+        }
+    }
+
+    func toggleHidden(_ item: PersonalCategoryPickerItem, hidden: Bool) {
+        lastError = nil
+        do {
+            try store.setCategory(item.categoryId, hidden: hidden)
+            refresh()
+        } catch {
+            lastError = error.localizedDescription
+        }
+    }
+
+    func move(kind: PersonalTransactionKind, from offsets: IndexSet, to offset: Int) {
+        lastError = nil
+        var ordered: [UUID]
+        switch kind {
+        case .expense:
+            ordered = expenseCategories.map { $0.categoryId }
+        case .income:
+            ordered = incomeCategories.map { $0.categoryId }
+        case .fee:
+            ordered = feeCategories.map { $0.categoryId }
+        }
+        ordered.move(fromOffsets: offsets, toOffset: offset)
+        do {
+            try store.reorderCategories(kind: kind, orderedIds: ordered)
+            refresh()
+        } catch {
+            lastError = error.localizedDescription
+        }
+    }
+
 }

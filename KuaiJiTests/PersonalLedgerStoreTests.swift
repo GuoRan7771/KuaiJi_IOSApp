@@ -17,7 +17,8 @@ struct PersonalLedgerStoreTests {
             PersonalAccount.self,
             PersonalTransaction.self,
             AccountTransfer.self,
-            PersonalPreferences.self
+            PersonalPreferences.self,
+            PersonalCategory.self
         ])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: schema, configurations: [configuration])

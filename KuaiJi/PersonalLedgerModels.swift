@@ -28,12 +28,16 @@ enum PersonalAccountStatus: String, Codable, CaseIterable, Identifiable, Sendabl
     var id: String { rawValue }
 }
 
-enum PersonalTransactionKind: String, Codable, CaseIterable, Identifiable, Sendable {
+enum PersonalTransactionKind: String, Codable, CaseIterable, Identifiable, Sendable, Comparable {
     case income
     case expense
     case fee
 
     var id: String { rawValue }
+
+    static func < (lhs: PersonalTransactionKind, rhs: PersonalTransactionKind) -> Bool {
+        lhs.rawValue < rhs.rawValue
+    }
 }
 
 enum PersonalTransferFeeSide: String, Codable, CaseIterable, Identifiable, Sendable {
@@ -198,6 +202,7 @@ final class PersonalPreferences {
     var defaultFeeCategoryKey: String?
     var defaultConversionFee: Decimal?
     var lastBackupAt: Date?
+    @Attribute(originalName: "sharedCategoryMappings") private var sharedCategoryMappingsStorage: [String: String]?
 
     init(remoteId: UUID = UUID(),
          primaryDisplayCurrency: CurrencyCode = .cny,
@@ -210,7 +215,8 @@ final class PersonalPreferences {
          lastUsedCategoryKey: String? = nil,
          defaultFeeCategoryKey: String? = "fees",
          defaultConversionFee: Decimal? = nil,
-         lastBackupAt: Date? = nil) {
+         lastBackupAt: Date? = nil,
+         sharedCategoryMappings: [String: String] = [:]) {
         self.remoteId = remoteId
         self.primaryDisplayCurrency = primaryDisplayCurrency
         self.fxSource = fxSource
@@ -223,5 +229,90 @@ final class PersonalPreferences {
         self.defaultFeeCategoryKey = defaultFeeCategoryKey
         self.defaultConversionFee = defaultConversionFee
         self.lastBackupAt = lastBackupAt
+        if sharedCategoryMappings.isEmpty {
+            self.sharedCategoryMappingsStorage = nil
+        } else {
+            self.sharedCategoryMappingsStorage = sharedCategoryMappings
+        }
+    }
+
+    var sharedCategoryMappings: [String: String] {
+        get { sharedCategoryMappingsStorage ?? [:] }
+        set { sharedCategoryMappingsStorage = newValue.isEmpty ? nil : newValue }
+    }
+}
+
+@Model
+final class PersonalCategory {
+    @Attribute(.unique) var remoteId: UUID
+    @Attribute(.unique) var key: String
+    var name: String
+    var localizationKey: String?
+    var iconName: String
+    var colorHex: String?
+    @Attribute(originalName: "kind") private var kindRawValueStorage: PersonalTransactionKind.RawValue?
+    var isSystem: Bool
+    var isHidden: Bool
+    var sortIndex: Int
+    var createdAt: Date
+    var updatedAt: Date
+
+    init(remoteId: UUID = UUID(),
+         key: String,
+         name: String,
+         localizationKey: String? = nil,
+         iconName: String = "tag",
+         colorHex: String? = nil,
+         kind: PersonalTransactionKind,
+         isSystem: Bool,
+         isHidden: Bool = false,
+         sortIndex: Int = 0,
+         createdAt: Date = .now,
+         updatedAt: Date = .now) {
+        self.remoteId = remoteId
+        self.key = key
+        self.name = name
+        self.localizationKey = localizationKey
+        self.iconName = iconName
+        self.colorHex = colorHex
+        self.kindRawValueStorage = kind.rawValue
+        self.isSystem = isSystem
+        self.isHidden = isHidden
+        self.sortIndex = sortIndex
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+
+    var displayName: String {
+        if let localizationKey {
+            return localizationKey.localized
+        }
+        return name
+    }
+
+    var kind: PersonalTransactionKind {
+        get {
+            if let stored = kindRawValueStorage, let value = PersonalTransactionKind(rawValue: stored) {
+                return value
+            }
+            let fallback: PersonalTransactionKind = isSystem
+                ? (PersonalCategorySeedCatalog.all.first(where: { $0.key == key })?.kind ?? .expense)
+                : .expense
+            kindRawValueStorage = fallback.rawValue
+            return fallback
+        }
+        set {
+            kindRawValueStorage = newValue.rawValue
+        }
+    }
+
+    var needsKindBackfill: Bool {
+        kindRawValueStorage == nil
+    }
+
+    func backfillKindIfNeeded(defaultKind: PersonalTransactionKind) {
+        if kindRawValueStorage == nil {
+            kindRawValueStorage = defaultKind.rawValue
+        }
     }
 }

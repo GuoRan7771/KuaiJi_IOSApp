@@ -1981,6 +1981,10 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                     PersonalAccountsView(root: personalLedgerRoot, viewModel: personalLedgerRoot.makeAccountsViewModel())
                 }
                 .foregroundStyle(Color.appLedgerContentText)
+                NavigationLink(L.personalCategoryManagerTitle.localized) {
+                    PersonalCategoryManagerView(viewModel: personalLedgerRoot.makeCategoryManagerViewModel())
+                }
+                .foregroundStyle(Color.appLedgerContentText)
             } header: {
                 Text(L.personalSettingsTitle.localized)
             }
@@ -4210,7 +4214,8 @@ final class KeyboardDismissInstaller: NSObject, UIGestureRecognizerDelegate {
         PersonalAccount.self,
         PersonalTransaction.self,
         AccountTransfer.self,
-        PersonalPreferences.self
+        PersonalPreferences.self,
+        PersonalCategory.self
     ])
     let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
     do {
@@ -4222,5 +4227,3 @@ final class KeyboardDismissInstaller: NSObject, UIGestureRecognizerDelegate {
         return Text("Preview init failed: \(error.localizedDescription)")
     }
 }
-
-
