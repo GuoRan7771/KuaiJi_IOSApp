@@ -39,11 +39,23 @@ struct CelebrationOverlay: View {
                         .allowsHitTesting(false)
                     VStack {
                         Spacer()
-                        Text(L.supportSuccess.localized)
-                            .font(.system(size: 20, weight: .semibold, design: .rounded))
-                            .foregroundStyle(Color.appSuccess)
-                            .padding(.bottom, 24)
-                            .shadow(color: .black.opacity(0.2), radius: 6)
+                        
+                        // 使用 ZStack 来实现描边效果
+                        ZStack {
+                            // 1. 描边层 (使用 Color.appSuccess)
+                            Text(L.supportSuccess.localized)
+                                .font(.system(size: 30, weight: .semibold, design: .rounded))
+                                .foregroundStyle(Color.appSuccess) // <-- 描边颜色
+                                // 调整偏移量来控制描边厚度/可见性
+                                .offset(x: 1.5, y: 1.5)
+                            
+                            // 2. 填充层 (使用黑色)
+                            Text(L.supportSuccess.localized)
+                                .font(.system(size: 30, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.black) // <-- 填充颜色（黑色）
+                        }
+                        
+                        Spacer()
                     }
                     .allowsHitTesting(false)
                 }
