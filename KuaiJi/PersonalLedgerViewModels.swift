@@ -178,25 +178,51 @@ struct PersonalStatsCategoryShare: Identifiable, Hashable {
     var transactionCount: Int
     var displayName: String
     var iconName: String
+    var groupId: UUID?
+    var colorHex: String?
+    var memberCategoryKeys: [String] = []
+    var isUngrouped: Bool = false
+}
+
+struct PersonalStatsGroupViewData: Identifiable, Hashable {
+    var id: UUID
+    var name: String
+    var colorHex: String?
+    var kind: PersonalTransactionKind
+    var role: PersonalStatsGroupRole
+    var categoryKeys: [String]
+}
+
+struct PersonalStatsCategorySelectionItem: Identifiable, Hashable {
+    var id: String { category.id }
+    var key: String { category.key }
+    var name: String { category.name }
+    var colorHex: String? { category.colorHex }
+
+    let category: PersonalCategoryPickerItem
+    let assignedGroupId: UUID?
+    let isLocked: Bool
+
+    init(category: PersonalCategoryPickerItem,
+         assignedGroupId: UUID?,
+         editingGroupId: UUID?) {
+        self.category = category
+        self.assignedGroupId = assignedGroupId
+        self.isLocked = (assignedGroupId != nil && assignedGroupId != editingGroupId)
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(category)
+        hasher.combine(assignedGroupId)
+    }
+
+    static func == (lhs: PersonalStatsCategorySelectionItem,
+                    rhs: PersonalStatsCategorySelectionItem) -> Bool {
+        lhs.category == rhs.category && lhs.assignedGroupId == rhs.assignedGroupId
+    }
 }
 
 // MARK: - Stats Enhancements (Structure, Growth, Insights)
-
-struct PersonalSpendingStructure {
-    let essentialMinorUnits: Int
-    let discretionaryMinorUnits: Int
-    var total: Int { essentialMinorUnits + discretionaryMinorUnits }
-    var essentialShare: Double { total > 0 ? Double(essentialMinorUnits) / Double(total) : 0 }
-    var discretionaryShare: Double { total > 0 ? Double(discretionaryMinorUnits) / Double(total) : 0 }
-}
-
-struct CategoryTrendInsight: Identifiable, Hashable {
-    let id: UUID = UUID()
-    let categoryKey: String
-    let increasingStreak: Int
-    let recentGrowthRate: Double
-    let displayName: String
-}
 
 @MainActor
 final class PersonalLedgerRootViewModel: ObservableObject {
@@ -215,7 +241,8 @@ final class PersonalLedgerRootViewModel: ObservableObject {
                 PersonalTransaction.self,
                 AccountTransfer.self,
                 PersonalPreferences.self,
-                PersonalCategory.self
+                PersonalCategory.self,
+                PersonalStatsGroup.self
             ])
             let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
             if let container = try? ModelContainer(for: schema, configurations: [configuration]),
@@ -1482,17 +1509,35 @@ final class PersonalStatsViewModel: ObservableObject {
     @Published private(set) var timeline: [PersonalStatsSeriesPoint] = []
     @Published private(set) var expenseBreakdown: [PersonalStatsCategoryShare] = []
     @Published private(set) var incomeBreakdown: [PersonalStatsCategoryShare] = []
-    @Published private(set) var structure: PersonalSpendingStructure?
+    @Published private(set) var expenseGroups: [PersonalStatsGroupViewData] = []
+    @Published private(set) var incomeGroups: [PersonalStatsGroupViewData] = []
+    @Published private(set) var expenseGroupStructure: [PersonalStatsCategoryShare] = []
     @Published private(set) var expenseGrowthRate: Double?
-    @Published private(set) var insights: [CategoryTrendInsight] = []
     @Published private(set) var availableCurrencies: [CurrencyCode] = []
     @Published var lastError: String?
 
     private let store: PersonalLedgerStore
+    private var cancellables: Set<AnyCancellable> = []
+    private let fallbackEssentialKeys: Set<String> = [
+        "food",
+        "transport",
+        "accommodation",
+        "utilities",
+        "medical",
+        "housing",
+        "health",
+        "education"
+    ]
 
     init(store: PersonalLedgerStore) {
         self.store = store
         self.selectedCurrency = store.safePrimaryDisplayCurrency()
+        store.$statsGroups
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                Task { await self?.refresh() }
+            }
+            .store(in: &cancellables)
         Task { await refresh() }
     }
 
@@ -1560,41 +1605,16 @@ final class PersonalStatsViewModel: ObservableObject {
                     expenseCounts[t.categoryKey, default: 0] += 1
                 }
             }
-            expenseBreakdown = expenseTotals.map {
-                PersonalStatsCategoryShare(categoryKey: $0.key,
-                                           amountMinorUnits: $0.value,
-                                           transactionCount: expenseCounts[$0.key] ?? 0,
-                                           displayName: store.resolvedCategoryName(for: $0.key),
-                                           iconName: store.resolvedCategoryIcon(for: $0.key))
-            }
-            .sorted { $0.amountMinorUnits > $1.amountMinorUnits }
 
-            incomeBreakdown = incomeTotals.map {
-                PersonalStatsCategoryShare(categoryKey: $0.key,
-                                           amountMinorUnits: $0.value,
-                                           transactionCount: incomeCounts[$0.key] ?? 0,
-                                           displayName: store.resolvedCategoryName(for: $0.key),
-                                           iconName: store.resolvedCategoryIcon(for: $0.key))
-            }
-            .sorted { $0.amountMinorUnits > $1.amountMinorUnits }
-
-            // Compute spending structure (essential vs discretionary)
-            let essentialKeys: Set<String> = [
-                "food", "transport", "accommodation", "utilities",
-                // legacy compatibility keys
-                "housing", "health", "education"
-            ]
-            var essentialTotal = 0
-            var discretionaryTotal = 0
-            for item in expenseBreakdown {
-                if essentialKeys.contains(item.categoryKey) {
-                    essentialTotal += item.amountMinorUnits
-                } else {
-                    discretionaryTotal += item.amountMinorUnits
-                }
-            }
-            structure = PersonalSpendingStructure(essentialMinorUnits: essentialTotal,
-                                                  discretionaryMinorUnits: discretionaryTotal)
+            let grouped = captureGroupViewData()
+            expenseBreakdown = buildBreakdown(totals: expenseTotals,
+                                              counts: expenseCounts,
+                                              groups: grouped.expense)
+            incomeBreakdown = buildBreakdown(totals: incomeTotals,
+                                             counts: incomeCounts,
+                                             groups: grouped.income)
+            expenseGroupStructure = buildStructureSegments(groups: grouped.expense,
+                                                           totals: expenseTotals)
 
             // Compute expense growth rate (current vs previous period)
             func previousRange(from r: ClosedRange<Date>, period: Period) -> ClosedRange<Date> {
@@ -1638,80 +1658,6 @@ final class PersonalStatsViewModel: ObservableObject {
             }
             expenseGrowthRate = prevExpense > 0 ? Double(currentExpense - prevExpense) / Double(prevExpense) : nil
 
-            // Build category trend insights over recent periods
-            func lastNRanges(_ n: Int, endingWith r: ClosedRange<Date>, period: Period) -> [ClosedRange<Date>] {
-                var result: [ClosedRange<Date>] = [r]
-                for _ in 1..<n {
-                    result.append(previousRange(from: result.last!, period: period))
-                }
-                return result.reversed()
-            }
-            let ranges = lastNRanges(6, endingWith: range, period: period)
-            // key -> series of shares across periods
-            var seriesPerCategory: [String: [Double]] = [:]
-            for r in ranges {
-                let filter = PersonalRecordFilter(dateRange: r,
-                                             kinds: includeFees ? [.income, .expense, .fee] : [.income, .expense],
-                                             accountIds: selectedAccountIds.isEmpty ? nil : selectedAccountIds,
-                                             categoryKeys: nil,
-                                             minimumAmountMinor: nil,
-                                             maximumAmountMinor: nil,
-                                             keyword: nil)
-                let allR = try store.records(filter: filter)
-                let txR = allR.filter { tx in
-                    guard let account = store.account(with: tx.accountId) else { return false }
-                    return account.currency == selectedCurrency
-                }
-                var map: [String: Int] = [:]
-                for t in txR {
-                    switch t.kind {
-                    case .income:
-                        continue
-                    case .expense:
-                        map[t.categoryKey, default: 0] += t.amountMinorUnits
-                    case .fee:
-                        if includeFees { map[t.categoryKey, default: 0] += t.amountMinorUnits }
-                    }
-                }
-                let total = map.values.reduce(0, +)
-                // padding zero for existing keys
-                for key in seriesPerCategory.keys {
-                    seriesPerCategory[key, default: []].append(0)
-                }
-                if total > 0 {
-                    for (key, val) in map {
-                        let share = Double(val) / Double(total)
-                        if var arr = seriesPerCategory[key] {
-                            arr.removeLast()
-                            arr.append(share)
-                            seriesPerCategory[key] = arr
-                        } else {
-                            let zeros = Array(repeating: 0.0, count: ranges.count - 1)
-                            seriesPerCategory[key] = zeros + [share]
-                        }
-                    }
-                }
-            }
-            var alerts: [CategoryTrendInsight] = []
-            for (key, series) in seriesPerCategory {
-                guard series.count >= 3 else { continue }
-                let last3 = Array(series.suffix(3))
-                // strict increasing with small epsilon
-                let eps = 0.0001
-                let inc = zip(last3, last3.dropFirst()).allSatisfy { ($1 - $0) > eps }
-                let streak = inc ? 3 : 0
-                if let last = series.last, let prev = series.dropLast().last, prev > 0 {
-                    let grow = (last - prev) / prev
-                    if streak >= 3 || grow >= 0.2 {
-                        let name = store.resolvedCategoryName(for: key)
-                        alerts.append(CategoryTrendInsight(categoryKey: key,
-                                                           increasingStreak: streak,
-                                                           recentGrowthRate: grow,
-                                                           displayName: name))
-                    }
-                }
-            }
-            insights = alerts.sorted { ($0.increasingStreak, $0.recentGrowthRate) > ($1.increasingStreak, $1.recentGrowthRate) }
         } catch {
             lastError = error.localizedDescription
         }
@@ -1736,6 +1682,260 @@ final class PersonalStatsViewModel: ObservableObject {
         case .year:
             let interval = calendar.dateInterval(of: .year, for: anchorDate) ?? DateInterval(start: anchorDate, duration: 0)
             return interval.start...interval.end
+        }
+    }
+
+    private func captureGroupViewData() -> (expense: [PersonalStatsGroupViewData], income: [PersonalStatsGroupViewData]) {
+        let expense = store.statsGroups(for: .expense).map(mapGroup)
+        let income = store.statsGroups(for: .income).map(mapGroup)
+        expenseGroups = expense
+        incomeGroups = income
+        return (expense, income)
+    }
+
+    private func mapGroup(_ group: PersonalStatsGroup) -> PersonalStatsGroupViewData {
+        PersonalStatsGroupViewData(id: group.remoteId,
+                                   name: group.name,
+                                   colorHex: group.colorHex,
+                                   kind: group.kind,
+                                   role: group.role,
+                                   categoryKeys: group.categoryKeys)
+    }
+
+    private func buildBreakdown(totals: [String: Int],
+                                counts: [String: Int],
+                                groups: [PersonalStatsGroupViewData]) -> [PersonalStatsCategoryShare] {
+        var entries: [PersonalStatsCategoryShare] = []
+        var consumedKeys: Set<String> = []
+
+        for group in groups {
+            let amount = group.categoryKeys.reduce(0) { $0 + (totals[$1] ?? 0) }
+            guard amount > 0 else { continue }
+            let txCount = group.categoryKeys.reduce(0) { $0 + (counts[$1] ?? 0) }
+            consumedKeys.formUnion(group.categoryKeys)
+            var entry = PersonalStatsCategoryShare(categoryKey: group.categoryKeys.first ?? group.id.uuidString,
+                                                   amountMinorUnits: amount,
+                                                   transactionCount: txCount,
+                                                   displayName: group.name,
+                                                   iconName: "square.stack.3d.up.fill",
+                                                   groupId: group.id,
+                                                   colorHex: group.colorHex,
+                                                   memberCategoryKeys: group.categoryKeys,
+                                                   isUngrouped: false)
+            entry.id = group.id
+            entries.append(entry)
+        }
+
+        for (key, value) in totals where value > 0 {
+            guard !consumedKeys.contains(key) else { continue }
+            let count = counts[key] ?? 0
+            let entry = PersonalStatsCategoryShare(categoryKey: key,
+                                                   amountMinorUnits: value,
+                                                   transactionCount: count,
+                                                   displayName: store.resolvedCategoryName(for: key),
+                                                   iconName: store.resolvedCategoryIcon(for: key),
+                                                   groupId: nil,
+                                                   colorHex: store.resolvedCategoryColorHex(for: key),
+                                                   memberCategoryKeys: [key],
+                                                   isUngrouped: true)
+            entries.append(entry)
+        }
+
+        return entries.sorted { $0.amountMinorUnits > $1.amountMinorUnits }
+    }
+
+    private func buildStructureSegments(groups: [PersonalStatsGroupViewData],
+                                        totals: [String: Int]) -> [PersonalStatsCategoryShare] {
+        var results: [PersonalStatsCategoryShare] = []
+        var coveredKeys: Set<String> = []
+
+        for group in groups {
+            let amount = group.categoryKeys.reduce(0) { $0 + (totals[$1] ?? 0) }
+            coveredKeys.formUnion(group.categoryKeys)
+            let entry = PersonalStatsCategoryShare(categoryKey: group.categoryKeys.first ?? group.id.uuidString,
+                                                   amountMinorUnits: amount,
+                                                   transactionCount: 0,
+                                                   displayName: group.name,
+                                                   iconName: "square.stack.3d.up.fill",
+                                                   groupId: group.id,
+                                                   colorHex: group.colorHex,
+                                                   memberCategoryKeys: group.categoryKeys,
+                                                   isUngrouped: false)
+            results.append(entry)
+        }
+
+        let ungroupedAmount = totals.reduce(0) { partial, item in
+            coveredKeys.contains(item.key) ? partial : partial + item.value
+        }
+        if ungroupedAmount > 0 || results.isEmpty {
+            let ungrouped = PersonalStatsCategoryShare(categoryKey: "ungrouped",
+                                                       amountMinorUnits: ungroupedAmount,
+                                                       transactionCount: 0,
+                                                       displayName: L.personalStatsGroupsUngrouped.localized,
+                                                       iconName: "circle.grid.3x3",
+                                                       groupId: nil,
+                                                       colorHex: nil,
+                                                       memberCategoryKeys: [],
+                                                       isUngrouped: true)
+            results.append(ungrouped)
+        }
+
+        return results
+    }
+
+    func makeStatsGroupManagerViewModel() -> PersonalStatsGroupManagerViewModel {
+        PersonalStatsGroupManagerViewModel(store: store)
+    }
+}
+
+struct PersonalStatsGroupEditorDraft {
+    var id: UUID?
+    var name: String
+    var colorHex: String?
+    var kind: PersonalTransactionKind
+    var role: PersonalStatsGroupRole
+    var categoryKeys: Set<String>
+
+    init(kind: PersonalTransactionKind, role: PersonalStatsGroupRole = .custom) {
+        self.id = nil
+        self.name = ""
+        self.colorHex = nil
+        self.kind = kind
+        self.role = role
+        self.categoryKeys = []
+    }
+
+    init(from viewData: PersonalStatsGroupViewData) {
+        self.id = viewData.id
+        self.name = viewData.name
+        self.colorHex = viewData.colorHex
+        self.kind = viewData.kind
+        self.role = viewData.role
+        self.categoryKeys = Set(viewData.categoryKeys)
+    }
+}
+
+@MainActor
+final class PersonalStatsGroupManagerViewModel: ObservableObject {
+    @Published private(set) var expenseGroups: [PersonalStatsGroupViewData] = []
+    @Published private(set) var incomeGroups: [PersonalStatsGroupViewData] = []
+    @Published private(set) var expenseCategories: [PersonalCategoryPickerItem] = []
+    @Published private(set) var incomeCategories: [PersonalCategoryPickerItem] = []
+    @Published var lastError: String?
+
+    private let store: PersonalLedgerStore
+    private var cancellables: Set<AnyCancellable> = []
+
+    init(store: PersonalLedgerStore) {
+        self.store = store
+        refreshGroups()
+        refreshCategoryCache()
+        store.$statsGroups
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.refreshGroups() }
+            .store(in: &cancellables)
+        store.$categories
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.refreshCategoryCache() }
+            .store(in: &cancellables)
+    }
+
+    func categories(for kind: PersonalTransactionKind, editingGroupId: UUID?) -> [PersonalStatsCategorySelectionItem] {
+        let base: [PersonalCategoryPickerItem]
+        switch kind {
+        case .expense: base = expenseCategories
+        case .income: base = incomeCategories
+        case .fee: base = []
+        }
+        guard !base.isEmpty else { return [] }
+        let assignments = categoryAssignments(for: kind)
+        return base.map { item in
+            PersonalStatsCategorySelectionItem(category: item,
+                                               assignedGroupId: assignments[item.key],
+                                               editingGroupId: editingGroupId)
+        }
+    }
+
+    func save(draft: PersonalStatsGroupEditorDraft) {
+        lastError = nil
+        do {
+            let keys = Array(draft.categoryKeys)
+            if let id = draft.id {
+                try store.updateStatsGroup(id: id,
+                                           name: draft.name,
+                                           colorHex: draft.colorHex,
+                                           categoryKeys: keys,
+                                           role: draft.role)
+            } else {
+                try store.createStatsGroup(name: draft.name,
+                                           colorHex: draft.colorHex,
+                                           kind: draft.kind,
+                                           role: draft.role,
+                                           categoryKeys: keys)
+            }
+        } catch {
+            lastError = error.localizedDescription
+        }
+    }
+
+    func delete(group: PersonalStatsGroupViewData) {
+        lastError = nil
+        do {
+            try store.deleteStatsGroup(id: group.id)
+        } catch {
+            lastError = error.localizedDescription
+        }
+    }
+
+    func draft(for kind: PersonalTransactionKind, role: PersonalStatsGroupRole = .custom) -> PersonalStatsGroupEditorDraft {
+        PersonalStatsGroupEditorDraft(kind: kind, role: role)
+    }
+
+    func draft(for group: PersonalStatsGroupViewData) -> PersonalStatsGroupEditorDraft {
+        PersonalStatsGroupEditorDraft(from: group)
+    }
+
+    private func refreshGroups() {
+        expenseGroups = store.statsGroups(for: .expense).map {
+            PersonalStatsGroupViewData(id: $0.remoteId,
+                                       name: $0.name,
+                                       colorHex: $0.colorHex,
+                                       kind: $0.kind,
+                                       role: $0.role,
+                                       categoryKeys: $0.categoryKeys)
+        }
+        incomeGroups = store.statsGroups(for: .income).map {
+            PersonalStatsGroupViewData(id: $0.remoteId,
+                                       name: $0.name,
+                                       colorHex: $0.colorHex,
+                                       kind: $0.kind,
+                                       role: $0.role,
+                                       categoryKeys: $0.categoryKeys)
+        }
+    }
+
+    private func refreshCategoryCache() {
+        expenseCategories = store.categories(for: .expense).map(PersonalCategoryPickerItem.init)
+        incomeCategories = store.categories(for: .income).map(PersonalCategoryPickerItem.init)
+    }
+
+    private func categoryAssignments(for kind: PersonalTransactionKind) -> [String: UUID] {
+        var map: [String: UUID] = [:]
+        for group in store.statsGroups(for: kind) {
+            for key in group.categoryKeys {
+                map[key] = group.remoteId
+            }
+        }
+        return map
+    }
+}
+
+extension PersonalStatsGroupRole {
+    var localizedName: String {
+        switch self {
+        case .custom: return L.personalStatsGroupsRoleCustom.localized
+        case .essential: return L.personalStatsGroupsRoleEssential.localized
+        case .discretionary: return L.personalStatsGroupsRoleDiscretionary.localized
         }
     }
 }

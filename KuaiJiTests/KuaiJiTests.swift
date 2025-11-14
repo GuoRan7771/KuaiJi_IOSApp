@@ -172,3 +172,29 @@ struct SettlementAlgorithmTests {
                      participants: participants)
     }
 }
+
+@Suite("Legacy Transformer Compatibility")
+struct LegacyStringArrayTransformerTests {
+    private let transformer = LegacyStringArrayTransformer()
+
+    @Test("Plist payloads can still be decoded")
+    func propertyListDecoding() throws {
+        let values = ["housing", "transport"]
+        let data = try PropertyListSerialization.data(fromPropertyList: values,
+                                                      format: .binary,
+                                                      options: 0)
+        let decoded = transformer.reverseTransformedValue(data) as? [String]
+        #expect(decoded == values)
+    }
+
+    @Test("Nested keyed archives that wrap NSData are supported")
+    func nestedArchiveDecoding() throws {
+        let values = ["groceries", "utilities"]
+        let inner = try PropertyListSerialization.data(fromPropertyList: values,
+                                                       format: .binary,
+                                                       options: 0)
+        let archived = try NSKeyedArchiver.archivedData(withRootObject: inner, requiringSecureCoding: true)
+        let decoded = transformer.reverseTransformedValue(archived) as? [String]
+        #expect(decoded == values)
+    }
+}

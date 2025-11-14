@@ -18,7 +18,8 @@ struct PersonalLedgerStoreTests {
             PersonalTransaction.self,
             AccountTransfer.self,
             PersonalPreferences.self,
-            PersonalCategory.self
+            PersonalCategory.self,
+            PersonalStatsGroup.self
         ])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: schema, configurations: [configuration])
@@ -181,6 +182,39 @@ struct PersonalLedgerStoreTests {
                                                             occurredAt: now))
         let totals = try store.monthlyTotals(for: now, includeFees: true)
         #expect(totals.expense == 7_300)
+    }
+    
+    @Test("Snapshot export/import preserves custom stats groups and assignments")
+    func snapshotRoundTripPreservesStatsGroups() throws {
+        let store = try makeStore()
+        try store.createStatsGroup(name: "Travel Focus",
+                                   colorHex: "#123ABC",
+                                   kind: .expense,
+                                   categoryKeys: ["transport", "food"])
+        let snapshot = try store.exportSnapshot()
+        let restored = try makeStore()
+        try restored.importSnapshot(snapshot)
+        let restoredExpenseGroups = restored.statsGroups(for: .expense)
+        let snapshotExpenseCount = snapshot.statsGroups.filter { $0.kind == .expense }.count
+        #expect(restoredExpenseGroups.count == snapshotExpenseCount)
+        let customGroup = try #require(restoredExpenseGroups.first(where: { $0.name == "Travel Focus" }))
+        #expect(customGroup.colorHex == "#123ABC")
+        #expect(Set(customGroup.categoryKeys) == Set(["transport", "food"]))
+    }
+
+    @Test("Clearing personal data restores default categories")
+    func clearRestoresDefaultCategories() throws {
+        let store = try makeStore()
+        // ensure some custom state
+        try store.createCustomCategory(name: "My Snacks",
+                                       iconName: "birthday.cake",
+                                       colorHex: "#ABCDEF",
+                                       kind: .expense)
+        try store.clearAllPersonalData()
+        let expenseKeys = Set(store.categories(for: .expense).map(\.key))
+        let expected = Set(PersonalCategorySeedCatalog.expense.map(\.key))
+        #expect(!expenseKeys.isEmpty)
+        #expect(expected.isSubset(of: expenseKeys))
     }
 
 }

@@ -202,11 +202,38 @@ struct PersonalLedgerSnapshot: Codable {
         }
     }
 
+    struct StatsGroup: Codable {
+        var remoteId: UUID
+        var name: String
+        var colorHex: String?
+        var kind: PersonalTransactionKind
+        var role: PersonalStatsGroupRole
+        var isVisibleByDefault: Bool
+        var sortIndex: Int
+        var categoryKeys: [String]
+        var createdAt: Date
+        var updatedAt: Date
+
+        init(from group: PersonalStatsGroup) {
+            self.remoteId = group.remoteId
+            self.name = group.name
+            self.colorHex = group.colorHex
+            self.kind = group.kind
+            self.role = group.role
+            self.isVisibleByDefault = group.isVisibleByDefault
+            self.sortIndex = group.sortIndex
+            self.categoryKeys = group.categoryKeys
+            self.createdAt = group.createdAt
+            self.updatedAt = group.updatedAt
+        }
+    }
+
     var preferences: Preferences
     var accounts: [Account]
     var transactions: [Transaction]
     var transfers: [Transfer]
     var categories: [Category]
+    var statsGroups: [StatsGroup] = []
 }
 
 struct PersonalAccountDraft {
@@ -371,6 +398,29 @@ final class PersonalLedgerStore: ObservableObject {
     @Published private(set) var activeAccounts: [PersonalAccount] = []
     @Published private(set) var archivedAccounts: [PersonalAccount] = []
     @Published private(set) var categories: [PersonalCategory] = []
+    @Published private(set) var statsGroups: [PersonalStatsGroup] = []
+
+    private static let defaultEssentialCategoryKeys: [String] = [
+        "food",
+        "transport",
+        "accommodation",
+        "utilities",
+        "medical",
+        // legacy keys for backward compatibility
+        "housing",
+        "health",
+        "education"
+    ]
+
+    private static let defaultDiscretionaryCategoryKeys: [String] = {
+        let essential = Set(defaultEssentialCategoryKeys)
+        return PersonalCategorySeedCatalog.expense
+            .map { $0.key }
+            .filter { !essential.contains($0) }
+    }()
+
+    private static let defaultEssentialColorHex = "#6750A4"
+    private static let defaultDiscretionaryColorHex = "#F76D57"
 
     init(context: ModelContext, defaultCurrency: CurrencyCode = .cny, calendar: Calendar = .current) throws {
         self.context = context
@@ -380,6 +430,10 @@ final class PersonalLedgerStore: ObservableObject {
         try refreshAccounts()
         try refreshCategories()
         try ensureDefaultCategories()
+        try refreshStatsGroups()
+        try pruneInvalidCategoryAssignments()
+        try ensureDefaultStatsGroups()
+        try repairLegacyStatsGroupAssignmentsIfNeeded()
     }
 
     // MARK: - Preferences
@@ -504,7 +558,12 @@ final class PersonalLedgerStore: ObservableObject {
                 SortDescriptor(\.createdAt, order: .forward)
             ])
         categories = try context.fetch(descriptor)
+        if categories.isEmpty {
+            try ensureDefaultCategories()
+            return
+        }
         try backfillCategoryKindsIfNeeded()
+        try pruneInvalidCategoryAssignments()
     }
 
     private func ensureDefaultCategories() throws {
@@ -586,6 +645,166 @@ final class PersonalLedgerStore: ObservableObject {
                 }
                 return lhs.sortIndex < rhs.sortIndex
             }
+    }
+
+    // MARK: - Stats Groups
+
+    func refreshStatsGroups() throws {
+        let descriptor = FetchDescriptor<PersonalStatsGroup>(
+            sortBy: [
+                SortDescriptor(\.sortIndex, order: .forward),
+                SortDescriptor(\.createdAt, order: .forward)
+            ])
+        statsGroups = try context.fetch(descriptor)
+    }
+
+    private func repairLegacyStatsGroupAssignmentsIfNeeded() throws {
+        let defaults = UserDefaults.standard
+        let flag = "LegacyStatsGroupCategoryFixApplied"
+        guard !defaults.bool(forKey: flag) else { return }
+        let descriptor = FetchDescriptor<PersonalStatsGroup>()
+        let groups = try context.fetch(descriptor)
+        guard !groups.isEmpty else {
+            defaults.set(true, forKey: flag)
+            return
+        }
+        for group in groups {
+            let keys = group.categoryKeys
+            group.categoryKeys = keys.map { $0 }
+        }
+        if context.hasChanges {
+            try context.save()
+        }
+        defaults.set(true, forKey: flag)
+    }
+
+    private func ensureDefaultStatsGroups() throws {
+        guard statsGroups.isEmpty else { return }
+        let essential = PersonalStatsGroup(name: L.personalStatsEssential.localized,
+                                           colorHex: Self.defaultEssentialColorHex,
+                                           isVisibleByDefault: true,
+                                           sortIndex: 0,
+                                           kind: .expense,
+                                           role: .essential,
+                                           categoryKeys: Self.defaultEssentialCategoryKeys)
+        let discretionary = PersonalStatsGroup(name: L.personalStatsDiscretionary.localized,
+                                               colorHex: Self.defaultDiscretionaryColorHex,
+                                               isVisibleByDefault: true,
+                                               sortIndex: 1,
+                                               kind: .expense,
+                                               role: .discretionary,
+                                               categoryKeys: Self.defaultDiscretionaryCategoryKeys)
+        context.insert(essential)
+        context.insert(discretionary)
+        try context.save()
+        try refreshStatsGroups()
+    }
+
+    private func pruneInvalidCategoryAssignments() throws {
+        guard !statsGroups.isEmpty else { return }
+        let validMap = Dictionary(grouping: categories, by: { $0.kind })
+            .mapValues { Set($0.map(\.key)) }
+        var didChange = false
+        for group in statsGroups {
+            let validKeys = validMap[group.kind] ?? []
+            let filtered = group.categoryKeys.filter { validKeys.contains($0) }
+            if filtered.count != group.categoryKeys.count {
+                group.categoryKeys = filtered
+                group.updatedAt = Date.now
+                didChange = true
+            }
+        }
+        if didChange {
+            try context.save()
+            try refreshStatsGroups()
+        }
+    }
+
+    func statsGroups(for kind: PersonalTransactionKind) -> [PersonalStatsGroup] {
+        statsGroups
+            .filter { $0.kind == kind }
+            .sorted {
+                if $0.sortIndex == $1.sortIndex {
+                    return $0.createdAt < $1.createdAt
+                }
+                return $0.sortIndex < $1.sortIndex
+            }
+    }
+
+    func createStatsGroup(name: String,
+                          colorHex: String?,
+                          kind: PersonalTransactionKind,
+                          role: PersonalStatsGroupRole = .custom,
+                          categoryKeys: [String]) throws {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { throw PersonalLedgerError.nameRequired }
+        let resolvedRole: PersonalStatsGroupRole = kind == .expense ? role : .custom
+        let normalizedKeys = normalizeCategoryKeys(categoryKeys, for: kind)
+        let sortIndex = statsGroups(for: kind).count
+        let group = PersonalStatsGroup(name: trimmed,
+                                       colorHex: sanitizedColorHex(colorHex),
+                                       isVisibleByDefault: true,
+                                       sortIndex: sortIndex,
+                                       kind: kind,
+                                       role: resolvedRole,
+                                       categoryKeys: normalizedKeys)
+        context.insert(group)
+        try context.save()
+        try refreshStatsGroups()
+    }
+
+    func updateStatsGroup(id: UUID,
+                          name: String,
+                          colorHex: String?,
+                          categoryKeys: [String],
+                          role: PersonalStatsGroupRole) throws {
+        guard let group = try findStatsGroup(by: id) else { return }
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { throw PersonalLedgerError.nameRequired }
+        group.name = trimmed
+        group.colorHex = sanitizedColorHex(colorHex)
+        let normalizedRole: PersonalStatsGroupRole = group.kind == .expense ? role : .custom
+        group.role = normalizedRole
+        group.categoryKeys = normalizeCategoryKeys(categoryKeys, for: group.kind)
+        group.updatedAt = Date.now
+        try context.save()
+        try refreshStatsGroups()
+    }
+
+    func deleteStatsGroup(id: UUID) throws {
+        guard let group = try findStatsGroup(by: id) else { return }
+        context.delete(group)
+        try context.save()
+        try refreshStatsGroups()
+    }
+
+    private func findStatsGroup(by id: UUID) throws -> PersonalStatsGroup? {
+        let predicate = #Predicate<PersonalStatsGroup> { $0.remoteId == id }
+        var descriptor = FetchDescriptor<PersonalStatsGroup>(predicate: predicate)
+        descriptor.fetchLimit = 1
+        return try context.fetch(descriptor).first
+    }
+
+    private func normalizeCategoryKeys(_ keys: [String], for kind: PersonalTransactionKind) -> [String] {
+        let valid = Set(categories.filter { $0.kind == kind }.map { $0.key })
+        var seen: Set<String> = []
+        var result: [String] = []
+        for key in keys {
+            guard valid.contains(key), !seen.contains(key) else { continue }
+            seen.insert(key)
+            result.append(key)
+        }
+        return result
+    }
+
+    private func sanitizedColorHex(_ input: String?) -> String? {
+        guard var text = input?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else {
+            return nil
+        }
+        if !text.hasPrefix("#") {
+            text = "#\(text)"
+        }
+        return text
     }
 
     func defaultCategoryKey(for kind: PersonalTransactionKind) -> String {
@@ -703,6 +922,16 @@ final class PersonalLedgerStore: ObservableObject {
             return category.iconName
         }
         return iconForCategory(key: key)
+    }
+
+    func resolvedCategoryColorHex(for key: String) -> String? {
+        if let category = categories.first(where: { $0.key == key }) {
+            return category.colorHex
+        }
+        if let seed = PersonalCategorySeedCatalog.all.first(where: { $0.key == key }) {
+            return seed.colorHex
+        }
+        return nil
     }
 
     // MARK: - Accounts
@@ -1288,12 +1517,20 @@ final class PersonalLedgerStore: ObservableObject {
         for category in categories {
             context.delete(category)
         }
+        let groups = try context.fetch(FetchDescriptor<PersonalStatsGroup>())
+        for group in groups {
+            context.delete(group)
+        }
+        statsGroups = []
         preferences.lastUsedAccountId = nil
         preferences.lastUsedCategoryKey = nil
         preferences.fxRates = [:]
         preferences.sharedCategoryMappings = [:]
         try context.save()
         try refreshAccounts()
+        try refreshCategories()
+        try refreshStatsGroups()
+        try ensureDefaultStatsGroups()
     }
 
     // MARK: - Export / Import Snapshot
@@ -1303,18 +1540,21 @@ final class PersonalLedgerStore: ObservableObject {
         let transactionDescriptor = FetchDescriptor<PersonalTransaction>()
         let transferDescriptor = FetchDescriptor<AccountTransfer>()
         let categoryDescriptor = FetchDescriptor<PersonalCategory>()
+        let groupDescriptor = FetchDescriptor<PersonalStatsGroup>()
 
         let accounts = try context.fetch(accountDescriptor)
         let transactions = try context.fetch(transactionDescriptor)
         let transfers = try context.fetch(transferDescriptor)
         let categories = try context.fetch(categoryDescriptor)
+        let groups = try context.fetch(groupDescriptor)
 
         let snapshot = PersonalLedgerSnapshot(
             preferences: .init(from: preferences),
             accounts: accounts.map(PersonalLedgerSnapshot.Account.init(from:)),
             transactions: transactions.map(PersonalLedgerSnapshot.Transaction.init(from:)),
             transfers: transfers.map(PersonalLedgerSnapshot.Transfer.init(from:)),
-            categories: categories.map(PersonalLedgerSnapshot.Category.init(from:))
+            categories: categories.map(PersonalLedgerSnapshot.Category.init(from:)),
+            statsGroups: groups.map(PersonalLedgerSnapshot.StatsGroup.init(from:))
         )
 
         return snapshot
@@ -1351,6 +1591,20 @@ final class PersonalLedgerStore: ObservableObject {
                                          sortIndex: category.sortIndex,
                                          createdAt: category.createdAt,
                                          updatedAt: category.updatedAt)
+            context.insert(model)
+        }
+
+        for group in snapshot.statsGroups {
+            let model = PersonalStatsGroup(remoteId: group.remoteId,
+                                           name: group.name,
+                                           colorHex: group.colorHex,
+                                           isVisibleByDefault: group.isVisibleByDefault,
+                                           sortIndex: group.sortIndex,
+                                           createdAt: group.createdAt,
+                                           updatedAt: group.updatedAt,
+                                           kind: group.kind,
+                                           role: group.role,
+                                           categoryKeys: group.categoryKeys)
             context.insert(model)
         }
 
@@ -1412,6 +1666,8 @@ final class PersonalLedgerStore: ObservableObject {
         try context.save()
         try refreshAccounts()
         try refreshCategories()
+        try refreshStatsGroups()
+        try ensureDefaultStatsGroups()
     }
 
     // MARK: - Analytics

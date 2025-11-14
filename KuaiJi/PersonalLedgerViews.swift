@@ -2031,6 +2031,7 @@ struct PersonalTransferFormView: View {
 struct PersonalStatsView: View {
     @ObservedObject var viewModel: PersonalStatsViewModel
     @State private var focus: Focus = .expense
+    @State private var showingGroupManager = false
 
     enum Focus: String, CaseIterable, Identifiable {
         case expense
@@ -2060,13 +2061,21 @@ struct PersonalStatsView: View {
         }
     }
 
-    private var filteredBreakdown: [PersonalStatsCategoryShare] {
+    private var currentBreakdown: [PersonalStatsCategoryShare] {
         let data = focus == .expense ? viewModel.expenseBreakdown : viewModel.incomeBreakdown
         return data.filter { $0.amountMinorUnits > 0 }
     }
 
+    private var groupedEntries: [PersonalStatsCategoryShare] {
+        currentBreakdown.filter { $0.groupId != nil }
+    }
+
+    private var ungroupedTotal: Int {
+        currentBreakdown.filter { $0.groupId == nil }.reduce(0) { $0 + $1.amountMinorUnits }
+    }
+
     private var totalForFocus: Int {
-        filteredBreakdown.reduce(0) { $0 + $1.amountMinorUnits }
+        currentBreakdown.reduce(0) { $0 + $1.amountMinorUnits }
     }
 
     private var totalExpense: Int {
@@ -2082,7 +2091,6 @@ struct PersonalStatsView: View {
             VStack(alignment: .leading, spacing: 24) {
                 headerSection
                 statsSummaryCard
-                insightsSection
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 24)
@@ -2090,7 +2098,13 @@ struct PersonalStatsView: View {
         .background(Color.appBackground)
         .navigationTitle(L.personalStatsTitle.localized)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar { currencyToolbar }
+        .toolbar {
+            manageToolbar
+            currencyToolbar
+        }
+        .sheet(isPresented: $showingGroupManager) {
+            PersonalStatsGroupManagerView(viewModel: viewModel.makeStatsGroupManagerViewModel())
+        }
     }
 
     private var headerSection: some View {
@@ -2126,6 +2140,8 @@ struct PersonalStatsView: View {
                     .toggleStyle(.switch)
                     .tint(Color.appToggleOn)
             }
+
+            groupFilterControls
         }
     }
 
@@ -2169,7 +2185,7 @@ struct PersonalStatsView: View {
 
                 Divider()
 
-                if filteredBreakdown.isEmpty {
+                if currentBreakdown.isEmpty {
                     Text(L.personalStatsEmpty.localized)
                         .font(.callout)
                         .foregroundStyle(.secondary)
@@ -2177,7 +2193,7 @@ struct PersonalStatsView: View {
                         .padding(.vertical, 24)
                 } else {
                     VStack(spacing: 12) {
-                        ForEach(filteredBreakdown) { item in
+                        ForEach(currentBreakdown) { item in
                             categoryRow(for: item)
                         }
                     }
@@ -2188,39 +2204,71 @@ struct PersonalStatsView: View {
     }
 
     @ViewBuilder
-    private var insightsSection: some View {
-        if focus == .expense && !viewModel.insights.isEmpty {
-            statsContainer {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(L.personalStatsInsightsTitle.localized)
-                        .font(.headline)
-                    ForEach(viewModel.insights) { insight in
-                        let streakText = L.personalStatsInsightStreak.localized(insight.increasingStreak)
-                        let growthText = L.personalStatsInsightRecentGrowth.localized
-                        let detailText = L.personalStatsInsightDetail.localized(
-                            insight.displayName,
-                            streakText,
-                            growthText,
-                            formatPercent(insight.recentGrowthRate)
-                        )
-                        HStack(spacing: 12) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(Focus.expense.secondaryColor)
-                                .padding(8)
-                                .background(Focus.expense.secondaryColor.opacity(0.12), in: Circle())
-                            Text(detailText)
-                                .font(.callout)
-                                .multilineTextAlignment(.leading)
-                            Spacer()
+    private var groupFilterControls: some View {
+        if groupedEntries.isEmpty && ungroupedTotal <= 0 {
+            EmptyView()
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(L.personalStatsGroupsTitle.localized)
+                    .font(.subheadline.weight(.semibold))
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(groupedEntries) { entry in
+                            groupChip(for: entry)
                         }
-                        .padding(12)
-                        .background(Color.yellow.opacity(0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        if ungroupedTotal > 0 {
+                            ungroupedChip(total: ungroupedTotal)
+                        }
                     }
+                    .padding(.vertical, 4)
                 }
             }
+            .padding(.top, 6)
         }
     }
 
+    private func groupChip(for entry: PersonalStatsCategoryShare) -> some View {
+        let color = displayColor(for: entry)
+        return HStack(spacing: 8) {
+            Circle()
+                .fill(color)
+                .frame(width: 10, height: 10)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(entry.displayName)
+                    .font(.caption.weight(.semibold))
+                Text(formattedAmount(entry.amountMinorUnits, currency: viewModel.selectedCurrency))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(
+            Capsule()
+                .fill(color.opacity(0.15))
+        )
+    }
+
+    private func ungroupedChip(total: Int) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "circle.grid.3x3")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(Color(.systemGray))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(L.personalStatsGroupsUngrouped.localized)
+                    .font(.caption.weight(.semibold))
+                Text(formattedAmount(total, currency: viewModel.selectedCurrency))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(
+            Capsule()
+                .fill(Color(.systemGray5))
+        )
+    }
     private var currencyToolbar: some ToolbarContent {
         ToolbarItem(placement: .navigationBarTrailing) {
             Menu {
@@ -2236,6 +2284,19 @@ struct PersonalStatsView: View {
             } label: {
                 Label(viewModel.selectedCurrency.rawValue, systemImage: "coloncurrencysign.circle")
             }
+        }
+    }
+
+    private var manageToolbar: some ToolbarContent {
+        ToolbarItem(placement: .navigationBarTrailing) {
+            Button {
+                showingGroupManager = true
+            } label: {
+                Image(systemName: "slider.horizontal.3")
+                    .font(.headline)
+                    .accessibilityLabel(L.personalStatsGroupsManage.localized)
+            }
+            .tint(Color.appTextPrimary)
         }
     }
 
@@ -2298,7 +2359,7 @@ struct PersonalStatsView: View {
 
     private func donutView() -> some View {
         ZStack {
-            if filteredBreakdown.isEmpty {
+            if currentBreakdown.isEmpty {
                 Circle()
                     .fill(Color(.systemGray5))
                     .frame(width: 180, height: 180)
@@ -2310,11 +2371,11 @@ struct PersonalStatsView: View {
                         .font(.headline)
                 }
             } else {
-                Chart(filteredBreakdown) { item in
+                Chart(currentBreakdown) { item in
                     SectorMark(angle: .value("Amount", Double(item.amountMinorUnits)),
                                innerRadius: .ratio(0.62),
                                angularInset: 1)
-                        .foregroundStyle(categoryColor(for: item.categoryKey))
+                        .foregroundStyle(displayColor(for: item))
                 }
                 .chartLegend(.hidden)
                 .frame(width: 200, height: 200)
@@ -2359,34 +2420,34 @@ struct PersonalStatsView: View {
                 growthView(growth)
             }
 
-            if focus == .expense, let structure = viewModel.structure, structure.total > 0 {
-                structureView(structure)
+            if focus == .expense, !viewModel.expenseGroupStructure.isEmpty {
+                structureView(viewModel.expenseGroupStructure)
             }
         }
     }
 
     private func summaryTotalCard() -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        let accent = focus == .expense ? Focus.expense.accentColor : Focus.income.accentColor
+        return VStack(alignment: .leading, spacing: 8) {
             Text(focus.localizedTitle)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(accent)
 
             Text(formattedAmount(totalForFocus, currency: viewModel.selectedCurrency))
                 .font(.system(size: 36, weight: .bold, design: .rounded))
                 .monospacedDigit()
                 .minimumScaleFactor(0.65)
 
-            Text(L.personalStatsRecordCount.localized(filteredBreakdown.reduce(0) { $0 + $1.transactionCount }))
+            Text(L.personalStatsRecordCount.localized(currentBreakdown.reduce(0) { $0 + $1.transactionCount }))
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(accent.opacity(0.9))
         }
         .padding(.vertical, 18)
         .padding(.horizontal, 20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(0.06), radius: 14, x: 0, y: 10)
+                .fill(accent.opacity(0.12))
         )
     }
 
@@ -2426,58 +2487,58 @@ struct PersonalStatsView: View {
         .background(tint.opacity(0.12), in: Capsule())
     }
 
-    private func structureView(_ structure: PersonalSpendingStructure) -> some View {
-        let essentialShare = structure.essentialShare
-        let discretionaryShare = structure.discretionaryShare
-        return VStack(alignment: .leading, spacing: 8) {
+    private func structureView(_ segments: [PersonalStatsCategoryShare]) -> some View {
+        let total = max(segments.reduce(0) { $0 + max(0, $1.amountMinorUnits) }, 0)
+        return VStack(alignment: .leading, spacing: 10) {
             Text(L.personalStatsStructureTitle.localized)
                 .font(.subheadline.weight(.semibold))
             GeometryReader { proxy in
                 let width = proxy.size.width
-                let essentialWidth = width * CGFloat(max(min(essentialShare, 1), 0))
-                let discretionaryWidth = width - essentialWidth
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color(.systemGray5))
-                    if essentialWidth > 0 {
-                        Capsule()
-                            .fill(Focus.expense.accentColor)
-                            .frame(width: essentialWidth)
-                    }
-                    if discretionaryWidth > 0 {
-                        Capsule()
-                            .fill(Focus.expense.secondaryColor)
-                            .frame(width: discretionaryWidth)
-                            .offset(x: essentialWidth)
+                    HStack(spacing: 0) {
+                        ForEach(segments) { segment in
+                            let share = total > 0 ? Double(max(segment.amountMinorUnits, 0)) / Double(total) : 0
+                            if share > 0 {
+                                Capsule()
+                                    .fill(displayColor(for: segment))
+                                    .frame(width: width * CGFloat(share))
+                            }
+                        }
+                        Spacer(minLength: 0)
                     }
                 }
             }
             .frame(height: 12)
 
-            HStack {
-                HStack(spacing: 6) {
-                    Image(systemName: "circle.fill")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundStyle(Focus.expense.accentColor)
-                    Text("\(L.personalStatsEssential.localized) · \(formatPercent(essentialShare))")
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(segments) { segment in
+                    let share = total > 0 ? Double(max(segment.amountMinorUnits, 0)) / Double(total) : 0
+                    HStack(spacing: 10) {
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(displayColor(for: segment))
+                                .frame(width: 8, height: 8)
+                            Text(segment.displayName)
+                                .font(.caption)
+                        }
+                        Spacer()
+                        Text(formatPercent(share))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text(formattedAmount(segment.amountMinorUnits, currency: viewModel.selectedCurrency))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
-                .foregroundStyle(.secondary)
-                Spacer()
-                HStack(spacing: 6) {
-                    Image(systemName: "circle.fill")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundStyle(Focus.expense.secondaryColor)
-                    Text("\(L.personalStatsDiscretionary.localized) · \(formatPercent(discretionaryShare))")
-                }
-                .foregroundStyle(.secondary)
             }
-            .font(.caption)
         }
         .padding(14)
         .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private func categoryRow(for item: PersonalStatsCategoryShare) -> some View {
-        let color = categoryColor(for: item.categoryKey)
+        let color = displayColor(for: item)
         let share = totalForFocus > 0 ? Double(item.amountMinorUnits) / Double(totalForFocus) : 0
         return HStack(spacing: 16) {
             ZStack {
@@ -2511,7 +2572,14 @@ struct PersonalStatsView: View {
         AmountFormatter.string(minorUnits: amount, currency: currency, locale: Locale.current)
     }
 
-    private func categoryColor(for key: String) -> Color {
+    private func displayColor(for item: PersonalStatsCategoryShare) -> Color {
+        if let hex = item.colorHex, let color = colorFromHex(hex) {
+            return color
+        }
+        return fallbackCategoryColor(for: item.categoryKey)
+    }
+
+    private func fallbackCategoryColor(for key: String) -> Color {
         let hash = key.unicodeScalars.reduce(into: UInt64(0)) { partial, scalar in
             partial = partial &* 31 &+ UInt64(scalar.value)
         }
@@ -2594,6 +2662,268 @@ private func colorFromHex(_ hex: String?) -> Color? {
         return Color(red: r, green: g, blue: b, opacity: a)
     default:
         return nil
+    }
+}
+
+struct PersonalStatsGroupManagerView: View {
+    @ObservedObject var viewModel: PersonalStatsGroupManagerViewModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedKind: PersonalTransactionKind = .expense
+    @State private var editorDraft = PersonalStatsGroupEditorDraft(kind: .expense)
+    @State private var showingEditor = false
+
+    private var displayedGroups: [PersonalStatsGroupViewData] {
+        selectedKind == .expense ? viewModel.expenseGroups : viewModel.incomeGroups
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section(header: Text(selectedKind == .expense
+                                     ? L.personalStatsFocusExpense.localized
+                                     : L.personalStatsFocusIncome.localized)) {
+                    if displayedGroups.isEmpty {
+                        Text(L.personalStatsGroupsEmpty.localized)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.vertical, 60)
+                            .listRowBackground(Color.clear)
+                    } else {
+                        ForEach(displayedGroups) { group in
+                            Button {
+                                openEditor(for: group)
+                            } label: {
+                                statsGroupRow(for: group)
+                            }
+                            .buttonStyle(.plain)
+                            .contentShape(Rectangle())
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button {
+                                    openEditor(for: group)
+                                } label: {
+                                    Label(L.edit.localized, systemImage: "pencil")
+                                }
+                                .tint(Color.accentColor)
+
+                                Button(role: .destructive) {
+                                    viewModel.delete(group: group)
+                                } label: {
+                                    Label(L.delete.localized, systemImage: "trash")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(Color.appBackground)
+            .navigationTitle(L.personalStatsManager.localized)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Picker("", selection: $selectedKind) {
+                        Text(L.personalStatsFocusExpense.localized).tag(PersonalTransactionKind.expense)
+                        Text(L.personalStatsFocusIncome.localized).tag(PersonalTransactionKind.income)
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 220)
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        let draft = viewModel.draft(for: selectedKind)
+                        presentNewDraft(draft)
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                }
+            }
+            .alert(viewModel.lastError ?? "", isPresented: Binding(get: { viewModel.lastError != nil },
+                                                                   set: { _ in viewModel.lastError = nil })) {
+                Button(L.ok.localized, action: {})
+            }
+            .sheet(isPresented: $showingEditor) {
+                NavigationStack {
+                    PersonalStatsGroupEditorView(draft: $editorDraft,
+                                                 availableCategories: viewModel.categories(for: editorDraft.kind,
+                                                                                          editingGroupId: editorDraft.id),
+                                                 onSave: {
+                                                     viewModel.save(draft: editorDraft)
+                                                     showingEditor = false
+                                                 },
+                                                 onCancel: { showingEditor = false })
+                }
+            }
+            .background(Color.appBackground.ignoresSafeArea())
+        }
+    }
+
+    private func openEditor(for group: PersonalStatsGroupViewData) {
+        let draft = viewModel.draft(for: group)
+        presentNewDraft(draft)
+    }
+
+    private func presentNewDraft(_ draft: PersonalStatsGroupEditorDraft) {
+        editorDraft = draft
+        DispatchQueue.main.async {
+            showingEditor = true
+        }
+    }
+
+    private func statsGroupRow(for group: PersonalStatsGroupViewData) -> some View {
+        let color = colorFromHex(group.colorHex) ?? Color(red: 0.85, green: 0.86, blue: 0.9)
+        let categoryCount = group.categoryKeys.count
+        let countText = L.personalStatsGroupsCategoryCount.localized(categoryCount)
+        return HStack(alignment: .center, spacing: 14) {
+            Circle()
+                .fill(color)
+                .frame(width: 18, height: 18)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(group.name)
+                    .font(.headline)
+                    .foregroundStyle(Color.appTextPrimary)
+                HStack(spacing: 8) {
+                    if group.role != .custom {
+                        Text(group.role.localizedName)
+                            .font(.caption2.weight(.bold))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(color.opacity(0.25), in: Capsule())
+                    }
+                    Text(countText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color(.secondarySystemBackground))
+        )
+        .padding(.vertical, 4)
+    }
+}
+
+struct PersonalStatsGroupEditorView: View {
+    @Binding var draft: PersonalStatsGroupEditorDraft
+    let availableCategories: [PersonalStatsCategorySelectionItem]
+    var onSave: () -> Void
+    var onCancel: () -> Void
+
+    @State private var colorSelection: Color = .accentColor
+
+    init(draft: Binding<PersonalStatsGroupEditorDraft>,
+         availableCategories: [PersonalStatsCategorySelectionItem],
+         onSave: @escaping () -> Void,
+         onCancel: @escaping () -> Void) {
+        self._draft = draft
+        self.availableCategories = availableCategories
+        self.onSave = onSave
+        self.onCancel = onCancel
+        if let hex = draft.wrappedValue.colorHex, let color = colorFromHex(hex) {
+            _colorSelection = State(initialValue: color)
+        }
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                TextField(L.personalStatsGroupsName.localized, text: $draft.name)
+            }
+
+            Section(header: Text(L.personalStatsGroupsColor.localized)) {
+                ColorPicker(L.personalStatsGroupsColor.localized,
+                            selection: $colorSelection,
+                            supportsOpacity: false)
+                    .onChange(of: colorSelection) { _, newValue in
+                        draft.colorHex = hexString(from: newValue)
+                    }
+                if draft.colorHex != nil {
+                    Button(L.personalStatsGroupsClearColor.localized, role: .destructive) {
+                        draft.colorHex = nil
+                    }
+                }
+            }
+
+            Section(header: Text(categoriesHeader)) {
+                if availableCategories.isEmpty {
+                    Text(L.personalStatsGroupsNoCategory.localized)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(availableCategories) { item in
+                        let binding = Binding(
+                            get: { draft.categoryKeys.contains(item.key) },
+                            set: { isOn in
+                                if isOn { draft.categoryKeys.insert(item.key) }
+                                else { draft.categoryKeys.remove(item.key) }
+                            }
+                        )
+                        let isLocked = item.isLocked
+                        Toggle(isOn: binding) {
+                            HStack {
+                                Text(item.name)
+                                    .foregroundStyle(isLocked ? Color.secondary : Color.primary)
+                                Spacer()
+                                if let hex = item.colorHex, let color = colorFromHex(hex) {
+                                    Circle()
+                                        .fill(color)
+                                        .frame(width: 12, height: 12)
+                                }
+                            }
+                        }
+                        .disabled(isLocked)
+                        .tint(Color.appToggleOn)
+                        .opacity(isLocked ? 0.55 : 1.0)
+                    }
+                }
+            }
+        }
+        .navigationTitle(draft.id == nil ? L.personalStatsGroupsCreate.localized : L.personalStatsGroupsEdit.localized)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button(L.cancel.localized, action: onCancel)
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button(L.save.localized, action: onSave)
+                    .disabled(draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+        }
+        .onAppear {
+            if let hex = draft.colorHex, let color = colorFromHex(hex) {
+                colorSelection = color
+            }
+        }
+        .onChange(of: draft.colorHex) { _, newValue in
+            if let hex = newValue, let color = colorFromHex(hex) {
+                colorSelection = color
+            }
+        }
+    }
+
+    private var categoriesHeader: String {
+        L.personalStatsGroupsCategories.localized + " · " + L.personalStatsGroupsCategoryCount.localized(draft.categoryKeys.count)
+    }
+
+    private func hexString(from color: Color) -> String? {
+        let uiColor = UIColor(color)
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        guard uiColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha) else { return nil }
+        return String(format: "#%02X%02X%02X",
+                      Int(red * 255),
+                      Int(green * 255),
+                      Int(blue * 255))
     }
 }
 

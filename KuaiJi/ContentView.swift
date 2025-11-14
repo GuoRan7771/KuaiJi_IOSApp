@@ -1985,6 +1985,10 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                     PersonalCategoryManagerView(viewModel: personalLedgerRoot.makeCategoryManagerViewModel())
                 }
                 .foregroundStyle(Color.appLedgerContentText)
+                NavigationLink(L.personalStatsManager.localized) {
+                    PersonalStatsGroupManagerView(viewModel: PersonalStatsGroupManagerViewModel(store: personalLedgerRoot.store))
+                }
+                .foregroundStyle(Color.appLedgerContentText)
             } header: {
                 Text(L.personalSettingsTitle.localized)
             }
@@ -2189,6 +2193,13 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
             Button(L.cancel.localized, role: .cancel) { }
             Button(L.delete.localized, role: .destructive) {
                 viewModel.eraseAbsolutelyAll()
+                do {
+                    try personalLedgerRoot.store.clearAllPersonalData()
+                } catch {
+                    alertTitle = L.personalClearFailed.localized
+                    alertMessage = error.localizedDescription
+                    showingAlert = true
+                }
             }
         } message: {
             Text(L.eraseAllConfirmMessage.localized)
@@ -4215,7 +4226,8 @@ final class KeyboardDismissInstaller: NSObject, UIGestureRecognizerDelegate {
         PersonalTransaction.self,
         AccountTransfer.self,
         PersonalPreferences.self,
-        PersonalCategory.self
+        PersonalCategory.self,
+        PersonalStatsGroup.self
     ])
     let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
     do {

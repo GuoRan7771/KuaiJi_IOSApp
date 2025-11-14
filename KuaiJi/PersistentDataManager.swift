@@ -890,6 +890,11 @@ class PersistentDataManager: ObservableObject {
         if let items = try? modelContext.fetch(pCategoryDesc) {
             for item in items { modelContext.delete(item) }
         }
+        // 删除 PersonalStatsGroup
+        let pStatsGroupDesc = FetchDescriptor<PersonalStatsGroup>()
+        if let items = try? modelContext.fetch(pStatsGroupDesc) {
+            for item in items { modelContext.delete(item) }
+        }
         
         try? modelContext.save()
         

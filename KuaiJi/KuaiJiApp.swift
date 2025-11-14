@@ -35,44 +35,14 @@ struct KuaiJiApp: App {
     @StateObject private var personalLedgerRoot: PersonalLedgerRootViewModel
     @StateObject private var celebration = CelebrationManager.shared
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    private let sharedModelContainer: ModelContainer
     
     init() {
-        let container = sharedModelContainer
+        LegacyDataCompatibility.install()
+        let container = KuaiJiApp.makeSharedModelContainer()
+        self.sharedModelContainer = container
         _personalLedgerRoot = StateObject(wrappedValue: PersonalLedgerRootViewModel(modelContext: container.mainContext, defaultCurrency: .cny))
     }
-
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            UserProfile.self,
-            Ledger.self,
-            Membership.self,
-            Expense.self,
-            ExpenseParticipant.self,
-            BalanceSnapshot.self,
-            TransferPlan.self,
-            AuditLog.self,
-            PersonalAccount.self,
-            PersonalTransaction.self,
-            AccountTransfer.self,
-            PersonalPreferences.self,
-            PersonalCategory.self
-        ])
-        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-        do {
-            return try ModelContainer(for: schema, configurations: [configuration])
-        } catch {
-            #if DEBUG
-            preconditionFailure("Could not create ModelContainer: \(error)")
-            #else
-            // Fallback to in-memory container to keep app usable
-            let fallbackConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-            if let container = try? ModelContainer(for: schema, configurations: [fallbackConfig]) {
-                return container
-            }
-            fatalError("Could not create either persistent or in-memory ModelContainer: \(error)")
-            #endif
-        }
-    }()
 
     var body: some Scene {
         WindowGroup {
@@ -161,6 +131,68 @@ struct KuaiJiApp: App {
             }
         }
         .modelContainer(sharedModelContainer)
+    }
+}
+
+private extension KuaiJiApp {
+    static func makeSharedModelContainer() -> ModelContainer {
+        let schema = Schema([
+            UserProfile.self,
+            Ledger.self,
+            Membership.self,
+            Expense.self,
+            ExpenseParticipant.self,
+            BalanceSnapshot.self,
+            TransferPlan.self,
+            AuditLog.self,
+            PersonalAccount.self,
+            PersonalTransaction.self,
+            AccountTransfer.self,
+            PersonalPreferences.self,
+            PersonalCategory.self,
+            PersonalStatsGroup.self
+        ])
+        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        do {
+            return try ModelContainer(for: schema, configurations: [configuration])
+        } catch {
+            #if DEBUG
+            preconditionFailure("Could not create ModelContainer: \(error)")
+            #else
+            let fallbackConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            if let container = try? ModelContainer(for: schema, configurations: [fallbackConfig]) {
+                return container
+            }
+            fatalError("Could not create either persistent or in-memory ModelContainer: \(error)")
+            #endif
+        }
+    }
+}
+
+private enum LegacyDataCompatibility {
+    private static var didInstall = false
+
+    static func install() {
+        guard !didInstall else { return }
+        didInstall = true
+        registerLegacyArrayAliases()
+    }
+
+    private static func registerLegacyArrayAliases() {
+        let legacyNames = [
+            "Array",
+            "Array<String>",
+            "Swift.Array",
+            "Swift.Array<Swift.String>",
+            "_SwiftValue.Array",
+            "_TtSa"
+        ]
+        legacyNames.forEach { name in
+            NSKeyedUnarchiver.setClass(NSArray.self, forClassName: name)
+            NSKeyedUnarchiver.setClass(NSMutableArray.self, forClassName: name)
+        }
+        ValueTransformer.setValueTransformer(LegacyStringArrayTransformer(),
+                                            forName: NSValueTransformerName(rawValue: "LegacyStringArrayTransformer"))
     }
 }
 

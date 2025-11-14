@@ -316,3 +316,81 @@ final class PersonalCategory {
         }
     }
 }
+
+enum PersonalStatsGroupRole: String, Codable, CaseIterable, Identifiable {
+    case custom
+    case essential
+    case discretionary
+
+    var id: String { rawValue }
+}
+
+@Model
+final class PersonalStatsGroup {
+    @Attribute(.unique) var remoteId: UUID
+    var name: String
+    var colorHex: String?
+    var isVisibleByDefault: Bool
+    var sortIndex: Int
+    var createdAt: Date
+    var updatedAt: Date
+    @Attribute(originalName: "kind") private var kindRawValueStorage: PersonalTransactionKind.RawValue?
+    @Attribute(originalName: "role") private var roleRawValueStorage: PersonalStatsGroupRole.RawValue?
+    @Attribute(.transformable(by: LegacyStringArrayTransformer.self), originalName: "categoryKeys")
+    private var categoryKeysStorage: [String]?
+
+    init(remoteId: UUID = UUID(),
+         name: String,
+         colorHex: String? = nil,
+         isVisibleByDefault: Bool = true,
+         sortIndex: Int = 0,
+         createdAt: Date = .now,
+         updatedAt: Date = .now,
+         kind: PersonalTransactionKind = .expense,
+         role: PersonalStatsGroupRole = .custom,
+         categoryKeys: [String] = []) {
+        self.remoteId = remoteId
+        self.name = name
+        self.colorHex = colorHex
+        self.isVisibleByDefault = isVisibleByDefault
+        self.sortIndex = sortIndex
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.kindRawValueStorage = kind.rawValue
+        self.roleRawValueStorage = role.rawValue
+        self.categoryKeysStorage = categoryKeys.isEmpty ? nil : categoryKeys
+    }
+
+    var kind: PersonalTransactionKind {
+        get {
+            if let stored = kindRawValueStorage, let value = PersonalTransactionKind(rawValue: stored) {
+                return value
+            }
+            let fallback: PersonalTransactionKind = .expense
+            kindRawValueStorage = fallback.rawValue
+            return fallback
+        }
+        set {
+            kindRawValueStorage = newValue.rawValue
+        }
+    }
+
+    var role: PersonalStatsGroupRole {
+        get {
+            if let stored = roleRawValueStorage, let value = PersonalStatsGroupRole(rawValue: stored) {
+                return value
+            }
+            let fallback: PersonalStatsGroupRole = .custom
+            roleRawValueStorage = fallback.rawValue
+            return fallback
+        }
+        set {
+            roleRawValueStorage = newValue.rawValue
+        }
+    }
+
+    var categoryKeys: [String] {
+        get { categoryKeysStorage ?? [] }
+        set { categoryKeysStorage = newValue.isEmpty ? nil : newValue }
+    }
+}
