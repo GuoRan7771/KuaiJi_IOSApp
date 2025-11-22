@@ -118,6 +118,16 @@ extension View {
             .frame(height: 1 / UIScreen.main.scale)
             .listRowInsets(EdgeInsets())
     }
+
+    /// Fixes the list row separator leading alignment on iOS 16+.
+    @ViewBuilder
+    func appListRowSeparatorLeading() -> some View {
+        if #available(iOS 16.0, *) {
+            alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
+        } else {
+            self
+        }
+    }
 }
 
 struct FullWidthSeparator: View {

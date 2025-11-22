@@ -1164,6 +1164,8 @@ struct PersonalRecordFormView: View {
                     .accessibilityLabel(Text(L.personalFieldCurrency.localized))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .appListRowSeparatorLeading()
+
                 if viewModel.showFXField {
                     TextField(L.personalFieldFXRate.localized,
                               text: $viewModel.fxRateText,
@@ -2532,6 +2534,20 @@ private func localizedCategoryName(_ key: String) -> String {
         return match.localizedName
     }
     return key
+}
+
+struct DashedSeparator: View {
+    var body: some View {
+        GeometryReader { geometry in
+            Path { path in
+                path.move(to: CGPoint(x: 0, y: 0))
+                path.addLine(to: CGPoint(x: geometry.size.width, y: 0))
+            }
+            .stroke(style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+            .foregroundStyle(Color.appSecondaryText.opacity(0.2))
+        }
+        .frame(height: 1)
+    }
 }
 
 extension PersonalRecordRowViewData {
