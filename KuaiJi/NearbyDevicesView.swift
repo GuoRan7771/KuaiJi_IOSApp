@@ -27,9 +27,9 @@ struct NearbyDevicesView: View {
                 HStack(spacing: 16) {
                     Image(systemName: deviceIcon(for: multipeerManager.currentDeviceName))
                         .font(.title)
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(Color.appSelection)
                         .frame(width: 48, height: 48)
-                        .background(Circle().fill(Color.blue.opacity(0.1)))
+                        .background(Circle().fill(Color.appSelection.opacity(0.1)))
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text(L.syncCurrentDevice.localized)
@@ -81,7 +81,7 @@ struct NearbyDevicesView: View {
                         .padding(.vertical, 12)
                     }
                     .buttonStyle(.borderedProminent)
-                    .tint(.green)
+                    .tint(Color.appSuccess)
                 }
             }
         }
@@ -139,9 +139,9 @@ struct NearbyDevicesView: View {
         HStack(spacing: 16) {
             Image(systemName: deviceIcon(for: peer.displayName))
                 .font(.title2)
-                .foregroundStyle(isConnected ? .green : .blue)
+                .foregroundStyle(isConnected ? Color.appSuccess : Color.appSelection)
                 .frame(width: 40, height: 40)
-                .background(Circle().fill(isConnected ? Color.green.opacity(0.1) : Color.blue.opacity(0.1)))
+                .background(Circle().fill(isConnected ? Color.appSuccess.opacity(0.1) : Color.appSelection.opacity(0.1)))
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(cleanDeviceName(peer.displayName))
@@ -151,7 +151,7 @@ struct NearbyDevicesView: View {
                 if isConnected {
                     Text(L.syncDeviceConnected.localized)
                         .font(.caption)
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Color.appSuccess)
                 } else {
                     Text(L.syncDeviceAvailable.localized)
                         .font(.caption)
@@ -164,7 +164,7 @@ struct NearbyDevicesView: View {
             if isConnected {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.title3)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Color.appSuccess)
                 } else {
                     Button(L.syncConnect.localized) {
                         multipeerManager.invitePeer(peer)

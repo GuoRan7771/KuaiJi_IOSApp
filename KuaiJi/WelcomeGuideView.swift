@@ -448,7 +448,7 @@ struct GuidePageView: View {
                         .foregroundStyle(page.accentColor)
                         .background(
                             Circle()
-                                .fill(.background)
+                                .fill(Color.appBackground)
                                 .frame(width: 30, height: 30)
                         )
                 }

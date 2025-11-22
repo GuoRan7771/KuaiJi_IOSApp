@@ -1373,7 +1373,7 @@ struct ExpenseFormView<Model: ExpenseFormViewModelProtocol>: View {
                                 HStack(spacing: 12) {
                                     Image(systemName: viewModel.splitOption == option ? "checkmark.circle.fill" : "circle")
                                         .font(.title3)
-                                        .foregroundStyle(viewModel.splitOption == option ? Color.blue : Color.secondary)
+                                        .foregroundStyle(viewModel.splitOption == option ? Color.appSelection : Color.secondary)
                                     
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(option.title)
@@ -1691,7 +1691,7 @@ struct SettlementView<Model: SettlementViewModelProtocol>: View {
                         Text(balance.userName)
                         Spacer()
                         Text(balance.amountDisplay)
-                            .foregroundStyle(balance.isPositive ? Color.green : Color.red)
+                            .foregroundStyle(balance.isPositive ? Color.appSuccess : Color.appDanger)
                     }
                 }
             }
@@ -1721,8 +1721,8 @@ struct SettlementView<Model: SettlementViewModelProtocol>: View {
                             Spacer()
                         }
                         .padding()
-                        .background(RoundedRectangle(cornerRadius: 12).fill(Color.green.opacity(0.1)))
-                        .foregroundStyle(.green)
+                        .background(RoundedRectangle(cornerRadius: 12).fill(Color.appSuccess.opacity(0.1)))
+                        .foregroundStyle(Color.appSuccess)
                     }
                     .buttonStyle(.plain)
                     .listRowInsets(EdgeInsets())
@@ -3045,7 +3045,7 @@ private struct TipCard: View {
             .padding(16)
             .scaleEffect(pressed ? 0.97 : 1.0)
             .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.appSurface))
-            .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 4)
+            .shadow(color: Color.appCardShadow, radius: 8, x: 0, y: 4)
         }
         .buttonStyle(.plain)
         .disabled(!isEnabled)
@@ -3330,11 +3330,11 @@ struct LedgerOverviewView<Model: LedgerOverviewViewModelProtocol>: View {
             
             Text(viewModel.ledger.totalSpentDisplay)
                 .font(.system(size: 32, weight: .bold))
-                .foregroundStyle(.blue)
+                .foregroundStyle(Color.appSelection)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color.blue.opacity(0.1)))
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.appSelection.opacity(0.1)))
     }
     
     // 第四栏：成员支出
@@ -3375,7 +3375,7 @@ struct LedgerOverviewView<Model: LedgerOverviewViewModelProtocol>: View {
                         Text(member.totalSpentDisplay)
                             .font(.subheadline)
                             .fontWeight(.semibold)
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(Color.appSelection)
                     }
                 }
             }
@@ -3421,7 +3421,7 @@ struct LedgerOverviewView<Model: LedgerOverviewViewModelProtocol>: View {
                                 Text(record.amountDisplay)
                                     .font(.subheadline)
                                     .fontWeight(.medium)
-                                    .foregroundStyle(.blue)
+                                    .foregroundStyle(Color.appSelection)
                                 Text(record.date, style: .date)
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)
@@ -3433,7 +3433,7 @@ struct LedgerOverviewView<Model: LedgerOverviewViewModelProtocol>: View {
             }
         }
         .padding()
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color.red.opacity(0.1)))
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.appDanger.opacity(0.1)))
     }
     
     // 第二栏：当前净额
@@ -3458,14 +3458,14 @@ struct LedgerOverviewView<Model: LedgerOverviewViewModelProtocol>: View {
                             Text(balance.amountDisplay)
                                 .font(.subheadline)
                                 .fontWeight(.medium)
-                                .foregroundStyle(balance.isPositive ? Color.green : Color.red)
+                                .foregroundStyle(balance.isPositive ? Color.appSuccess : Color.appDanger)
                         }
                     }
                 }
             }
         }
         .padding()
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color.yellow.opacity(0.15)))
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.appWarning.opacity(0.15)))
     }
     
     // 第五栏：转账方案
@@ -3503,8 +3503,8 @@ struct LedgerOverviewView<Model: LedgerOverviewViewModelProtocol>: View {
                             Spacer()
                         }
                         .padding()
-                        .background(RoundedRectangle(cornerRadius: 12).fill(Color.green.opacity(0.1)))
-                        .foregroundStyle(.green)
+                        .background(RoundedRectangle(cornerRadius: 12).fill(Color.appSuccess.opacity(0.1)))
+                        .foregroundStyle(Color.appSuccess)
                     }
                     .buttonStyle(.plain)
                 }
@@ -3543,7 +3543,7 @@ struct AllMembersSheet: View {
                         
                         Text(member.totalSpentDisplay)
                             .font(.headline)
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(Color.appSelection)
                     }
                     .padding(.vertical, 4)
                 }
@@ -3590,7 +3590,7 @@ struct RecordsSheet<Model: LedgerOverviewViewModelProtocol>: View {
                                 VStack(alignment: .trailing, spacing: 4) {
                                     Text(record.amountDisplay)
                                         .font(.headline)
-                                        .foregroundStyle(.blue)
+                                        .foregroundStyle(Color.appSelection)
                                     Text(record.date, style: .date)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
@@ -3710,7 +3710,7 @@ struct AddFriendSheet<Model: FriendListViewModelProtocol>: View {
                             } label: {
                                 Text(L.all.localized)
                                     .font(.subheadline)
-                                    .foregroundStyle(.blue)
+                                    .foregroundStyle(Color.appSelection)
                             }
                         }
                         
@@ -3725,11 +3725,11 @@ struct AddFriendSheet<Model: FriendListViewModelProtocol>: View {
                                         .frame(width: 50, height: 50)
                                         .background(
                                             Circle()
-                                                .fill(selectedEmoji == emoji ? Color.blue.opacity(0.2) : Color.secondary.opacity(0.1))
+                                                .fill(selectedEmoji == emoji ? Color.appSelection.opacity(0.2) : Color.secondary.opacity(0.1))
                                         )
                                         .overlay(
                                             Circle()
-                                                .strokeBorder(selectedEmoji == emoji ? Color.blue : Color.clear, lineWidth: 2)
+                                                .strokeBorder(selectedEmoji == emoji ? Color.appSelection : Color.clear, lineWidth: 2)
                                         )
                                 }
                                 .buttonStyle(.plain)
@@ -3838,7 +3838,7 @@ struct EditFriendSheet<Model: FriendListViewModelProtocol>: View {
                             } label: {
                                 Text(L.all.localized)
                                     .font(.subheadline)
-                                    .foregroundStyle(.blue)
+                                    .foregroundStyle(Color.appSelection)
                             }
                         }
                         
@@ -3853,11 +3853,11 @@ struct EditFriendSheet<Model: FriendListViewModelProtocol>: View {
                                         .frame(width: 50, height: 50)
                                         .background(
                                             Circle()
-                                                .fill(selectedEmoji == emoji ? Color.blue.opacity(0.2) : Color.secondary.opacity(0.1))
+                                                .fill(selectedEmoji == emoji ? Color.appSelection.opacity(0.2) : Color.secondary.opacity(0.1))
                                         )
                                         .overlay(
                                             Circle()
-                                                .strokeBorder(selectedEmoji == emoji ? Color.blue : Color.clear, lineWidth: 2)
+                                                .strokeBorder(selectedEmoji == emoji ? Color.appSelection : Color.clear, lineWidth: 2)
                                         )
                                 }
                                 .buttonStyle(.plain)
@@ -4062,7 +4062,7 @@ struct ProfileEditView: View {
                                 .frame(width: 70, height: 70)
                                 .background(
                                     Circle()
-                                        .fill(Color.blue.opacity(0.1))
+                                        .fill(Color.appSelection.opacity(0.1))
                                 )
                         }
                         .padding(.vertical, 8)
@@ -4097,11 +4097,11 @@ struct ProfileEditView: View {
                                         .frame(width: 50, height: 50)
                                         .background(
                                             Circle()
-                                                .fill(selectedEmoji == emoji ? Color.blue.opacity(0.2) : Color.secondary.opacity(0.1))
+                                                .fill(selectedEmoji == emoji ? Color.appSelection.opacity(0.2) : Color.secondary.opacity(0.1))
                                         )
                                         .overlay(
                                             Circle()
-                                                .strokeBorder(selectedEmoji == emoji ? Color.blue : Color.clear, lineWidth: 2)
+                                                .strokeBorder(selectedEmoji == emoji ? Color.appSelection : Color.clear, lineWidth: 2)
                                         )
                                 }
                                 .buttonStyle(.plain)

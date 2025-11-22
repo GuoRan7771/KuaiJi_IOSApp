@@ -139,11 +139,11 @@ struct OnboardingView: View {
                                             .frame(width: 50, height: 50)
                                             .background(
                                                 Circle()
-                                                    .fill(selectedEmoji == emoji ? Color.blue.opacity(0.2) : Color.secondary.opacity(0.1))
+                                                    .fill(selectedEmoji == emoji ? Color.appSelection.opacity(0.2) : Color.secondary.opacity(0.1))
                                             )
                                             .overlay(
                                                 Circle()
-                                                    .strokeBorder(selectedEmoji == emoji ? Color.blue : Color.clear, lineWidth: 2)
+                                                    .strokeBorder(selectedEmoji == emoji ? Color.appSelection : Color.clear, lineWidth: 2)
                                             )
                                     }
                                 }
@@ -221,11 +221,11 @@ struct AllEmojisSheet: View {
                                 .frame(width: 55, height: 55)
                                 .background(
                                     Circle()
-                                        .fill(selectedEmoji == emoji ? Color.blue.opacity(0.2) : Color.secondary.opacity(0.1))
+                                        .fill(selectedEmoji == emoji ? Color.appSelection.opacity(0.2) : Color.secondary.opacity(0.1))
                                 )
                                 .overlay(
                                     Circle()
-                                        .strokeBorder(selectedEmoji == emoji ? Color.blue : Color.clear, lineWidth: 2)
+                                        .strokeBorder(selectedEmoji == emoji ? Color.appSelection : Color.clear, lineWidth: 2)
                                 )
                         }
                     }

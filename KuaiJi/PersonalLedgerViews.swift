@@ -513,7 +513,7 @@ struct PersonalRecordRow: View {
         HStack(spacing: 12) {
             Image(systemName: record.systemImage)
                 .font(.title3)
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(Color.appBrand)
                 .frame(width: 32, height: 32)
             VStack(alignment: .leading, spacing: 4) {
                 Text(record.categoryName)
@@ -529,7 +529,7 @@ struct PersonalRecordRow: View {
                 Text(AmountFormatter.string(minorUnits: record.amountMinorUnits,
                                             currency: record.currency,
                                             locale: Locale.current))
-                    .foregroundStyle(record.amountIsPositive ? Color.green : Color.red)
+                    .foregroundStyle(record.amountIsPositive ? Color.appSuccess : Color.appDanger)
                 Text(timestampText ?? record.occurredAt.formatted(date: .omitted, time: .shortened))
                     .font(.system(size: 12, weight: .regular, design: .rounded))
                     .foregroundStyle(Color.appSecondaryText)
@@ -854,7 +854,7 @@ private struct SaveToSharedSheet: View {
                             }
                             Spacer()
                             Image(systemName: selectedLedgerId == option.id ? "checkmark.circle.fill" : "circle")
-                                .foregroundStyle(selectedLedgerId == option.id ? Color.blue : Color.appSecondaryText)
+                                .foregroundStyle(selectedLedgerId == option.id ? Color.appSelection : Color.appSecondaryText)
                         }
                     }
                     .buttonStyle(.plain)
@@ -865,7 +865,7 @@ private struct SaveToSharedSheet: View {
                 if currencyMismatch, let ledger = selectedLedgerFrom(options: options) {
                     Text(L.personalSaveAndShareCurrencyMismatch.localized(ledger.currency.rawValue, draft.currency.rawValue))
                         .font(.footnote)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(Color.appDanger)
                 }
             }
         }
@@ -897,7 +897,7 @@ private struct SaveToSharedSheet: View {
                 } label: {
                     HStack {
                         Image(systemName: splitOption == option ? "checkmark.circle.fill" : "circle")
-                            .foregroundStyle(splitOption == option ? Color.blue : Color.appSecondaryText)
+                            .foregroundStyle(splitOption == option ? Color.appSelection : Color.appSecondaryText)
                         Text(option.title).foregroundStyle(Color.appTextPrimary)
                         Spacer()
                     }
@@ -920,7 +920,7 @@ private struct SaveToSharedSheet: View {
         if selectableOtherPayers.isEmpty {
             Text(L.splitAddOtherMembers.localized)
                 .font(.footnote)
-                .foregroundStyle(.orange)
+                .foregroundStyle(Color.appWarning)
         } else {
             Picker(L.splitPayer.localized, selection: otherPayerBinding()) {
                 ForEach(selectableOtherPayers, id: \.id) { m in
@@ -1190,9 +1190,6 @@ struct PersonalRecordFormView: View {
                             let validated = NumberParsing.validateDecimalInput(newValue, maxDecimalPlaces: 2, locale: .current, oldValue: oldValue)
                             if validated != newValue { viewModel.feeText = validated }
                         }
-                    Text(L.personalTransferFeeHint.localized)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
                 }
                 // 备注/来源
                 TextField(viewModel.kind == .expense ? L.expensePurpose.localized : "income.source".localized, text: $viewModel.note, axis: .vertical)
@@ -2006,7 +2003,7 @@ struct PersonalStatsView: View {
     }
 
     private var totalForFocus: Int {
-        filteredBreakdown.reduce(0) { $0 + $1.amountMinorUnits }
+               filteredBreakdown.reduce(0) { $0 + $1.amountMinorUnits }
     }
 
     private var totalExpense: Int {
@@ -2088,7 +2085,7 @@ struct PersonalStatsView: View {
                         .padding(.vertical, 8)
                         .background(
                             Capsule()
-                                .fill(Color(.systemGray5))
+                                .fill(Color.appSurfaceAlt)
                         )
                 }
 
@@ -2154,7 +2151,7 @@ struct PersonalStatsView: View {
                             Spacer()
                         }
                         .padding(12)
-                        .background(Color.yellow.opacity(0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .background(Color.appWarning.opacity(0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                     }
                 }
             }
@@ -2219,8 +2216,8 @@ struct PersonalStatsView: View {
         .buttonStyle(.plain)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 4)
+                .fill(Color.appSurface)
+                .shadow(color: Color.appCardShadow, radius: 6, x: 0, y: 4)
         )
     }
 
@@ -2231,16 +2228,16 @@ struct PersonalStatsView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(Color(.secondarySystemBackground))
+                    .fill(Color.appSurfaceAlt)
             )
-            .shadow(color: Color.black.opacity(0.05), radius: 18, x: 0, y: 12)
+            .shadow(color: Color.appCardShadow, radius: 18, x: 0, y: 12)
     }
 
     private func donutView() -> some View {
         ZStack {
             if filteredBreakdown.isEmpty {
                 Circle()
-                    .fill(Color(.systemGray5))
+                    .fill(Color.appSurfaceAlt)
                     .frame(width: 180, height: 180)
                 VStack(spacing: 6) {
                     Text(focus.localizedTitle)
@@ -2325,8 +2322,8 @@ struct PersonalStatsView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color(.systemBackground))
-                .shadow(color: Color.black.opacity(0.06), radius: 14, x: 0, y: 10)
+                .fill(Color.appSurface)
+                .shadow(color: Color.appCardShadow, radius: 14, x: 0, y: 10)
         )
     }
 
@@ -2353,7 +2350,7 @@ struct PersonalStatsView: View {
     private func growthView(_ value: Double) -> some View {
         let up = value >= 0
         let arrow = up ? "arrow.up.right" : "arrow.down.right"
-        let tint = up ? Color.red : Color.green
+        let tint = up ? Color.appDanger : Color.appSuccess
         return HStack(spacing: 8) {
             Image(systemName: arrow)
                 .font(.caption.weight(.bold))
@@ -2377,7 +2374,7 @@ struct PersonalStatsView: View {
                 let essentialWidth = width * CGFloat(max(min(essentialShare, 1), 0))
                 let discretionaryWidth = width - essentialWidth
                 ZStack(alignment: .leading) {
-                    Capsule().fill(Color(.systemGray5))
+                    Capsule().fill(Color.appSurfaceAlt)
                     if essentialWidth > 0 {
                         Capsule()
                             .fill(Focus.expense.accentColor)
@@ -2413,7 +2410,7 @@ struct PersonalStatsView: View {
             .font(.caption)
         }
         .padding(14)
-        .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(Color.appSurfaceAlt, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private func categoryRow(for item: PersonalStatsCategoryShare) -> some View {
@@ -2656,7 +2653,7 @@ private struct PersonalCSVExportContent: View {
                                         .font(.caption)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 6)
-                                        .background(RoundedRectangle(cornerRadius: 10).fill(selected ? Color.accentColor.opacity(0.2) : Color(.systemGray6)))
+                                        .background(RoundedRectangle(cornerRadius: 10).fill(selected ? Color.appBrand.opacity(0.2) : Color.appSurfaceAlt))
                                 }
                             }
                         }
@@ -2680,7 +2677,7 @@ private struct PersonalCSVExportContent: View {
                                         .font(.caption)
                                         .padding(.horizontal, 10)
                                         .padding(.vertical, 6)
-                                        .background(RoundedRectangle(cornerRadius: 10).fill(selected ? Color.accentColor.opacity(0.2) : Color(.systemGray6)))
+                                        .background(RoundedRectangle(cornerRadius: 10).fill(selected ? Color.appBrand.opacity(0.2) : Color.appSurfaceAlt))
                                 }
                             }
                         }
