@@ -541,4 +541,13 @@ enum L {
     static let guidePersonalIntroDesc = "guide.personalIntro.desc"
     static let guideIndependenceTitle = "guide.independence.title"
     static let guideIndependenceDesc = "guide.independence.desc"
+    
+    // 配色方案
+    static let settingsColorScheme = "settings.colorScheme"
+    static let themeDefault = "theme.default"
+    static let themeForest = "theme.forest"
+    static let themePeach = "theme.peach"
+    static let themeLavender = "theme.lavender"
+    static let themeAlps = "theme.alps"
+    static let themeMorandi = "theme.morandi"
 }

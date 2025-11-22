@@ -1901,18 +1901,19 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                     .appSecondaryTextStyle()
             }
 
-            Section("外观") {
-                Picker("配色方案", selection: $theme) {
-                    Text("默认").tag("default")
-                    Text("Forest").tag("forest")
-                    Text("Peach").tag("peach")
-                    Text("Lavender").tag("lavender")
-                    Text("Alps").tag("alps")
-                    Text("Morandi").tag("morandi")
-                }
-            }
-
             Section(L.settingsInterfaceDisplay.localized) {
+                Picker(selection: $theme) {
+                    Text(L.themeDefault.localized).tag("default")
+                    Text(L.themeForest.localized).tag("forest")
+                    Text(L.themePeach.localized).tag("peach")
+                    Text(L.themeLavender.localized).tag("lavender")
+                    Text(L.themeAlps.localized).tag("alps")
+                    Text(L.themeMorandi.localized).tag("morandi")
+                } label: {
+                    Text(L.settingsColorScheme.localized)
+                        .foregroundStyle(Color.appLedgerContentText)
+                }
+                .tint(Color.appToggleOn)
                 Toggle(L.settingsShowSharedAndFriends.localized, isOn: $appState.showSharedLedgerTab)
                     .tint(Color.appToggleOn)
                     .foregroundStyle(Color.appLedgerContentText)

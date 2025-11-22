@@ -20,38 +20,47 @@ private struct ThemeBundleProvider {
     var isMorandi: Bool { theme == "morandi" }
 }
 
+#if canImport(UIKit)
+private func resolveThemeColor(_ name: String) -> UIColor {
+    let provider = ThemeBundleProvider()
+    let candidates: [String]
+    if provider.isForest {
+        candidates = ["Forest/\(name)", name]
+    } else if provider.isPeach {
+        candidates = ["Peach/\(name)", name]
+    } else if provider.isLavender {
+        candidates = ["Lavender/\(name)", name]
+    } else if provider.isAlps {
+        candidates = ["Alps/\(name)", name]
+    } else if provider.isMorandi {
+        candidates = ["Morandi/\(name)", name]
+    } else {
+        candidates = [name]
+    }
+    
+    for candidate in candidates {
+        if let color = UIColor(named: candidate) {
+            return color
+        }
+    }
+    return UIColor(named: name) ?? UIColor.clear
+}
+#endif
+
 extension Color {
     static func theme(_ name: String) -> Color {
-        let provider = ThemeBundleProvider()
-        let candidates: [String]
-        if provider.isForest {
-            candidates = ["Forest/\(name)", name]
-        } else if provider.isPeach {
-            candidates = ["Peach/\(name)", name]
-        } else if provider.isLavender {
-            candidates = ["Lavender/\(name)", name]
-        } else if provider.isAlps {
-            candidates = ["Alps/\(name)", name]
-        } else if provider.isMorandi {
-            candidates = ["Morandi/\(name)", name]
-        } else {
-            candidates = [name]
-        }
-        for candidate in candidates {
-            if let resolved = Color.lookup(named: candidate, bundle: .main) {
-                return resolved
-            }
-        }
-        return Color(name)
-    }
-
-    private static func lookup(named: String, bundle: Bundle) -> Color? {
         #if canImport(UIKit)
-        if UIColor(named: named, in: bundle, compatibleWith: nil) != nil {
-            return Color(named, bundle: bundle)
-        }
+        return Color(uiColor: UIColor { traitCollection in
+            // 如果是深色模式，强制使用默认主题（即不带前缀的资源名）
+            // 但 appToggleOn 除外，它在深色模式下也应跟随主题
+            if traitCollection.userInterfaceStyle == .dark && name != "appToggleOn" {
+                return UIColor(named: name) ?? UIColor.clear
+            }
+            return resolveThemeColor(name)
+        })
+        #else
+        return Color(name)
         #endif
-        return nil
     }
 }
 
@@ -80,11 +89,24 @@ enum AppColors {
 
     /// Secondary text color: light -> #9C8F86, dark -> #C9C7C4
     static var secondaryText: Color {
+        #if canImport(UIKit)
+        return Color(uiColor: UIColor { traitCollection in
+            if traitCollection.userInterfaceStyle == .dark {
+                return UIColor(named: "appSecondaryText") ?? UIColor.clear
+            }
+            let provider = ThemeBundleProvider()
+            if provider.isPeach || provider.isLavender || provider.isAlps || provider.isMorandi {
+                return resolveThemeColor("appTextPrimary")
+            }
+            return resolveThemeColor("appSecondaryText")
+        })
+        #else
         let provider = ThemeBundleProvider()
         if provider.isPeach || provider.isLavender || provider.isAlps || provider.isMorandi {
             return Color.theme("appTextPrimary")
         }
         return Color.theme("appSecondaryText")
+        #endif
     }
 
     /// Ledger content primary: light -> #3B291E, dark -> #C9C7C4
@@ -138,6 +160,31 @@ private struct SecondaryTextStyle: ViewModifier {
     }
 }
 
+struct AppCardStyleModifier: ViewModifier {
+    @Environment(\.colorScheme) var colorScheme
+    
+    func body(content: Content) -> some View {
+        let provider = ThemeBundleProvider()
+        let isPeach = provider.isPeach
+        let isLavender = provider.isLavender
+        let isAlps = provider.isAlps
+        let isMorandi = provider.isMorandi
+        
+        // In Dark Mode, always use Default Theme behavior (appSurface)
+        // In Light Mode, check theme
+        let useSurfaceAlt = (colorScheme == .light) && (isPeach || isLavender || isAlps || isMorandi)
+        
+        return content.background(
+            RoundedRectangle(cornerRadius: AppColors.cornerRadiusLarge, style: .continuous)
+                .fill(useSurfaceAlt ? Color.appSurfaceAlt : Color.appSurface)
+                .shadow(color: AppColors.cardShadowColor,
+                        radius: AppColors.cardShadowRadius,
+                        x: 0,
+                        y: AppColors.cardShadowY)
+        )
+    }
+}
+
 extension View {
     /// Applies the unified light gray text style across the app.
     func appSecondaryTextStyle() -> some View {
@@ -146,19 +193,7 @@ extension View {
 
     /// Applies a rounded, soft card container used across the app.
     func appCardStyle() -> some View {
-        let provider = ThemeBundleProvider()
-        let isPeach = provider.isPeach
-        let isLavender = provider.isLavender
-        let isAlps = provider.isAlps
-        let isMorandi = provider.isMorandi
-        return background(
-            RoundedRectangle(cornerRadius: AppColors.cornerRadiusLarge, style: .continuous)
-                .fill((isPeach || isLavender || isAlps || isMorandi) ? Color.appSurfaceAlt : Color.appSurface)
-                .shadow(color: AppColors.cardShadowColor,
-                        radius: AppColors.cardShadowRadius,
-                        x: 0,
-                        y: AppColors.cardShadowY)
-        )
+        modifier(AppCardStyleModifier())
     }
 
     /// A muted caption style for secondary metadata.

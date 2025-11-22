@@ -153,6 +153,15 @@
 "settings.sharedLanding" = "共享账本默认页面";
 "settings.sharedLanding.list" = "账本列表";
 
+/* 配色方案 */
+"settings.colorScheme" = "配色方案";
+"theme.default" = "默认";
+"theme.forest" = "Forest";
+"theme.peach" = "Peach";
+"theme.lavender" = "Lavender";
+"theme.alps" = "Alps";
+"theme.morandi" = "Morandi";
+
 /* Quick Actions */
 "quickAction.addExpense" = "快速记账";
 "quickAction.personalSubtitle" = "个人账本";
