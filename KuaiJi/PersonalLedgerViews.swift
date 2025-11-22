@@ -2604,10 +2604,13 @@ struct PersonalCSVExportView: View {
     @ObservedObject var root: PersonalLedgerRootViewModel
     @StateObject var viewModel: PersonalCSVExportViewModel
     @State private var showingRecordForm = false
+    @State private var editingRecord: PersonalRecordRowViewData?
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            PersonalCSVExportContent(viewModel: viewModel, store: root.store)
+            PersonalCSVExportContent(viewModel: viewModel, store: root.store, onEdit: { record in
+                editingRecord = record
+            })
             FloatingActionButton(systemImage: "plus") {
                 showingRecordForm = true
             }
@@ -2622,12 +2625,19 @@ struct PersonalCSVExportView: View {
                 Task { await viewModel.refresh() }
             }
         }
+        .sheet(item: $editingRecord) { record in
+            PersonalRecordFormHost(root: root, existing: record) {
+                editingRecord = nil
+                Task { await viewModel.refresh() }
+            }
+        }
     }
 }
 
 private struct PersonalCSVExportContent: View {
     @ObservedObject var viewModel: PersonalCSVExportViewModel
     let store: PersonalLedgerStore
+    var onEdit: (PersonalRecordRowViewData) -> Void
 
     var body: some View {
         List {
@@ -2733,9 +2743,11 @@ private struct PersonalCSVExportContent: View {
                 } else {
                     ForEach(viewModel.records) { record in
                         PersonalRecordRow(record: record,
-                                          onTap: {},
-                                          onEdit: {},
-                                          onDelete: {},
+                                          onTap: { onEdit(record) },
+                                          onEdit: { onEdit(record) },
+                                          onDelete: {
+                                              Task { await viewModel.delete(recordId: record.id) }
+                                          },
                                           timestampText: record.occurredAt.formatted(date: .abbreviated, time: .shortened))
                     }
                 }

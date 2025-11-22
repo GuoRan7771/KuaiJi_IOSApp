@@ -1793,6 +1793,7 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
     @ObservedObject var personalSettingsViewModel: PersonalLedgerSettingsViewModel
     @ObservedObject var personalLedgerRoot: PersonalLedgerRootViewModel
     @EnvironmentObject var appState: AppState
+    @AppStorage("theme") private var theme = "default"
     @State private var showingContactSheet = false
     @State private var showingClearDataAlert = false
     @State private var showingProfileEdit = false
@@ -1900,6 +1901,17 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                     .appSecondaryTextStyle()
             }
 
+            Section("外观") {
+                Picker("配色方案", selection: $theme) {
+                    Text("默认").tag("default")
+                    Text("Forest").tag("forest")
+                    Text("Peach").tag("peach")
+                    Text("Lavender").tag("lavender")
+                    Text("Alps").tag("alps")
+                    Text("Morandi").tag("morandi")
+                }
+            }
+
             Section(L.settingsInterfaceDisplay.localized) {
                 Toggle(L.settingsShowSharedAndFriends.localized, isOn: $appState.showSharedLedgerTab)
                     .tint(Color.appToggleOn)
@@ -1931,7 +1943,7 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                         }
                     } label: { EmptyView() }
                     .pickerStyle(.menu)
-                    .tint(Color(red: 245/255, green: 151/255, blue: 60/255))
+                    .tint(Color.appToggleOn)
                     .accessibilityIdentifier("settings.sharedLandingPicker")
                 }
             }
@@ -1961,7 +1973,7 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                         appState.setQuickActionTarget(.shared(id))
                     }
                 }
-                .tint(Color(red: 245/255, green: 151/255, blue: 60/255))
+                .tint(Color.appToggleOn)
             } header: {
                 Text(L.settingsQuickActionSection.localized)
             } footer: {
@@ -2008,7 +2020,7 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                         Spacer()
                         Image(systemName: "heart.fill")
                             .font(.caption)
-                            .foregroundStyle(Color(red: 245/255, green: 151/255, blue: 60/255))
+                            .foregroundStyle(Color.appToggleOn)
                     }
                 }
 
@@ -2694,6 +2706,7 @@ struct ContentView: View {
     @StateObject private var friendViewModel: FriendListScreenModel
     @StateObject private var settingsViewModel: SettingsScreenModel
     @EnvironmentObject var appState: AppState
+    @AppStorage("theme") private var theme = "default"
     
     private enum RootTab: Hashable { case personal, ledgers, friends, settings }
     @State private var selectedTab: RootTab = .personal
@@ -2734,6 +2747,7 @@ struct ContentView: View {
                 .tabItem { Label(L.tabSettings.localized, systemImage: "gearshape") }
                 .tag(RootTab.settings)
         }
+        .id(theme) // Force full rebuild when theme changes to update all colors
         .onChangeCompat(of: appState.showPersonalLedgerTab) { ensureValidSelectedTab() }
         .onChangeCompat(of: appState.showSharedLedgerTab) { ensureValidSelectedTab() }
         .onChangeCompat(of: appState.quickActionTarget) {
@@ -3040,7 +3054,7 @@ private struct TipCard: View {
                     Text(price).font(.system(size: 14, weight: .medium, design: .rounded)).foregroundStyle(color)
                 }
                 Spacer()
-                Image(systemName: "heart.fill").foregroundStyle(Color(red: 245/255, green: 151/255, blue: 60/255))
+                Image(systemName: "heart.fill").foregroundStyle(Color.appToggleOn)
             }
             .padding(16)
             .scaleEffect(pressed ? 0.97 : 1.0)
@@ -4222,5 +4236,3 @@ final class KeyboardDismissInstaller: NSObject, UIGestureRecognizerDelegate {
         return Text("Preview init failed: \(error.localizedDescription)")
     }
 }
-
-

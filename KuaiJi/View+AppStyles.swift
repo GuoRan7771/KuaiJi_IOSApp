@@ -8,54 +8,105 @@
 import SwiftUI
 import UIKit
 
+private struct ThemeBundleProvider {
+    var theme: String {
+        UserDefaults.standard.string(forKey: "theme") ?? "default"
+    }
+
+    var isForest: Bool { theme == "forest" }
+    var isPeach: Bool { theme == "peach" }
+    var isLavender: Bool { theme == "lavender" }
+    var isAlps: Bool { theme == "alps" }
+    var isMorandi: Bool { theme == "morandi" }
+}
+
+extension Color {
+    static func theme(_ name: String) -> Color {
+        let provider = ThemeBundleProvider()
+        let candidates: [String]
+        if provider.isForest {
+            candidates = ["Forest/\(name)", name]
+        } else if provider.isPeach {
+            candidates = ["Peach/\(name)", name]
+        } else if provider.isLavender {
+            candidates = ["Lavender/\(name)", name]
+        } else if provider.isAlps {
+            candidates = ["Alps/\(name)", name]
+        } else if provider.isMorandi {
+            candidates = ["Morandi/\(name)", name]
+        } else {
+            candidates = [name]
+        }
+        for candidate in candidates {
+            if let resolved = Color.lookup(named: candidate, bundle: .main) {
+                return resolved
+            }
+        }
+        return Color(name)
+    }
+
+    private static func lookup(named: String, bundle: Bundle) -> Color? {
+        #if canImport(UIKit)
+        if UIColor(named: named, in: bundle, compatibleWith: nil) != nil {
+            return Color(named, bundle: bundle)
+        }
+        #endif
+        return nil
+    }
+}
+
 // MARK: - Theme Tokens
 /// Centralized theme tokens for cute-minimal milk-cocoa style.
 /// Keep all visual constants here so the rest of the app only references tokens,
 /// not raw colors. This allows quick swapping to other palettes.
 enum AppColors {
     // Palette - Milk Cocoa (warm brown)
-    static let brandPrimary = Color("BrandPrimary")
+    static var brandPrimary: Color { Color.theme("appBrand") }
 
     /// Adaptive page background: light -> #F6F2EE, dark -> #0E0E11
     static var background: Color {
-        Color("Background")
+        Color.theme("appBackground")
     }
 
     static var surface: Color {
-        Color("Surface")
+        Color.theme("appSurface")
     }
-    static let surfaceAlt   = Color("SurfaceAlt")
+    static var surfaceAlt: Color { Color.theme("appSurfaceAlt") }
 
     /// Primary text color: light -> #3A2B22, dark -> #C9C7C4
     static var textPrimary: Color {
-        Color("TextPrimary")
+        Color.theme("appTextPrimary")
     }
 
     /// Secondary text color: light -> #9C8F86, dark -> #C9C7C4
     static var secondaryText: Color {
-        Color("SecondaryText")
+        let provider = ThemeBundleProvider()
+        if provider.isPeach || provider.isLavender || provider.isAlps || provider.isMorandi {
+            return Color.theme("appTextPrimary")
+        }
+        return Color.theme("appSecondaryText")
     }
 
     /// Ledger content primary: light -> #3B291E, dark -> #C9C7C4
     static var ledgerContentText: Color {
-        Color("LedgerContentText")
+        Color.theme("appLedgerContentText")
     }
 
-    static let success = Color("Success")
-    static let danger  = Color("Danger")
-    static let info    = Color("Info")
-    static let warning = Color("Warning")
+    static var success: Color { Color.theme("appSuccess") }
+    static var danger: Color { Color.theme("appDanger") }
+    static var info: Color { Color.theme("appInfo") }
+    static var warning: Color { Color.theme("appWarning") }
 
     // Controls
-    static let toggleOn  = Color("ToggleOn")
-    static let toggleOff = Color("ToggleOff")
-    static let selection = Color("Selection")
+    static var toggleOn: Color { Color.theme("appToggleOn") }
+    static var toggleOff: Color { Color.theme("appToggleOff") }
+    static var selection: Color { Color.theme("appSelection") }
     static var appCardShadow: Color { AppColors.cardShadowColor }
 
     // Radii & Shadows
     static let cornerRadiusLarge: CGFloat = 22
     static var cardShadowColor: Color {
-        Color("CardShadow")
+        Color.theme("appCardShadow")
     }
     static let cardShadowRadius: CGFloat = 10
     static let cardShadowY: CGFloat = 6
@@ -95,9 +146,14 @@ extension View {
 
     /// Applies a rounded, soft card container used across the app.
     func appCardStyle() -> some View {
-        background(
+        let provider = ThemeBundleProvider()
+        let isPeach = provider.isPeach
+        let isLavender = provider.isLavender
+        let isAlps = provider.isAlps
+        let isMorandi = provider.isMorandi
+        return background(
             RoundedRectangle(cornerRadius: AppColors.cornerRadiusLarge, style: .continuous)
-                .fill(Color.appSurface)
+                .fill((isPeach || isLavender || isAlps || isMorandi) ? Color.appSurfaceAlt : Color.appSurface)
                 .shadow(color: AppColors.cardShadowColor,
                         radius: AppColors.cardShadowRadius,
                         x: 0,

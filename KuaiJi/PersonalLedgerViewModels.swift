@@ -407,6 +407,15 @@ final class PersonalCSVExportViewModel: ObservableObject {
             return records.sorted { lhs, rhs in rhs.createdAt < lhs.createdAt }
         }
     }
+
+    func delete(recordId: UUID) async {
+        do {
+            try store.deleteTransactionsOrTransfers(ids: [recordId])
+            await refresh()
+        } catch {
+            print("Delete failed: \(error)")
+        }
+    }
 }
 
 @MainActor
