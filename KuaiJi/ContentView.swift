@@ -1883,25 +1883,20 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                     .appSecondaryTextStyle()
             }
             
-            Section {
+            Section(L.settingsInterfaceDisplay.localized) {
                 Button {
                     openSystemSettings()
                 } label: {
                     HStack {
                         Text(L.settingsLanguage.localized)
-                            .foregroundStyle(Color.appTextPrimary)
+                            .foregroundStyle(Color.appLedgerContentText)
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.caption)
                             .foregroundStyle(Color.appSecondaryText)
                     }
                 }
-            } footer: {
-                Text(L.settingsLanguageDesc.localized)
-                    .appSecondaryTextStyle()
-            }
 
-            Section(L.settingsInterfaceDisplay.localized) {
                 Picker(selection: $theme) {
                     Text(L.themeDefault.localized).tag("default")
                     Text(L.themeForest.localized).tag("forest")
