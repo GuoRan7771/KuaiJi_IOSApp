@@ -520,6 +520,7 @@
 "theme.lavender" = "Lavender";
 "theme.alps" = "Alps";
 "theme.morandi" = "Morandi";
+"theme.christmas" = "Christmas";
 
 /* Ledger Cards */
 "ledger.card.totalExpenses" = "Total Expenses";

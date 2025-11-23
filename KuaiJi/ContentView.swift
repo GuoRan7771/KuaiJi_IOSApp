@@ -1909,6 +1909,7 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                     Text(L.themeLavender.localized).tag("lavender")
                     Text(L.themeAlps.localized).tag("alps")
                     Text(L.themeMorandi.localized).tag("morandi")
+                    Text(L.themeChristmas.localized).tag("christmas")
                 } label: {
                     Text(L.settingsColorScheme.localized)
                         .foregroundStyle(Color.appLedgerContentText)

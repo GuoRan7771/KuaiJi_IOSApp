@@ -18,6 +18,7 @@ private struct ThemeBundleProvider {
     var isLavender: Bool { theme == "lavender" }
     var isAlps: Bool { theme == "alps" }
     var isMorandi: Bool { theme == "morandi" }
+    var isChristmas: Bool { theme == "christmas" }
 }
 
 #if canImport(UIKit)
@@ -34,6 +35,8 @@ private func resolveThemeColor(_ name: String) -> UIColor {
         candidates = ["Alps/\(name)", name]
     } else if provider.isMorandi {
         candidates = ["Morandi/\(name)", name]
+    } else if provider.isChristmas {
+        candidates = ["Christmas/\(name)", name]
     } else {
         candidates = [name]
     }

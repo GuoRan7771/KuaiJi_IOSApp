@@ -156,11 +156,12 @@
 /* 配色方案 */
 "settings.colorScheme" = "配色方案";
 "theme.default" = "默认";
-"theme.forest" = "Forest";
-"theme.peach" = "Peach";
-"theme.lavender" = "Lavender";
-"theme.alps" = "Alps";
-"theme.morandi" = "Morandi";
+"theme.forest" = "森林";
+"theme.peach" = "蜜桃";
+"theme.lavender" = "薰衣草";
+"theme.alps" = "阿尔卑斯";
+"theme.morandi" = "莫兰迪";
+"theme.christmas" = "圣诞";
 
 /* Quick Actions */
 "quickAction.addExpense" = "快速记账";

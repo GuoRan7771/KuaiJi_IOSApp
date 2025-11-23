@@ -520,6 +520,7 @@
 "theme.lavender" = "Lavande";
 "theme.alps" = "Alpes";
 "theme.morandi" = "Morandi";
+"theme.christmas" = "Noël";
 
 /* Actions Rapides */
 "quickAction.addExpense" = "Ajout Rapide";

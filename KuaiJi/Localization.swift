@@ -550,4 +550,5 @@ enum L {
     static let themeLavender = "theme.lavender"
     static let themeAlps = "theme.alps"
     static let themeMorandi = "theme.morandi"
+    static let themeChristmas = "theme.christmas"
 }
