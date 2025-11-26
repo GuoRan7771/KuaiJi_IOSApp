@@ -220,7 +220,8 @@ struct SettingsViewState: Hashable {
 }
 
 // MARK: - ViewModel Protocols
-
+// 这些协议仅用于驱动 SwiftUI 界面，按设计限定在主线程执行，避免并发隔离告警。
+@MainActor
 protocol LedgerListViewModelProtocol: ObservableObject {
     var ledgers: [LedgerSummaryViewData] { get }
     var availableMembers: [MemberSummaryViewData] { get }
@@ -229,6 +230,7 @@ protocol LedgerListViewModelProtocol: ObservableObject {
     func deleteLedgers(at offsets: IndexSet)
 }
 
+@MainActor
 protocol LedgerOverviewViewModelProtocol: ObservableObject {
     var ledger: LedgerDetailViewData { get }
     var filters: LedgerFilterState { get set }
@@ -243,6 +245,7 @@ protocol LedgerOverviewViewModelProtocol: ObservableObject {
     func clearAllBalances()
 }
 
+@MainActor
 protocol ExpenseFormViewModelProtocol: ObservableObject {
     var draft: ExpenseDraftViewData { get set }
     var splitPreview: [NetBalanceViewData] { get }
@@ -266,6 +269,7 @@ protocol ExpenseFormViewModelProtocol: ObservableObject {
     func validateSplitAmounts() -> Bool  // 新增：验证分账金额
 }
 
+@MainActor
 protocol SettlementViewModelProtocol: ObservableObject {
     var netBalances: [NetBalanceViewData] { get }
     var transferPlan: [TransferRecordViewData] { get }
@@ -273,12 +277,14 @@ protocol SettlementViewModelProtocol: ObservableObject {
     func clearAllBalances()
 }
 
+@MainActor
 protocol MemberDetailViewModelProtocol: ObservableObject {
     var member: MemberSummaryViewData { get }
     var breakdown: [CategoryBreakdown] { get }
     var timeline: [TimeSeriesPoint] { get }
 }
 
+@MainActor
 protocol FriendListViewModelProtocol: ObservableObject {
     var friends: [MemberSummaryViewData] { get }
     func addFriend(named name: String, emoji: String?, currency: CurrencyCode)
@@ -287,11 +293,13 @@ protocol FriendListViewModelProtocol: ObservableObject {
     func updateFriend(id: UUID, name: String, currency: CurrencyCode, emoji: String?)
 }
 
+@MainActor
 protocol RecordsViewModelProtocol: ObservableObject {
     var records: [LedgerRecordViewData] { get }
     func refresh()
 }
 
+@MainActor
 protocol SettingsViewModelProtocol: ObservableObject {
     var uiState: SettingsViewState { get set }
     func persist()
