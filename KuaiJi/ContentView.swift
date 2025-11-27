@@ -41,6 +41,7 @@ struct LedgerRecordViewData: Identifiable, Hashable {
     var date: Date
     var category: ExpenseCategory
     var payerName: String
+    var splitModeDisplay: String
 }
 
 struct NetBalanceViewData: Identifiable, Hashable {
@@ -110,6 +111,28 @@ struct MemberExpenseViewData: Identifiable, Hashable {
     
     var displayAvatar: String {
         avatarEmoji ?? "👤"
+    }
+}
+
+extension SplitStrategy {
+    func displayLabel(beneficiaryName: String? = nil) -> String {
+        switch self {
+        case .payerAA, .actorAA:
+            return L.splitModeAA.localized
+        case .payerTreat, .actorTreat:
+            return L.splitModeTreat.localized
+        case .weighted:
+            return L.splitModeWeighted.localized
+        case .custom:
+            return L.splitModeCustom.localized
+        case .fixedPlusEqual:
+            return L.splitModeFixedPlusEqual.localized
+        case .helpPay:
+            if let name = beneficiaryName, !name.isEmpty {
+                return L.splitModeHelpPayWithName.localized(name)
+            }
+            return L.splitModeHelpPay.localized
+        }
     }
 }
 
@@ -633,6 +656,12 @@ final class AppRootViewModel: ObservableObject {
             let amountDisplay = AmountFormatter.string(minorUnits: totalMinor, currency: info.currency, locale: locale)
             let payerName = memberLookup[expense.payerId]?.name ?? L.defaultUnknownMember.localized
             let title = expense.title.isEmpty ? L.defaultUntitledExpense.localized : expense.title
+            let beneficiaryName: String? = {
+                guard expense.splitStrategy == .helpPay else { return nil }
+                guard let beneficiaryId = expense.participants.first?.userId else { return nil }
+                return memberLookup[beneficiaryId]?.name ?? L.defaultUnknownMember.localized
+            }()
+            let splitLabel = expense.splitStrategy.displayLabel(beneficiaryName: beneficiaryName)
             return LedgerRecordViewData(id: expense.id,
                                         ledgerId: info.id,
                                         ledgerName: info.name,
@@ -640,7 +669,8 @@ final class AppRootViewModel: ObservableObject {
                                         amountDisplay: amountDisplay,
                                         date: expense.date,
                                         category: expense.category,
-                                        payerName: payerName)
+                                        payerName: payerName,
+                                        splitModeDisplay: splitLabel)
         }.sorted { $0.date > $1.date }
     }
 
@@ -1806,6 +1836,9 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
     @State private var showingClearDataAlert = false
     @State private var showingProfileEdit = false
     @State private var showingGuide = false
+    @State private var navigateToUsageGuide = false
+    @State private var navigateToPersonalAccounts = false
+    @State private var navigateToPersonalCSVExport = false
     @State private var showingImportPicker = false
     @State private var showingImportConfirmation = false
     @State private var pendingImportURL: URL?
@@ -1994,10 +2027,18 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                     .onChangeCompat(of: personalSettingsViewModel.countFeeInStats) {
                         Task { await personalSettingsViewModel.save() }
                     }
-                NavigationLink(L.personalAccountsManage.localized) {
-                    PersonalAccountsView(root: personalLedgerRoot, viewModel: personalLedgerRoot.makeAccountsViewModel())
+                Button {
+                    navigateToPersonalAccounts = true
+                } label: {
+                    HStack {
+                        Text(L.personalAccountsManage.localized)
+                            .foregroundStyle(Color.appLedgerContentText)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(Color.appSecondaryText)
+                    }
                 }
-                .foregroundStyle(Color.appLedgerContentText)
             } header: {
                 Text(L.personalSettingsTitle.localized)
             }
@@ -2008,6 +2049,18 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                 } label: {
                     HStack {
                         Text(L.settingsGuide.localized)
+                            .foregroundStyle(Color.appLedgerContentText)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(Color.appSecondaryText)
+                    }
+                }
+                Button {
+                    navigateToUsageGuide = true
+                } label: {
+                    HStack {
+                        Text(L.settingsUsageGuide.localized)
                             .foregroundStyle(Color.appLedgerContentText)
                         Spacer()
                         Image(systemName: "chevron.right")
@@ -2099,9 +2152,17 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                     }
                 }
 
-                NavigationLink(destination: PersonalCSVExportView(root: personalLedgerRoot, viewModel: personalLedgerRoot.makeCSVExportViewModel())) {
-                    Text(L.personalExportCSV.localized)
-                        .foregroundStyle(Color.appTextPrimary)
+                Button {
+                    navigateToPersonalCSVExport = true
+                } label: {
+                    HStack {
+                        Text(L.personalExportCSV.localized)
+                            .foregroundStyle(Color.appTextPrimary)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(Color.appSecondaryText)
+                    }
                 }
             } header: {
                 Text(L.settingsDataSection.localized)
@@ -2157,6 +2218,15 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
         }
         .scrollContentBackground(.hidden)
         .background(Color.appBackground)
+        .navigationDestination(isPresented: $navigateToUsageGuide) {
+            UsageGuideView()
+        }
+        .navigationDestination(isPresented: $navigateToPersonalAccounts) {
+            PersonalAccountsView(root: personalLedgerRoot, viewModel: personalLedgerRoot.makeAccountsViewModel())
+        }
+        .navigationDestination(isPresented: $navigateToPersonalCSVExport) {
+            PersonalCSVExportView(root: personalLedgerRoot, viewModel: personalLedgerRoot.makeCSVExportViewModel())
+        }
         .scrollDismissesKeyboard(.interactively)
         .dismissKeyboardOnTap()
         .navigationTitle(L.settingsTitle.localized)
@@ -2427,6 +2497,7 @@ struct ContactView: View {
     @Environment(\.openURL) private var openURL
     @State private var rotationAngle: Double = 0
     @State private var pulseScale: CGFloat = 1.0
+    @State private var activeCard: ContactCardKind?
     
     var body: some View {
         ZStack {
@@ -2490,57 +2561,50 @@ struct ContactView: View {
                         )
                         .shadow(color: .white.opacity(0.5), radius: 8)
                     
-                    Button {
-                        let email = "rangertars777@gmail.com"
-                        let subject = "KuaiJi Feedback"
-                        let info = Bundle.main.infoDictionary
-                        let appVersion = (info?["CFBundleShortVersionString"] as? String) ?? ""
-                        let appBuild = (info?["CFBundleVersion"] as? String) ?? ""
-                        let osVersion = UIDevice.current.systemVersion
-                        let osBuild = ContactView.fetchOSBuildVersion() ?? ""
-                        let language = Locale.current.identifier
-                        let device = ContactView.marketingDeviceName()
-
-                        let lines: [String] = [
-                            "Device: \(device)",
-                            "iOS: \(osVersion)\(osBuild.isEmpty ? "" : " (\(osBuild))")",
-                            "App: \(appVersion) (\(appBuild))",
-                            "Language: \(language)",
-                            "",
-                            "",
-                            "Please write your suggestions below (you can add screenshots):",
-                            "",
-                            ""
-                        ]
-                        let body = lines.joined(separator: "\r\n")
-
-                        var components = URLComponents()
-                        components.scheme = "mailto"
-                        components.path = email
-                        components.queryItems = [
-                            URLQueryItem(name: "subject", value: subject),
-                            URLQueryItem(name: "body", value: body)
-                        ]
-                        if let url = components.url {
-                            openURL(url)
+                    GeometryReader { proxy in
+                        let maxWidth = min(proxy.size.width * 0.88, 380)
+                        let cardHeight = max(120, min(170, proxy.size.width * 0.38))
+                        let overlap = cardHeight * 0.45
+                        let cards = ContactCardKind.allCases
+                        let totalHeight = cardHeight + overlap * CGFloat(cards.count - 1)
+                        
+                        ZStack(alignment: .top) {
+                            ForEach(Array(cards.enumerated()), id: \.1) { index, card in
+                                Button {
+                                    bounceAndPerform(card)
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        HStack(spacing: 10) {
+                                            Image(systemName: card.icon)
+                                                .font(.system(size: 18, weight: .semibold))
+                                                .foregroundStyle(.white.opacity(0.95))
+                                                .frame(width: 32, height: 32)
+                                                .background(Circle().fill(.white.opacity(0.12)))
+                                            Text(title(for: card))
+                                                .font(.system(size: 18, weight: .semibold, design: .rounded))
+                                                .foregroundStyle(.white.opacity(0.95))
+                                        }
+                                        Text(card.subtitle)
+                                            .font(.system(size: 13, weight: .medium, design: .rounded))
+                                            .foregroundStyle(.white.opacity(0.85))
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.horizontal, 20)
+                                    .padding(.vertical, 18)
+                                    .frame(width: maxWidth, height: cardHeight, alignment: .topLeading)
+                                    .background(cardBackground(for: card))
+                                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                                    .shadow(color: .black.opacity(0.22), radius: 10, y: 6)
+                                }
+                                .buttonStyle(.plain)
+                                .offset(y: CGFloat(index) * overlap)
+                                .scaleEffect(activeCard == card ? 1.03 : 1.0)
+                                .animation(.spring(response: 0.35, dampingFraction: 0.7), value: activeCard)
+                            }
                         }
-                    } label: {
-                        Text(L.contactEmail.localized)
-                            .font(.system(size: 16, weight: .medium, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.9))
-                            .padding(.horizontal, 24)
-                            .padding(.vertical, 12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 20)
-                                    .fill(.ultraThinMaterial)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 20)
-                                            .stroke(.white.opacity(0.3), lineWidth: 1)
-                                    )
-                            )
-                            .shadow(color: .black.opacity(0.2), radius: 10)
+                        .frame(maxWidth: .infinity, minHeight: totalHeight, alignment: .top)
                     }
-                    .buttonStyle(.plain)
+                    .frame(height: max(260, UIScreen.main.bounds.width * 0.6))
                 }
                 
                 Spacer()
@@ -2556,9 +2620,136 @@ struct ContactView: View {
             }
         }
     }
+
+    private func bounceAndPerform(_ card: ContactCardKind) {
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+            activeCard = card
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) {
+            perform(card)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    activeCard = nil
+                }
+            }
+        }
+    }
+
+    private func title(for card: ContactCardKind) -> String {
+        switch card {
+        case .support: return L.contactSupport.localized
+        case .email: return L.contactEmail.localized
+        case .rednote: return L.contactRednote.localized
+        case .github: return L.contactGithub.localized
+        }
+    }
+
+    private func perform(_ card: ContactCardKind) {
+        switch card {
+        case .support:
+            if let url = URL(string: "https://guoran7771.github.io/KuaiJiPrivacy-Support/kuaji_privacy_support_trilingual.html") {
+                openURL(url)
+            }
+        case .email:
+            let email = "rangertars777@gmail.com"
+            let subject = "KuaiJi Feedback"
+            let info = Bundle.main.infoDictionary
+            let appVersion = (info?["CFBundleShortVersionString"] as? String) ?? ""
+            let appBuild = (info?["CFBundleVersion"] as? String) ?? ""
+            let osVersion = UIDevice.current.systemVersion
+            let osBuild = ContactView.fetchOSBuildVersion() ?? ""
+            let language = Locale.current.identifier
+            let device = ContactView.marketingDeviceName()
+
+            let lines: [String] = [
+                "Device: \(device)",
+                "iOS: \(osVersion)\(osBuild.isEmpty ? "" : " (\(osBuild))")",
+                "App: \(appVersion) (\(appBuild))",
+                "Language: \(language)",
+                "",
+                "",
+                "Please write your suggestions below (you can add screenshots):",
+                "",
+                ""
+            ]
+            let body = lines.joined(separator: "\r\n")
+
+            var components = URLComponents()
+            components.scheme = "mailto"
+            components.path = email
+            components.queryItems = [
+                URLQueryItem(name: "subject", value: subject),
+                URLQueryItem(name: "body", value: body)
+            ]
+            if let url = components.url {
+                openURL(url)
+            }
+        case .rednote:
+            if let url = URL(string: "https://www.xiaohongshu.com/user/profile/5b815f2d47bf040001a99d94?xsec_token=YBZpK0YrWREW6VWRFKrUhGlh_jMjVWqu6nVjX2p9iNlIo=&xsec_source=app_share&xhsshare=CopyLink&shareRedId=N0g6MThLNk06PkdIOTwwNjY0SkA9ST89&apptime=1764280587&share_id=b2892ebc9b194468947fa9ba0efc65ba") {
+                UIApplication.shared.open(url)
+            }
+        case .github:
+            if let url = URL(string: "https://github.com/GuoRan7771/KuaiJi_IOSApp") {
+                openURL(url)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func cardBackground(for card: ContactCardKind) -> some View {
+        RoundedRectangle(cornerRadius: 24, style: .continuous)
+            .fill(
+                LinearGradient(colors: card.colors,
+                               startPoint: .topLeading,
+                               endPoint: .bottomTrailing)
+            )
+            .opacity(0.9)
+    }
 }
 
 private extension ContactView {
+    enum ContactCardKind: CaseIterable {
+        case email
+        case rednote
+        case github
+        case support
+
+        var icon: String {
+            switch self {
+            case .support: return "shield.lefthalf.filled"
+            case .email: return "envelope.fill"
+            case .rednote: return "globe.asia.australia.fill"
+            case .github: return "chevron.left.forwardslash.chevron.right"
+            }
+        }
+
+        var subtitle: String {
+            switch self {
+            case .support:
+                return L.contactSupportSubtitle.localized
+            case .email:
+                return L.contactEmailSubtitle.localized
+            case .rednote:
+                return L.contactRednoteSubtitle.localized
+            case .github:
+                return L.contactGithubSubtitle.localized
+            }
+        }
+
+        var colors: [Color] {
+            switch self {
+            case .support:
+                return [Color(red: 0.98, green: 0.82, blue: 0.3), Color(red: 0.92, green: 0.67, blue: 0.05)]
+            case .email:
+                return [Color(red: 0.18, green: 0.35, blue: 0.9), Color(red: 0.08, green: 0.16, blue: 0.46)]
+            case .rednote:
+                return [Color(red: 0.92, green: 0.26, blue: 0.32), Color(red: 0.62, green: 0.12, blue: 0.18)]
+            case .github:
+                return [Color(red: 0.1, green: 0.1, blue: 0.1), Color(red: 0.2, green: 0.2, blue: 0.2)]
+            }
+        }
+    }
+
     static func fetchOSBuildVersion() -> String? {
         var size: size_t = 0
         sysctlbyname("kern.osversion", nil, &size, nil, 0)
@@ -3601,7 +3792,7 @@ struct RecordsSheet<Model: LedgerOverviewViewModelProtocol>: View {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(record.title)
                 .font(.headline)
-                                    Text(record.payerName)
+                                    Text("\(record.payerName) · \(record.splitModeDisplay)")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                                 }
@@ -3709,7 +3900,7 @@ struct AddFriendSheet<Model: FriendListViewModelProtocol>: View {
                     TextField(L.friendsName.localized, text: $name)
                     Picker(L.friendsCurrency.localized, selection: $selectedCurrency) {
                         ForEach(CurrencyCode.allCases) { currency in
-                            Text(currency.rawValue).tag(currency)
+                            Text(currency.displayLabel).tag(currency)
                         }
                     }
                 }
@@ -3837,7 +4028,7 @@ struct EditFriendSheet<Model: FriendListViewModelProtocol>: View {
                     TextField(L.friendsName.localized, text: $name)
                     Picker(L.friendsCurrency.localized, selection: $selectedCurrency) {
                         ForEach(CurrencyCode.allCases) { currency in
-                            Text(currency.rawValue).tag(currency)
+                            Text(currency.displayLabel).tag(currency)
                         }
                     }
                 }
@@ -3925,7 +4116,7 @@ struct CreateLedgerSheet: View {
                     TextField(L.createLedgerName.localized, text: $ledgerName)
                     Picker(L.createLedgerCurrency.localized, selection: $selectedCurrency) {
                         ForEach(CurrencyCode.allCases) { currency in
-                            Text(currency.rawValue).tag(currency)
+                            Text(currency.displayLabel).tag(currency)
                         }
                     }
                 }
@@ -4058,7 +4249,7 @@ struct ProfileEditView: View {
                 Section {
                     Picker(selection: $selectedCurrency) {
                         ForEach(CurrencyCode.allCases) { currency in
-                            Text(currency.rawValue).tag(currency)
+                            Text(currency.displayLabel).tag(currency)
                         }
                     } label: {
                         Text(L.profileCurrencyPicker.localized)

@@ -73,6 +73,13 @@
 "split.beneficiary" = "Bénéficiaire";
 "split.selectBeneficiary" = "Sélectionner le Bénéficiaire (la personne pour qui on paie)";
 "split.addOtherMembers" = "⚠️ Veuillez d'abord ajouter d'autres membres";
+"split.mode.aa" = "Partage égal (AA)";
+"split.mode.treat" = "Inviter";
+"split.mode.weighted" = "Répartition pondérée";
+"split.mode.custom" = "Répartition personnalisée";
+"split.mode.fixedPlusEqual" = "Fixe + égal";
+"split.mode.helpPay" = "Aider à payer";
+"split.mode.helpPayWithName" = "Aider à payer (%@)";
 
 /* Catégories */
 "category.food" = "Nourriture";
@@ -140,6 +147,7 @@
 "settings.importConfirmButton" = "Confirmer l'Importation";
 "settings.about" = "À Propos";
 "settings.guide" = "Introduction";
+"settings.usageGuide" = "Guide";
 "settings.contactMe" = "Me Contacter";
 "settings.supportMe" = "Soutenir";
 "settings.version" = "Version";
@@ -187,6 +195,13 @@
 /* Page de contact */
 "contact.author" = "Guo";
 "contact.email" = "rangertars777@gmail.com";
+"contact.rednote" = "Rednote";
+"contact.github" = "Cette app est open source sur GitHub";
+"contact.support" = "Confidentialité & support";
+"contact.email.subtitle" = "Retour et assistance";
+"contact.rednote.subtitle" = "Profil Rednote";
+"contact.github.subtitle" = "Code source";
+"contact.support.subtitle" = "Politique de confidentialité et support technique";
 
 /* Configuration initiale */
 "onboarding.title" = "Configurer votre Profil";
@@ -455,6 +470,39 @@
 "personal.feePlaceholder" = "Frais (par défaut %@)";
 "personal.feeInclude" = "Inclure les frais dans les stats";
 "personal.accounts.manage" = "Gérer les comptes";
+"personal.usage.scenarios" = "Scénarios d'usage";
+"personal.usage.philosophy" = "Philosophie de conception";
+"personal.usage.flows.title" = "Flux recommandé";
+"personal.usage.flow1" = "AA hors ligne à deux";
+"personal.usage.flow2" = "Groupe — une seule personne saisit";
+"personal.usage.flow3" = "Groupe — tout le monde consulte";
+"personal.usage.flow4" = "Perso + partagé ensemble";
+"personal.usage.flow1.step1" = "Faire le setup : nom, avatar, devise ; activer le ledger partagé dans Réglages.";
+"personal.usage.flow1.step2" = "S'ajouter : bouton Synchroniser dans l'onglet Partagé ou QR dans Amis.";
+"personal.usage.flow1.step3" = "Créer un ledger partagé et ajouter les deux membres.";
+"personal.usage.flow1.step4" = "Règle : le payeur enregistre ; chaque dépense réelle n'est saisie qu'une fois.";
+"personal.usage.flow1.step5" = "Si une entrée synchronisée est erronée, supprimez-la sur tous les appareils puis recréez-la.";
+"personal.usage.flow1.step6" = "Resynchroniser en fin de journée/activité pour rester alignés.";
+"personal.usage.flow2.step1" = "Le saisissant ajoute les participants dans Amis (données locales).";
+"personal.usage.flow2.step2" = "Créer un ledger d'activité dans l'onglet Partagé.";
+"personal.usage.flow2.step3" = "Pendant l'évènement, le saisissant enregistre chaque paiement, peu importe le payeur.";
+"personal.usage.flow2.step4" = "Ensuite, consulter les montants à payer/recevoir et partager à l'oral ou par capture.";
+"personal.usage.flow3.step1" = "Tout le monde fait le setup et active le ledger partagé.";
+"personal.usage.flow3.step2" = "S'ajouter via Sync ou QR.";
+"personal.usage.flow3.step3" = "Créer un ledger partagé et ajouter tous les membres.";
+"personal.usage.flow3.step4" = "Définir la règle : payeur-saisit ou saisie unique ; chaque dépense est unique.";
+"personal.usage.flow3.step5" = "Synchroniser régulièrement dans l'onglet Partagé (en paire ou avec un admin).";
+"personal.usage.flow4.step1" = "Activer les ledgers Personnel et Partagé dans Réglages.";
+"personal.usage.flow4.step2" = "Ajouter des actifs et enregistrer les dépenses quotidiennes dans Personnel.";
+"personal.usage.flow4.step3" = "Quand une dépense doit être AA, utiliser « Synchroniser vers ledger partagé » sur l'écriture.";
+"personal.usage.flow4.step4" = "Choisir le ledger partagé cible pour inclure cette dépense dans le calcul groupé.";
+"personal.usage.flow.summary" = "Basculez entre les guides AA et suivez les étapes.";
+"personal.usage.design.title" = "Principes de conception";
+"personal.usage.design1" = "Pensé pour l'AA hors ligne : simple, traçable, sans cloud.";
+"personal.usage.design2" = "Ledger partagé et personnel séparés, activables à la demande.";
+"personal.usage.design3" = "Entièrement hors ligne, données locales, sauvegarde/restauration.";
+"personal.usage.design4" = "Sync P2P pour la confidentialité ; chaque dépense est unique.";
+"personal.usage.design5" = "Expérience gratuite et épurée ; pourboires via « Soutenez-moi ».";
 "personal.data.section" = "Données du ledger personnel";
 "personal.exportCSV" = "Exporter le CSV personnel";
 "personal.export.until" = "Jusqu’au";

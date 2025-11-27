@@ -96,12 +96,22 @@ struct OnboardingView: View {
                                 .font(.headline)
                                 .foregroundStyle(Color.appLedgerContentText)
                             
-                            Picker(L.onboardingCurrencyPicker.localized, selection: $selectedCurrency) {
-                                Text(L.onboardingCurrencyCNY.localized).tag(CurrencyCode.cny)
-                                Text(L.onboardingCurrencyUSD.localized).tag(CurrencyCode.usd)
-                                Text(L.onboardingCurrencyEUR.localized).tag(CurrencyCode.eur)
+                            Picker(selection: $selectedCurrency) {
+                                ForEach(CurrencyCode.allCases) { currency in
+                                    Text(currency.displayLabel).tag(currency)
+                                }
+                            } label: {
+                                HStack {
+                                    Text(L.onboardingCurrencyPicker.localized)
+                                        .font(.subheadline)
+                                        .foregroundStyle(Color.appLedgerContentText)
+                                    Spacer()
+                                    Text(selectedCurrency.displayLabel)
+                                        .font(.body)
+                                        .foregroundStyle(Color.appSelection)
+                                }
                             }
-                            .pickerStyle(.segmented)
+                            .pickerStyle(.menu)
                             .padding(.horizontal)
                             
                             Text(L.onboardingCurrencyFooter.localized)

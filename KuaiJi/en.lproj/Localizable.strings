@@ -73,6 +73,13 @@
 "split.beneficiary" = "Beneficiary";
 "split.selectBeneficiary" = "Select Beneficiary (who is being paid for)";
 "split.addOtherMembers" = "⚠️ Please add other members first";
+"split.mode.aa" = "AA Split";
+"split.mode.treat" = "Treat";
+"split.mode.weighted" = "Weighted Split";
+"split.mode.custom" = "Custom Split";
+"split.mode.fixedPlusEqual" = "Fixed + Equal";
+"split.mode.helpPay" = "Help Pay";
+"split.mode.helpPayWithName" = "Help Pay (%@)";
 
 /* Categories */
 "category.food" = "Food";
@@ -155,6 +162,7 @@
 "settings.importConfirmButton" = "Confirm Import";
 "settings.about" = "About";
 "settings.guide" = "Introduction";
+"settings.usageGuide" = "Guide";
 "settings.contactMe" = "Contact Me";
 "settings.supportMe" = "Support Me";
 "settings.version" = "Version";
@@ -187,6 +195,13 @@
 /* Contact Page */
 "contact.author" = "Guo";
 "contact.email" = "rangertars777@gmail.com";
+"contact.rednote" = "Rednote";
+"contact.github" = "This app is open source on GitHub";
+"contact.support" = "Privacy & Support";
+"contact.email.subtitle" = "Feedback & support";
+"contact.rednote.subtitle" = "Rednote profile";
+"contact.github.subtitle" = "Source code";
+"contact.support.subtitle" = "Privacy policy and tech support";
 
 /* Onboarding */
 "onboarding.title" = "Set Up Your Profile";
@@ -455,6 +470,39 @@
 "personal.feePlaceholder" = "Fee (default %@)";
 "personal.feeInclude" = "Count fees in stats";
 "personal.accounts.manage" = "Manage accounts";
+"personal.usage.scenarios" = "Usage Scenarios";
+"personal.usage.philosophy" = "Design Philosophy";
+"personal.usage.flows.title" = "Recommended flow";
+"personal.usage.flow1" = "Two-person offline AA";
+"personal.usage.flow2" = "Group — one person records";
+"personal.usage.flow3" = "Group — everyone views";
+"personal.usage.flow4" = "Personal + shared together";
+"personal.usage.flow1.step1" = "Complete basics: name, avatar, currency; enable Shared Ledger in Settings.";
+"personal.usage.flow1.step2" = "Add each other: tap Sync on Shared tab or scan QR in Friends.";
+"personal.usage.flow1.step3" = "Create a shared ledger and add both members.";
+"personal.usage.flow1.step4" = "Rule: payer logs; each real expense is logged once.";
+"personal.usage.flow1.step5" = "If a synced entry is wrong, delete it on all devices then re-add.";
+"personal.usage.flow1.step6" = "Sync again at day/activity end to keep both sides aligned.";
+"personal.usage.flow2.step1" = "Recorder adds participants in Friends (kept locally).";
+"personal.usage.flow2.step2" = "Create an activity ledger in Shared.";
+"personal.usage.flow2.step3" = "During the event, recorder logs every payment, no matter who paid.";
+"personal.usage.flow2.step4" = "Afterward, view settle-up amounts and share verbally or via screenshot.";
+"personal.usage.flow3.step1" = "Everyone sets up basics and enables Shared Ledger.";
+"personal.usage.flow3.step2" = "Add friends via Sync or QR.";
+"personal.usage.flow3.step3" = "Create a shared ledger and add all members.";
+"personal.usage.flow3.step4" = "Agree on logging rules: payer-logs or single-recorder; each expense logged once.";
+"personal.usage.flow3.step5" = "Periodically tap Sync in Shared to align data (pairwise or with an admin).";
+"personal.usage.flow4.step1" = "Enable both Personal and Shared ledgers in Settings.";
+"personal.usage.flow4.step2" = "Add assets and record daily spending in Personal.";
+"personal.usage.flow4.step3" = "When an expense needs AA, use “Sync to Shared Ledger” on that record.";
+"personal.usage.flow4.step4" = "Pick the target shared ledger so it participates in group settlement.";
+"personal.usage.flow.summary" = "Switch between common AA workflows and see the exact steps.";
+"personal.usage.design.title" = "App design principles";
+"personal.usage.design1" = "Built for offline AA: simple, traceable, no cloud.";
+"personal.usage.design2" = "Shared and personal ledgers stay independent and toggleable.";
+"personal.usage.design3" = "Fully offline, local storage, with backup and restore.";
+"personal.usage.design4" = "Peer-to-peer sync keeps privacy; log each expense only once.";
+"personal.usage.design5" = "Free and clean experience; tips welcome via “Support Me”.";
 "personal.data.section" = "Personal Ledger Data";
 "personal.exportCSV" = "Export Personal CSV";
 "personal.export.until" = "Until";

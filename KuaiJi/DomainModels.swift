@@ -11,14 +11,48 @@ import SwiftData
 // MARK: - Enumerations & Value Types
 
 enum CurrencyCode: String, Codable, CaseIterable, Identifiable, Sendable {
-    case eur = "EUR"
-    case usd = "USD"
     case cny = "CNY"
+    case usd = "USD"
+    case eur = "EUR"
     case gbp = "GBP"
     case hkd = "HKD"
     case jpy = "JPY"
+    case aud = "AUD"
+    case cad = "CAD"
+    case sgd = "SGD"
+    case twd = "TWD"
+    case krw = "KRW"
+    case chf = "CHF"
+    case nzd = "NZD"
 
     var id: String { rawValue }
+
+    static var allCases: [CurrencyCode] {
+        [.cny, .usd, .eur, .gbp, .hkd, .jpy, .aud, .cad, .sgd, .twd, .krw, .chf, .nzd]
+    }
+}
+
+extension CurrencyCode {
+    /// Simple currency symbol for display purposes.
+    var symbol: String {
+        switch self {
+        case .usd: return "$"
+        case .aud: return "A$"
+        case .cad: return "C$"
+        case .sgd: return "S$"
+        case .nzd: return "NZ$"
+        case .twd: return "NT$"
+        case .cny: return "¥"
+        case .jpy: return "¥"
+        case .hkd: return "HK$"
+        case .eur: return "€"
+        case .gbp: return "£"
+        case .krw: return "₩"
+        case .chf: return "CHF"
+        }
+    }
+
+    var displayLabel: String { "\(symbol) \(rawValue)" }
 }
 
 struct Money: Codable, Hashable, Sendable {
@@ -788,4 +822,3 @@ enum SettlementMath {
         return rounded
     }
 }
-

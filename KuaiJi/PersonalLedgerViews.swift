@@ -1149,11 +1149,13 @@ struct PersonalRecordFormView: View {
                         }
                     Menu {
                         ForEach(viewModel.currencyOptions, id: \.self) { code in
-                            Button(code.rawValue) { viewModel.selectAmountCurrency(code) }
+                            Button(action: { viewModel.selectAmountCurrency(code) }) {
+                                Text(code.displayLabel)
+                            }
                         }
                     } label: {
                         HStack(spacing: 4) {
-                            Text(viewModel.amountCurrency.rawValue)
+                            Text(viewModel.amountCurrency.displayLabel)
                             Image(systemName: "chevron.down")
                                 .font(.caption)
                         }
@@ -1779,7 +1781,7 @@ struct PersonalAccountFormView: View {
                 }
                 Picker(L.personalFieldCurrency.localized, selection: $viewModel.draft.currency) {
                     ForEach(CurrencyCode.allCases, id: \.self) { code in
-                        Text(code.rawValue).tag(code)
+                        Text(code.displayLabel).tag(code)
                     }
                 }
             }
@@ -2166,14 +2168,14 @@ struct PersonalStatsView: View {
                 ForEach(viewModel.availableCurrencies, id: \.self) { code in
                     Button(action: { viewModel.selectedCurrency = code }) {
                         if viewModel.selectedCurrency == code {
-                            Label(code.rawValue, systemImage: "checkmark")
+                            Label(code.displayLabel, systemImage: "checkmark")
                         } else {
-                            Text(code.rawValue)
+                            Text(code.displayLabel)
                         }
                     }
                 }
             } label: {
-                Label(viewModel.selectedCurrency.rawValue, systemImage: "coloncurrencysign.circle")
+                Label(viewModel.selectedCurrency.displayLabel, systemImage: "coloncurrencysign.circle")
             }
         }
     }

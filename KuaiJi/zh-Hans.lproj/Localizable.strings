@@ -73,6 +73,13 @@
 "split.beneficiary" = "受益人";
 "split.selectBeneficiary" = "选择受益人（被帮付的人）";
 "split.addOtherMembers" = "⚠️ 请先添加其他分账成员";
+"split.mode.aa" = "AA分摊";
+"split.mode.treat" = "请客";
+"split.mode.weighted" = "权重分摊";
+"split.mode.custom" = "自定义分摊";
+"split.mode.fixedPlusEqual" = "固定+均分";
+"split.mode.helpPay" = "代付/垫付";
+"split.mode.helpPayWithName" = "代付/垫付（%@）";
 
 /* 分类 */
 "category.food" = "餐饮";
@@ -140,6 +147,7 @@
 "settings.importConfirmButton" = "确认导入";
 "settings.about" = "关于";
 "settings.guide" = "简介";
+"settings.usageGuide" = "指南";
 "settings.contactMe" = "联系我";
 "settings.supportMe" = "支持我";
 "settings.version" = "版本";
@@ -176,6 +184,13 @@
 /* 联系页面 */
 "contact.author" = "Guo";
 "contact.email" = "rangertars777@gmail.com";
+"contact.rednote" = "小红书";
+"contact.github" = "此 App 已在 GitHub 开源";
+"contact.support" = "隐私与技术支持";
+"contact.email.subtitle" = "反馈与支持";
+"contact.rednote.subtitle" = "小红书主页";
+"contact.github.subtitle" = "源代码";
+"contact.support.subtitle" = "隐私说明与技术支持";
 
 /* 首次设置 */
 "onboarding.title" = "设置个人资料";
@@ -444,6 +459,39 @@
 "personal.feePlaceholder" = "手续费（默认%@）";
 "personal.feeInclude" = "手续费计入统计";
 "personal.accounts.manage" = "账户管理";
+"personal.usage.scenarios" = "使用场景";
+"personal.usage.philosophy" = "设计理念";
+"personal.usage.flows.title" = "推荐使用流程";
+"personal.usage.flow1" = "两个人线下 AA 分账";
+"personal.usage.flow2" = "多人活动由一人记账";
+"personal.usage.flow3" = "多人 AA、每人都查看";
+"personal.usage.flow4" = "个人账本 + 共享账本搭配";
+"personal.usage.flow1.step1" = "完成基础设置：昵称、头像、常用币种；在设置里开启共享账本。";
+"personal.usage.flow1.step2" = "互加好友：共享账本页点同步连接，或在朋友页扫码互加。";
+"personal.usage.flow1.step3" = "新建共享账本并添加双方成员。";
+"personal.usage.flow1.step4" = "规则：谁付谁记；同一笔消费只记一次。";
+"personal.usage.flow1.step5" = "若账目有误且已同步，双方设备都删除后重记。";
+"personal.usage.flow1.step6" = "结束或当日收尾时再同步一次，确保两端一致。";
+"personal.usage.flow2.step1" = "记账人在朋友页手动添加参与者（仅保存在本机）。";
+"personal.usage.flow2.step2" = "在共享账本新建活动账本。";
+"personal.usage.flow2.step3" = "活动期间，无论谁付钱，都由记账人记录。";
+"personal.usage.flow2.step4" = "结束后在账本查看应收应付，可口头或截图分享。";
+"personal.usage.flow3.step1" = "所有人完成基础设置并开启共享账本。";
+"personal.usage.flow3.step2" = "通过同步或二维码互加好友。";
+"personal.usage.flow3.step3" = "新建共享账本，添加所有成员。";
+"personal.usage.flow3.step4" = "约定记账方式：谁付谁记或一人记，务必同一消费只记一次。";
+"personal.usage.flow3.step5" = "阶段性在共享账本页点击同步，两两或与管理员逐个同步。";
+"personal.usage.flow4.step1" = "设置里同时开启个人账本和共享账本。";
+"personal.usage.flow4.step2" = "在个人账本添加资产并记录日常支出。";
+"personal.usage.flow4.step3" = "遇到需要 AA 的支出，在个人记录里使用“同步到共享账本”。";
+"personal.usage.flow4.step4" = "选择目标共享账本，让这笔支出同时参与多人结算。";
+"personal.usage.flow.summary" = "为不同线下 AA 场景准备的操作指引，快速切换查看细节。";
+"personal.usage.design.title" = "App 设计理念";
+"personal.usage.design1" = "围绕线下 AA，强调简单、可追溯，不依赖云端。";
+"personal.usage.design2" = "共享与个人账本独立，可按需开关，互不打扰。";
+"personal.usage.design3" = "完全离线，本地存储，可备份和恢复。";
+"personal.usage.design4" = "点对点同步，隐私可控；需要遵守“同一消费只记录一次”。";
+"personal.usage.design5" = "免费、纯净，无广告，欢迎通过“支持我”打赏。";
 "personal.data.section" = "个人账本数据";
 "personal.exportCSV" = "导出个人账本CSV";
 "personal.export.until" = "截止到";
