@@ -150,6 +150,7 @@
 "settings.usageGuide" = "Guide";
 "settings.contactMe" = "Me Contacter";
 "settings.supportMe" = "Soutenir";
+"settings.rateApp" = "Noter KuaiJi";
 "settings.version" = "Version";
 "settings.showSharedAndFriends" = "Afficher le ledger partagé et les amis";
 "settings.showPersonalLedger" = "Afficher le ledger personnel";
@@ -171,6 +172,17 @@
 "support.purchase.cancelled" = "Achat annulé.";
 "support.purchase.pending" = "Achat en attente. Si Demander l'achat est activé, veuillez attendre l'approbation.";
 "support.success" = "Merci pour votre soutien !";
+
+/* Noter l'app */
+"rate.title" = "Vous aimez KuaiJi ?";
+"rate.subtitle" = "Une note et un avis aident d'autres personnes à découvrir l'app.";
+"rate.inAppAction" = "Noter dans l'app";
+"rate.reviewPlaceholder" = "Dites ce que vous aimez ou ce qui peut être amélioré";
+"rate.copyHint" = "Votre texte sera copié : collez-le après l'ouverture de l'App Store.";
+"rate.writeReview" = "Aller sur l'App Store pour écrire un avis";
+"rate.copied" = "Copié. Collez-le dans l'App Store.";
+"rate.storeMissing.title" = "Lien App Store indisponible";
+"rate.storeMissing.message" = "Ajoutez APP_STORE_ID dans Info.plist pour ouvrir la page d'avis.";
 "settings.deleteMessage" = "Cette action supprime définitivement tous les comptes partagés et données des amis (votre profil et vos réglages sont conservés) et ne peut pas être annulée. Continuer?";
 "settings.interfaceDisplay" = "Affichage de l'interface";
 "settings.sharedLanding" = "Page par défaut de l'onglet partagé";

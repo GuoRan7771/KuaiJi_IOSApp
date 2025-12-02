@@ -150,6 +150,7 @@
 "settings.usageGuide" = "指南";
 "settings.contactMe" = "联系我";
 "settings.supportMe" = "支持我";
+"settings.rateApp" = "给KuaiJi好评";
 "settings.version" = "版本";
 "settings.showSharedAndFriends" = "显示共享账本及朋友";
 "settings.showPersonalLedger" = "显示个人账本";
@@ -571,3 +572,14 @@
 "support.purchase.cancelled" = "已取消支付。";
 "support.purchase.pending" = "支付处理中。如果开启了“家人共享-请求购买”，请等待批准。";
 "support.success" = "感谢你的支持！";
+
+/* 应用评分 */
+"rate.title" = "喜欢快记吗？";
+"rate.subtitle" = "给个评分或评论，能帮助更多朋友发现它。";
+"rate.inAppAction" = "在应用内快速评分";
+"rate.reviewPlaceholder" = "留下你喜欢的点或改进建议";
+"rate.copyHint" = "会自动复制文本，跳转 App Store 后直接粘贴即可提交。";
+"rate.writeReview" = "去 App Store 写评论";
+"rate.copied" = "已复制，去 App Store 粘贴即可。";
+"rate.storeMissing.title" = "暂时无法跳转 App Store";
+"rate.storeMissing.message" = "请在 Info.plist 中配置 APP_STORE_ID 后再试。";

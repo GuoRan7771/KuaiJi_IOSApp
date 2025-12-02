@@ -183,6 +183,7 @@ enum L {
     static let settingsUsageGuide = "settings.usageGuide"
     static let settingsContactMe = "settings.contactMe"
     static let settingsSupportMe = "settings.supportMe"
+    static let settingsRateApp = "settings.rateApp"
     static let settingsVersion = "settings.version"
     static let settingsClearData = "settings.clearData"
     static let settingsClearDataWarning = "settings.clearDataWarning"
@@ -213,6 +214,17 @@ enum L {
     static let supportPurchaseCancelled = "support.purchase.cancelled"
     static let supportPurchasePending = "support.purchase.pending"
     static let supportSuccess = "support.success"
+
+    // Rate App
+    static let rateTitle = "rate.title"
+    static let rateSubtitle = "rate.subtitle"
+    static let rateInAppAction = "rate.inAppAction"
+    static let rateReviewPlaceholder = "rate.reviewPlaceholder"
+    static let rateCopyHint = "rate.copyHint"
+    static let rateWriteReview = "rate.writeReview"
+    static let rateCopied = "rate.copied"
+    static let rateStoreMissingTitle = "rate.storeMissing.title"
+    static let rateStoreMissingMessage = "rate.storeMissing.message"
 
     // Quick Actions
     static let quickActionAddExpense = "quickAction.addExpense"

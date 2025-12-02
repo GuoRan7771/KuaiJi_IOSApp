@@ -2083,6 +2083,19 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                 }
 
                 Button {
+                    AppReviewManager.requestInAppReview()
+                } label: {
+                    HStack {
+                        Text(L.settingsRateApp.localized)
+                            .foregroundStyle(Color.appLedgerContentText)
+                        Spacer()
+                        Image(systemName: "star.fill")
+                            .font(.caption)
+                            .foregroundStyle(Color.appToggleOn)
+                    }
+                }
+
+                Button {
                     showingContactSheet = true
                 } label: {
                     HStack {
@@ -2090,6 +2103,19 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                             .foregroundStyle(Color.appLedgerContentText)
                         Spacer()
                         Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(Color.appSecondaryText)
+                    }
+                }
+
+                Button {
+                    openPrivacySupport()
+                } label: {
+                    HStack {
+                        Text(L.contactSupport.localized)
+                            .foregroundStyle(Color.appLedgerContentText)
+                        Spacer()
+                        Image(systemName: "arrow.up.right.square")
                             .font(.caption)
                             .foregroundStyle(Color.appSecondaryText)
                     }
@@ -2478,6 +2504,12 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
             }
         }
     }
+    
+    private func openPrivacySupport() {
+        if let url = URL(string: "https://guoran7771.github.io/KuaiJiPrivacy-Support/kuaji_privacy_support_trilingual.html") {
+            UIApplication.shared.open(url)
+        }
+    }
 
     private func binding<Value>(get: @escaping () -> Value, set: @escaping (Value) -> Void) -> Binding<Value> {
         Binding(get: get, set: set)
@@ -2531,25 +2563,16 @@ struct ContactView: View {
                             )
                             .frame(width: 140 + CGFloat(index * 20), height: 140 + CGFloat(index * 20))
                             .blur(radius: 30 + CGFloat(index * 10))
-                            .opacity(0.6 - Double(index) * 0.15)
-                            .scaleEffect(pulseScale)
+                                .opacity(0.6 - Double(index) * 0.15)
+                                .scaleEffect(pulseScale)
+                        }
+                        
+                        appleMark
                     }
+                    .scaleEffect(pulseScale)
                     
-                    Image(systemName: "apple.logo")
-                        .font(.system(size: 70, weight: .ultraLight))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [.white, .white.opacity(0.9)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .shadow(color: .white.opacity(0.5), radius: 10)
-                }
-                .scaleEffect(pulseScale)
-                
-                // Text content with liquid glass effect
-                VStack(spacing: 16) {
+                    // Text content with liquid glass effect
+                    VStack(spacing: 16) {
                     Text(L.contactAuthor.localized)
                         .font(.system(size: 32, weight: .semibold, design: .rounded))
                         .foregroundStyle(
@@ -2637,7 +2660,6 @@ struct ContactView: View {
 
     private func title(for card: ContactCardKind) -> String {
         switch card {
-        case .support: return L.contactSupport.localized
         case .email: return L.contactEmail.localized
         case .rednote: return L.contactRednote.localized
         case .github: return L.contactGithub.localized
@@ -2646,10 +2668,6 @@ struct ContactView: View {
 
     private func perform(_ card: ContactCardKind) {
         switch card {
-        case .support:
-            if let url = URL(string: "https://guoran7771.github.io/KuaiJiPrivacy-Support/kuaji_privacy_support_trilingual.html") {
-                openURL(url)
-            }
         case .email:
             let email = "rangertars777@gmail.com"
             let subject = "KuaiJi Feedback"
@@ -2712,11 +2730,9 @@ private extension ContactView {
         case email
         case rednote
         case github
-        case support
 
         var icon: String {
             switch self {
-            case .support: return "shield.lefthalf.filled"
             case .email: return "envelope.fill"
             case .rednote: return "globe.asia.australia.fill"
             case .github: return "chevron.left.forwardslash.chevron.right"
@@ -2725,8 +2741,6 @@ private extension ContactView {
 
         var subtitle: String {
             switch self {
-            case .support:
-                return L.contactSupportSubtitle.localized
             case .email:
                 return L.contactEmailSubtitle.localized
             case .rednote:
@@ -2738,8 +2752,6 @@ private extension ContactView {
 
         var colors: [Color] {
             switch self {
-            case .support:
-                return [Color(red: 0.98, green: 0.82, blue: 0.3), Color(red: 0.92, green: 0.67, blue: 0.05)]
             case .email:
                 return [Color(red: 0.18, green: 0.35, blue: 0.9), Color(red: 0.08, green: 0.16, blue: 0.46)]
             case .rednote:
@@ -2807,6 +2819,31 @@ private extension ContactView {
             "iPhone10,5": "iPhone 8 Plus"
         ]
         return map[id] ?? "iPhone (\(id))"
+    }
+    
+    var appleMark: some View {
+        Group {
+            if UIImage(systemName: "apple.logo") != nil {
+                Image(systemName: "apple.logo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 76, height: 76)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [.white, .white.opacity(0.9)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            } else if let appIcon = UIImage(named: "AppIcon") {
+                Image(uiImage: appIcon)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 76, height: 76)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+        }
+        .shadow(color: .white.opacity(0.5), radius: 10)
     }
 }
 

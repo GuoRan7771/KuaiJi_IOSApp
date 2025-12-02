@@ -151,6 +151,17 @@
 "support.purchase.cancelled" = "Purchase cancelled.";
 "support.purchase.pending" = "Purchase is pending. If Ask to Buy is enabled, please wait for approval.";
 "support.success" = "Thanks for your support!";
+
+/* Rate App */
+"rate.title" = "Enjoy KuaiJi?";
+"rate.subtitle" = "Your rating and review help more friends discover the app.";
+"rate.inAppAction" = "Rate inside the app";
+"rate.reviewPlaceholder" = "Share what you love or what we can improve";
+"rate.copyHint" = "We'll copy the text so you can paste it after opening the App Store.";
+"rate.writeReview" = "Go to App Store to write a review";
+"rate.copied" = "Copied. Paste it in the App Store review box.";
+"rate.storeMissing.title" = "App Store link unavailable";
+"rate.storeMissing.message" = "Set APP_STORE_ID in Info.plist to open the App Store review page.";
 "settings.exportSuccess" = "Export Successful";
 "settings.exportError" = "Export Failed";
 "settings.exportErrorMessage" = "Unable to create export file";
@@ -165,6 +176,7 @@
 "settings.usageGuide" = "Guide";
 "settings.contactMe" = "Contact Me";
 "settings.supportMe" = "Support Me";
+"settings.rateApp" = "Rate KuaiJi";
 "settings.version" = "Version";
 "settings.showSharedAndFriends" = "Show shared ledger & friends";
 "settings.showPersonalLedger" = "Show personal ledger";
