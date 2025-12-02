@@ -19,6 +19,12 @@
 "ledgers.pageTitle" = "共享账本";
 "ledgers.new" = "新建";
 "ledgers.recentUpdates" = "最近更新";
+"ledgers.archived" = "归档的账本";
+"ledgers.archive" = "归档";
+"ledgers.unarchive" = "移回最近更新";
+"ledgers.archived.tag" = "已归档";
+"ledgers.deleteConfirm.title" = "删除共享账本？";
+"ledgers.deleteConfirm.message" = "此操作会永久删除该共享账本及其数据，确定要继续吗？";
 "ledgers.memberCount" = "成员 %d";
 "ledgers.outstanding" = "待结算 %@";
 
@@ -174,6 +180,7 @@
 
 /* Quick Actions */
 "quickAction.addExpense" = "快速记账";
+"quickAction.backupReminder" = "要删掉我了吗，记得备份数据！";
 "quickAction.personalSubtitle" = "个人账本";
 
 /* 语言选项 */

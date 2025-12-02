@@ -26,7 +26,10 @@ struct LedgerSummaryViewData: Identifiable, Hashable {
     var currency: CurrencyCode
     var outstandingDisplay: String
     var updatedAt: Date
+    var isArchived: Bool
 }
+
+
 
 struct LedgerDetailViewData: Hashable {
     var id: UUID
@@ -251,10 +254,14 @@ struct SettingsViewState: Hashable {
 @MainActor
 protocol LedgerListViewModelProtocol: ObservableObject {
     var ledgers: [LedgerSummaryViewData] { get }
+    var archivedLedgers: [LedgerSummaryViewData] { get }
     var availableMembers: [MemberSummaryViewData] { get }
     var currentUser: MemberSummaryViewData { get }
     func createLedger(name: String, memberIds: [UUID], currency: CurrencyCode)
     func deleteLedgers(at offsets: IndexSet)
+    func deleteLedger(id: UUID)
+    func archiveLedger(id: UUID)
+    func unarchiveLedger(id: UUID)
 }
 
 @MainActor
@@ -356,6 +363,11 @@ final class AppRootViewModel: ObservableObject {
     @Published private(set) var ledgerSummaries: [LedgerSummaryViewData]
     @Published private(set) var settings: LedgerSettings
     @Published private(set) var friends: [MemberSummaryViewData]
+    private var archivedLedgerIds: Set<UUID>
+    private var archivedLedgerVersion: [UUID: Date]
+    private var archivedLedgerExpenseCounts: [UUID: Int]
+    private var dataChangeObserver: NSObjectProtocol?
+    private var dataManagerCancellables: Set<AnyCancellable> = []
 
     @Published private(set) var localeIdentifier: String
     @Published private(set) var currentUser: MemberSummaryViewData
@@ -385,10 +397,58 @@ final class AppRootViewModel: ObservableObject {
         self.memberLookup = [me.id: me]
         self.ledgerInfos = [:]
         self.ledgerSummaries = []
+        self.archivedLedgerIds = Self.loadArchivedLedgerIds()
+        self.archivedLedgerVersion = Self.loadArchivedLedgerVersions()
+        self.archivedLedgerExpenseCounts = Self.loadArchivedLedgerExpenseCounts()
+
+        dataChangeObserver = NotificationCenter.default.addObserver(forName: .persistentDataDidChange, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.loadFromPersistence()
+            }
+        }
     }
     
     func setDataManager(_ manager: PersistentDataManager) {
+        dataManagerCancellables.removeAll()
         self.dataManager = manager
+
+        manager.$allLedgers
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.loadFromPersistence()
+                }
+            }
+            .store(in: &dataManagerCancellables)
+
+        manager.$allFriends
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.loadFromPersistence()
+                }
+            }
+            .store(in: &dataManagerCancellables)
+
+        manager.$currentUser
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.loadFromPersistence()
+                }
+            }
+            .store(in: &dataManagerCancellables)
+
+        // 监听数据版本号，确保任何 loadData 调用后都刷新汇总（包括待结算）
+        manager.$dataRevision
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.loadFromPersistence()
+                }
+            }
+            .store(in: &dataManagerCancellables)
+
         loadFromPersistence()
     }
 
@@ -408,6 +468,13 @@ final class AppRootViewModel: ObservableObject {
         appStateRef?.isCheckingOnboarding = true
         appStateRef?.checkOnboardingStatus()
         appStateRef?.isCheckingOnboarding = false
+    }
+
+    deinit {
+        if let observer = dataChangeObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        dataManagerCancellables.removeAll()
     }
     
     func loadFromPersistence() {
@@ -456,8 +523,11 @@ final class AppRootViewModel: ObservableObject {
             }
             
             // 加载支出
-            let expenses = ledger.expenses.map { expense in
-                let participants = expense.participants.map { participant in
+            // 强制从数据库重新获取支出列表，解决 SwiftData 关联属性可能不刷新的问题
+            let rawExpenses = dataManager.getLedgerExpenses(ledgerId: ledger.remoteId)
+            let expenses = rawExpenses.map { expense in
+                let rawParticipants = dataManager.getExpenseParticipants(expenseId: expense.remoteId)
+                let participants = rawParticipants.map { participant in
                     ExpenseParticipantShare(
                         userId: participant.userId,
                         shareType: participant.shareType,
@@ -529,6 +599,21 @@ final class AppRootViewModel: ObservableObject {
         SettingsScreenModel(root: self)
     }
 
+    func archiveLedger(id: UUID) {
+        guard ledgerInfos[id] != nil else { return }
+        archivedLedgerIds.insert(id)
+        archivedLedgerVersion[id] = ledgerInfos[id]?.updatedAt
+        archivedLedgerExpenseCounts[id] = ledgerInfos[id]?.expenses.count ?? 0
+        refreshSummaries()
+    }
+
+    func unarchiveLedger(id: UUID) {
+        archivedLedgerIds.remove(id)
+        archivedLedgerVersion[id] = nil
+        archivedLedgerExpenseCounts[id] = nil
+        refreshSummaries()
+    }
+
     func ledgerMembers(ledgerId: UUID) -> [MemberSummaryViewData] {
         guard let info = ledgerInfos[ledgerId] else { return [] }
         return info.memberIds.compactMap { memberLookup[$0] }
@@ -594,6 +679,9 @@ final class AppRootViewModel: ObservableObject {
 
     func deleteLedger(ledgerId: UUID) {
         guard let dataManager = dataManager else { return }
+        archivedLedgerIds.remove(ledgerId)
+        archivedLedgerVersion[ledgerId] = nil
+        persistArchiveState()
         dataManager.deleteLedger(id: ledgerId)
         loadFromPersistence()
     }
@@ -730,6 +818,39 @@ final class AppRootViewModel: ObservableObject {
 
     private func refreshSummaries() {
         guard let dataManager = dataManager else { return }
+        let existingIds = Set(ledgerInfos.keys)
+        archivedLedgerIds = archivedLedgerIds.intersection(existingIds)
+        archivedLedgerVersion = archivedLedgerVersion.filter { existingIds.contains($0.key) }
+        archivedLedgerExpenseCounts = archivedLedgerExpenseCounts.filter { existingIds.contains($0.key) }
+
+        var didUnarchive = false
+        for (id, info) in ledgerInfos {
+            let hasNewerUpdate: Bool = {
+                if let archivedVersion = archivedLedgerVersion[id] {
+                    return info.updatedAt > archivedVersion
+                }
+                return false
+            }()
+            let hasMoreExpenses: Bool = {
+                if let archivedCount = archivedLedgerExpenseCounts[id] {
+                    return info.expenses.count > archivedCount
+                }
+                return false
+            }()
+
+            if hasNewerUpdate || hasMoreExpenses {
+                archivedLedgerIds.remove(id)
+                archivedLedgerVersion[id] = nil
+                archivedLedgerExpenseCounts[id] = nil
+                didUnarchive = true
+            }
+        }
+        archivedLedgerVersion = archivedLedgerVersion.filter { archivedLedgerIds.contains($0.key) }
+        archivedLedgerExpenseCounts = archivedLedgerExpenseCounts.filter { archivedLedgerIds.contains($0.key) }
+        if didUnarchive {
+            debugLog("📦 自动取消归档有更新的账本")
+        }
+
         let localeId = LocaleManager.preferredLocaleIdentifier ?? dataManager.currentUser?.localeIdentifier ?? localeIdentifier
         localeIdentifier = localeId
         let locale = Locale(identifier: localeIdentifier)
@@ -744,8 +865,10 @@ final class AppRootViewModel: ObservableObject {
                                          memberCount: info.memberIds.count,
                                          currency: info.currency,
                                          outstandingDisplay: outstandingDisplay,
-                                         updatedAt: info.updatedAt)
+                                         updatedAt: info.updatedAt,
+                                         isArchived: archivedLedgerIds.contains(info.id))
         }
+        persistArchiveState()
     }
 
     private func computeNetBalances(ledgerId: UUID, filters: LedgerFilterState) throws -> [UUID: Int] {
@@ -769,6 +892,65 @@ final class AppRootViewModel: ObservableObject {
             }
             return true
         }
+    }
+
+    private static let archivedLedgerKey = "archivedLedgerIds"
+    private static let archivedLedgerVersionKey = "archivedLedgerVersions"
+    private static let archivedLedgerExpenseCountKey = "archivedLedgerExpenseCounts"
+
+    private static let archivedDateFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    private static func loadArchivedLedgerIds() -> Set<UUID> {
+        let defaults = UserDefaults.standard
+        let raw = defaults.stringArray(forKey: archivedLedgerKey) ?? []
+        let ids = raw.compactMap { UUID(uuidString: $0) }
+        return Set(ids)
+    }
+
+    private static func loadArchivedLedgerVersions() -> [UUID: Date] {
+        let defaults = UserDefaults.standard
+        guard let dict = defaults.dictionary(forKey: archivedLedgerVersionKey) as? [String: String] else {
+            return [:]
+        }
+        var result: [UUID: Date] = [:]
+        for (key, value) in dict {
+            if let id = UUID(uuidString: key),
+               let date = archivedDateFormatter.date(from: value) {
+                result[id] = date
+            }
+        }
+        return result
+    }
+
+    private static func loadArchivedLedgerExpenseCounts() -> [UUID: Int] {
+        let defaults = UserDefaults.standard
+        guard let dict = defaults.dictionary(forKey: archivedLedgerExpenseCountKey) as? [String: Int] else {
+            return [:]
+        }
+        var result: [UUID: Int] = [:]
+        for (key, value) in dict {
+            if let id = UUID(uuidString: key) {
+                result[id] = value
+            }
+        }
+        return result
+    }
+
+    private func persistArchiveState() {
+        let defaults = UserDefaults.standard
+        defaults.set(Array(archivedLedgerIds).map { $0.uuidString }, forKey: Self.archivedLedgerKey)
+        let dict: [String: String] = archivedLedgerVersion.reduce(into: [:]) { result, entry in
+            result[entry.key.uuidString] = Self.archivedDateFormatter.string(from: entry.value)
+        }
+        defaults.set(dict, forKey: Self.archivedLedgerVersionKey)
+        let countDict: [String: Int] = archivedLedgerExpenseCounts.reduce(into: [:]) { result, entry in
+            result[entry.key.uuidString] = entry.value
+        }
+        defaults.set(countDict, forKey: Self.archivedLedgerExpenseCountKey)
     }
     
     func memberBreakdown(ledgerId: UUID, memberId: UUID) -> (breakdown: [CategoryBreakdown], timeline: [TimeSeriesPoint]) {
@@ -803,6 +985,7 @@ final class AppRootViewModel: ObservableObject {
 @MainActor
 final class LedgerListScreenModel: ObservableObject, LedgerListViewModelProtocol {
     @Published private(set) var ledgers: [LedgerSummaryViewData]
+    @Published private(set) var archivedLedgers: [LedgerSummaryViewData]
     @Published private(set) var availableMembers: [MemberSummaryViewData]
     private weak var root: AppRootViewModel?
     private var cancellables: Set<AnyCancellable> = []
@@ -813,13 +996,16 @@ final class LedgerListScreenModel: ObservableObject, LedgerListViewModelProtocol
 
     init(root: AppRootViewModel) {
         self.root = root
-        self.ledgers = root.ledgerSummaries
+        let summaries = root.ledgerSummaries
+        self.ledgers = summaries.filter { !$0.isArchived }
+        self.archivedLedgers = summaries.filter { $0.isArchived }
         self.availableMembers = root.friends
 
         root.$ledgerSummaries
             .receive(on: RunLoop.main)
             .sink { [weak self] summaries in
-                self?.ledgers = summaries
+                self?.ledgers = summaries.filter { !$0.isArchived }
+                self?.archivedLedgers = summaries.filter { $0.isArchived }
             }
             .store(in: &cancellables)
 
@@ -840,6 +1026,18 @@ final class LedgerListScreenModel: ObservableObject, LedgerListViewModelProtocol
         let ids = offsets.compactMap { ledgers.indices.contains($0) ? ledgers[$0].id : nil }
         ledgers.remove(atOffsets: offsets)
         ids.forEach { root.deleteLedger(ledgerId: $0) }
+    }
+
+    func deleteLedger(id: UUID) {
+        root?.deleteLedger(ledgerId: id)
+    }
+
+    func archiveLedger(id: UUID) {
+        root?.archiveLedger(id: id)
+    }
+
+    func unarchiveLedger(id: UUID) {
+        root?.unarchiveLedger(id: id)
     }
 }
 
@@ -1569,6 +1767,9 @@ struct ExpenseFormView<Model: ExpenseFormViewModelProtocol>: View {
                     .font(.caption2)
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Color.appBackground)
+        .tint(Color.appTextPrimary)
         .scrollDismissesKeyboard(.interactively)
         .dismissKeyboardOnTap()
     }
@@ -1889,8 +2090,13 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
             }
         }
     }
+
+    private enum SettingsScrollTarget: Hashable {
+        case dataManagement
+    }
     var body: some View {
-        Form {
+        ScrollViewReader { proxy in
+            Form {
             // 个人信息
             Section {
                 if let currentUser = viewModel.getCurrentUser() {
@@ -2213,6 +2419,7 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                 Text(L.settingsExportDataDesc.localized)
                     .appSecondaryTextStyle()
             }
+            .id(SettingsScrollTarget.dataManagement)
             .confirmationDialog(L.settingsExportSharedCSV.localized, isPresented: $showingSharedCSVPicker, titleVisibility: .visible) {
                 ForEach(rootViewModel.ledgerSummaries, id: \.id) { ledger in
                     Button(ledger.name) {
@@ -2276,9 +2483,13 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
         .scrollDismissesKeyboard(.interactively)
         .dismissKeyboardOnTap()
         .navigationTitle(L.settingsTitle.localized)
+        .onChangeCompat(of: appState.settingsDeepLink) {
+            handleSettingsDeepLink(using: proxy)
+        }
         .onAppear {
             // 初始化快速操作目标
             quickActionSelection = selection(from: appState.getQuickActionTarget())
+            handleSettingsDeepLink(using: proxy)
         }
         .sheet(isPresented: $showingContactSheet) {
             ContactView()
@@ -2362,6 +2573,18 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                 showingAlert = true
             }
         }
+        }
+    }
+    
+    private func handleSettingsDeepLink(using proxy: ScrollViewProxy) {
+        guard let deepLink = appState.settingsDeepLink else { return }
+        switch deepLink {
+        case .dataManagement:
+            withAnimation(.easeInOut) {
+                proxy.scrollTo(SettingsScrollTarget.dataManagement, anchor: .top)
+            }
+        }
+        appState.settingsDeepLink = nil
     }
     
     private func exportSharedLedgerCSV(for ledger: LedgerSummaryViewData) {
@@ -3009,6 +3232,9 @@ struct ContentView: View {
         .onChangeCompat(of: appState.quickActionTarget) {
             handleGlobalQuickAction()
         }
+        .onChangeCompat(of: appState.settingsDeepLink) {
+            handleSettingsDeepLinkTabSwitch()
+        }
         .onReceive(NotificationCenter.default.publisher(for: .openPersonalTemplates)) { _ in
             selectedTab = .settings
         }
@@ -3016,6 +3242,9 @@ struct ContentView: View {
             if selectedTab == .ledgers {
                 appState.requestSharedTabLandingActivation()
             }
+        }
+        .onAppear {
+            handleSettingsDeepLinkTabSwitch()
         }
         .tint(Color.appTextPrimary)
         .background(Color.appBackground.ignoresSafeArea())
@@ -3045,6 +3274,12 @@ struct ContentView: View {
     private func handleGlobalQuickAction() {
         guard case .shared = appState.quickActionTarget else { return }
         selectedTab = .ledgers
+    }
+
+    private func handleSettingsDeepLinkTabSwitch() {
+        if appState.settingsDeepLink != nil {
+            selectedTab = .settings
+        }
     }
 
     // MARK: - App Version Helper
@@ -3409,6 +3644,7 @@ struct FriendNavigator: View {
 
 struct LedgerListView<Model: LedgerListViewModelProtocol>: View {
     @ObservedObject var viewModel: Model
+    @State private var pendingDeletion: LedgerSummaryViewData?
 
     var body: some View {
         List {
@@ -3418,14 +3654,76 @@ struct LedgerListView<Model: LedgerListViewModelProtocol>: View {
                         LedgerSummaryRow(ledger: ledger)
                     }
                     .accessibilityLabel("\(ledger.name), \(L.ledgersMemberCount.localized(ledger.memberCount)), \(L.ledgersOutstanding.localized(ledger.outstandingDisplay))")
+                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                        Button {
+                            viewModel.archiveLedger(id: ledger.id)
+                        } label: {
+                            Label(L.ledgersArchiveAction.localized, systemImage: "archivebox")
+                        }
+                        .tint(.orange)
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            pendingDeletion = ledger
+                        } label: {
+                            Label(L.delete.localized, systemImage: "trash")
+                        }
+                    }
                 }
                 .onDelete { indexSet in
-                    viewModel.deleteLedgers(at: indexSet)
+                    if let first = indexSet.first, viewModel.ledgers.indices.contains(first) {
+                        pendingDeletion = viewModel.ledgers[first]
+                    }
+                }
+            }
+            if !viewModel.archivedLedgers.isEmpty {
+                Section(L.ledgersArchived.localized) {
+                    ForEach(viewModel.archivedLedgers) { ledger in
+                        NavigationLink(value: ledger) {
+                            LedgerSummaryRow(ledger: ledger, isArchived: true)
+                        }
+                        .accessibilityLabel("\(ledger.name), \(L.ledgersMemberCount.localized(ledger.memberCount)), \(L.ledgersOutstanding.localized(ledger.outstandingDisplay)), \(L.ledgersArchived.localized)")
+                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                            Button {
+                                viewModel.unarchiveLedger(id: ledger.id)
+                            } label: {
+                                Label(L.ledgersUnarchiveAction.localized, systemImage: "arrow.uturn.left")
+                            }
+                            .tint(.green)
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                pendingDeletion = ledger
+                            } label: {
+                                Label(L.delete.localized, systemImage: "trash")
+                            }
+                        }
+                    }
+                    .onDelete { indexSet in
+                        if let first = indexSet.first, viewModel.archivedLedgers.indices.contains(first) {
+                            pendingDeletion = viewModel.archivedLedgers[first]
+                        }
+                    }
                 }
             }
         }
         .scrollContentBackground(.hidden)
         .background(Color.appBackground)
+        .alert(L.ledgersDeleteConfirmTitle.localized, isPresented: Binding(get: { pendingDeletion != nil }, set: { newValue in
+            if !newValue { pendingDeletion = nil }
+        })) {
+            Button(L.cancel.localized, role: .cancel) {
+                pendingDeletion = nil
+            }
+            Button(L.delete.localized, role: .destructive) {
+                if let ledger = pendingDeletion {
+                    viewModel.deleteLedger(id: ledger.id)
+                }
+                pendingDeletion = nil
+            }
+        } message: {
+            Text(L.ledgersDeleteConfirmMessage.localized)
+        }
     }
 }
 
@@ -3481,6 +3779,7 @@ struct FriendListView<Model: FriendListViewModelProtocol>: View {
 
 struct LedgerSummaryRow: View {
     var ledger: LedgerSummaryViewData
+    var isArchived: Bool = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -3496,6 +3795,14 @@ struct LedgerSummaryRow: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
+            if isArchived {
+                Text(L.ledgersArchivedTag.localized)
+                    .font(.caption2)
+                    .foregroundStyle(Color.appSecondaryText)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Capsule().fill(Color.secondary.opacity(0.12)))
+            }
             Text(ledger.currency.rawValue)
                 .font(.caption)
                 .padding(6)

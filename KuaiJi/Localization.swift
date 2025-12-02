@@ -57,6 +57,12 @@ enum L {
     static let ledgersPageTitle = "ledgers.pageTitle"
     static let ledgersNew = "ledgers.new"
     static let ledgersRecentUpdates = "ledgers.recentUpdates"
+    static let ledgersArchived = "ledgers.archived"
+    static let ledgersArchiveAction = "ledgers.archive"
+    static let ledgersUnarchiveAction = "ledgers.unarchive"
+    static let ledgersArchivedTag = "ledgers.archived.tag"
+    static let ledgersDeleteConfirmTitle = "ledgers.deleteConfirm.title"
+    static let ledgersDeleteConfirmMessage = "ledgers.deleteConfirm.message"
     static let ledgersMemberCount = "ledgers.memberCount"
     static let ledgersOutstanding = "ledgers.outstanding"
     
@@ -229,6 +235,7 @@ enum L {
     // Quick Actions
     static let quickActionAddExpense = "quickAction.addExpense"
     static let quickActionPersonalSubtitle = "quickAction.personalSubtitle"
+    static let quickActionBackupReminder = "quickAction.backupReminder"
     
     // 语言选项
     static let languageSystem = "language.system"

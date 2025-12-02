@@ -9,6 +9,10 @@ import Foundation
 import SwiftData
 import Combine
 
+extension Notification.Name {
+    static let persistentDataDidChange = Notification.Name("kuaji.persistentDataDidChange")
+}
+
 @MainActor
 class PersistentDataManager: ObservableObject {
     let modelContext: ModelContext
@@ -16,6 +20,8 @@ class PersistentDataManager: ObservableObject {
     @Published var currentUser: UserProfile?
     @Published var allLedgers: [Ledger] = []
     @Published var allFriends: [UserProfile] = []
+    /// Incremented after each loadData so observers can reliably refresh UI (e.g., outstanding totals)
+    @Published private(set) var dataRevision: Int = 0
     
     // 用于标识是否已完成首次设置的 UserDefaults key
     private let hasCompletedOnboardingKey = "hasCompletedOnboarding"
@@ -101,6 +107,14 @@ class PersistentDataManager: ObservableObject {
             sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
         )
         allLedgers = (try? modelContext.fetch(ledgerDescriptor)) ?? []
+
+        // Bump revision so UI layers can reliably pick up data refreshes
+        dataRevision &+= 1
+
+        // 通知观察者数据已更新，用于刷新 UI（包括归档账本待结算）
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .persistentDataDidChange, object: nil)
+        }
     }
     
     // MARK: - 朋友管理
@@ -598,6 +612,9 @@ class PersistentDataManager: ObservableObject {
               let ledger = ledgers.first else { return }
         
         let amountMinor = SettlementMath.minorUnits(from: amount, scale: 2)
+        
+        // 使用同步数据推进账本更新时间，确保归档账本也能检测到外部更新
+        ledger.updatedAt = max(ledger.updatedAt, updatedAt)
         
         let expense = Expense(
             remoteId: expenseId,

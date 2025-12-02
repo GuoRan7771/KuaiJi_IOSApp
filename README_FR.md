@@ -69,11 +69,10 @@ Merci à ma copine pour tout son soutien discret dans l’ombre ! Heyhey 😁
 ---
 
 ## Mises à jour récentes  
-### V4.34 – Modèles et accueil
-- Nouveaux modèles du compte personnel : création/édition/suppression/réorganisation par glisser, balayage cohérent avec les lignes d’enregistrement, et préremplissage depuis le formulaire.
-- Les modèles sont désormais inclus dans l’export/import tout en restant compatibles avec les sauvegardes d’anciennes versions (champ templates absent accepté).
-- Champs de modèle optionnels (compte/montant/catégorie/objet) avec indices pour éviter d’écraser des valeurs lorsque laissés vides; lien vers les modèles si aucun n’existe.
-- Accueil ajusté : ligne devise et titre sur la même ligne, menu aligné à droite et teinté selon le thème.
+### V4.34(7) – Modèles, Archivage et Améliorations UX
+- **Modèles de Grand Livre Personnel** : Créez, triez et gérez des modèles de transaction pour une saisie en un clic ; prise en charge de l'import/export de sauvegarde.
+- **Archivage de Grand Livre Partagé** : Listes séparées pour "Récents" et "Archivés" ; glissez pour archiver/désarchiver ; désarchivage automatique lors d'une nouvelle synchronisation.
+- **Améliorations UX** : Nouvelle action rapide sur l'écran d'accueil pour la gestion des données ; dialogue de confirmation pour la suppression des grands livres ; interface d'accueil optimisée ; correction des plantages d'archivage.
 
 ### Nouvelles améliorations V4.33(6)
 

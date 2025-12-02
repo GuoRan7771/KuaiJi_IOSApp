@@ -1237,6 +1237,9 @@ struct PersonalRecordFormView: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Color.appBackground)
+        .tint(Color.appTextPrimary)
         .dismissKeyboardOnTap()
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -1854,6 +1857,9 @@ struct PersonalAccountFormView: View {
                 TextField(L.personalFieldNote.localized, text: Binding($viewModel.draft.note, replacingNilWith: ""), axis: .vertical)
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Color.appBackground)
+        .tint(Color.appTextPrimary)
         .dismissKeyboardOnTap()
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -2210,6 +2216,9 @@ struct PersonalTransferFormView: View {
                 TextField(L.personalFieldNote.localized, text: $viewModel.note)
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Color.appBackground)
+        .tint(Color.appTextPrimary)
         .dismissKeyboardOnTap()
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {

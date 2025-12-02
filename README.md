@@ -70,11 +70,10 @@ Thanks to my girlfriend for all her silent support behind the scenes! Heyhey �
 ---
 
 ## Recent Updates  
-### V4.34 – Templates & Onboarding
-- Added personal ledger templates: create/edit/delete/reorder, swipe actions match record rows, and quick-fill from the record form.
-- Templates now export/import with backups while remaining backward compatible with older exports.
-- Template fields (account/amount/category/purpose) are optional; UI hints avoid overwriting when left blank; record form links to templates when none exist.
-- Onboarding polished: currency row aligned with the title, picker right-aligned and tinted to match the theme.
+### V4.34(7) – Templates, Archiving & UX Improvements
+- **Personal Ledger Templates**: Create, sort, and manage transaction templates for one-tap entry; supports backup import/export.
+- **Shared Ledger Archiving**: Separate lists for "Recent" and "Archived"; swipe to archive/unarchive; auto-unarchives on new sync.
+- **UX Improvements**: New home screen quick action for Data Management; confirmation dialog for deleting ledgers; optimized onboarding UI; fixed archiving crashes.
 
 ### New Improvements V4.33(6)
 

@@ -19,6 +19,12 @@
 "ledgers.pageTitle" = "Shared Ledgers";
 "ledgers.new" = "New";
 "ledgers.recentUpdates" = "Recent Updates";
+"ledgers.archived" = "Archived Ledgers";
+"ledgers.archive" = "Archive";
+"ledgers.unarchive" = "Move to Recent";
+"ledgers.archived.tag" = "Archived";
+"ledgers.deleteConfirm.title" = "Delete Ledger?";
+"ledgers.deleteConfirm.message" = "This will permanently delete this shared ledger and its data. Continue?";
 "ledgers.memberCount" = "%d members";
 "ledgers.outstanding" = "Outstanding %@";
 
@@ -190,6 +196,7 @@
 
 /* Quick Actions */
 "quickAction.addExpense" = "Quick Add";
+"quickAction.backupReminder" = "Deleting me? Remember to back up your data!";
 "quickAction.personalSubtitle" = "Personal ledger";
 
 /* Erase Absolutely All */

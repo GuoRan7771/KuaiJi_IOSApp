@@ -19,6 +19,12 @@
 "ledgers.pageTitle" = "Comptes Partagés";
 "ledgers.new" = "Nouveau";
 "ledgers.recentUpdates" = "Récents";
+"ledgers.archived" = "Comptes archivés";
+"ledgers.archive" = "Archiver";
+"ledgers.unarchive" = "Revenir aux récents";
+"ledgers.archived.tag" = "Archivé";
+"ledgers.deleteConfirm.title" = "Supprimer le compte partagé ?";
+"ledgers.deleteConfirm.message" = "Cette action supprimera définitivement ce compte partagé et ses données. Continuer ?";
 "ledgers.memberCount" = "%d membres";
 "ledgers.outstanding" = "En attente %@";
 
@@ -190,6 +196,7 @@
 
 /* Actions Rapides */
 "quickAction.addExpense" = "Ajout Rapide";
+"quickAction.backupReminder" = "Tu veux me supprimer ? Pense à sauvegarder tes données !";
 "quickAction.personalSubtitle" = "Ledger personnel";
 
 /* Effacement Total */

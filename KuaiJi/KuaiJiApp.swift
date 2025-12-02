@@ -11,6 +11,7 @@ import Combine
 
 private enum QuickActionType: String {
     case quickAddExpense = "com.kuaiji.quickAddExpense"
+    case dataManagement = "com.kuaiji.dataManagement"
 }
 
 private enum DeepLinkParser {
@@ -175,6 +176,10 @@ enum SharedLandingPreference: Equatable {
     case ledger(UUID)
 }
 
+enum SettingsDeepLink: Equatable {
+    case dataManagement
+}
+
 @MainActor
 class AppState: ObservableObject {
     @Published var dataManager: PersistentDataManager?
@@ -182,6 +187,7 @@ class AppState: ObservableObject {
     @Published var showWelcomeGuide: Bool
     @Published var isCheckingOnboarding: Bool
     @Published var quickActionTarget: QuickActionTarget?
+    @Published var settingsDeepLink: SettingsDeepLink?
     @Published var showSharedLedgerTab: Bool {
         didSet { UserDefaults.standard.set(showSharedLedgerTab, forKey: showSharedLedgerKey) }
     }
@@ -208,6 +214,7 @@ class AppState: ObservableObject {
         showWelcomeGuide = false
         isCheckingOnboarding = true
         quickActionTarget = nil
+        settingsDeepLink = nil
         let defaults = UserDefaults.standard
         defaults.register(defaults: [
             showSharedLedgerKey: true,
@@ -301,18 +308,26 @@ class AppState: ObservableObject {
             defaults.removeObject(forKey: defaultQuickActionKey)
             defaults.removeObject(forKey: defaultLedgerIdKey)
             debugLog("✅ 默认账本已清除")
-            clearQuickActions()
+            updateQuickActions()
         }
         objectWillChange.send()
     }
-    
+
     /// 处理 Quick Action
     func handleQuickAction(_ type: String) {
         debugLog("🚀 收到 Quick Action:", type)
-        if type == QuickActionType.quickAddExpense.rawValue {
+        guard let action = QuickActionType(rawValue: type) else {
+            debugLog("⚠️ 未知 Quick Action:", type)
+            return
+        }
+
+        switch action {
+        case .quickAddExpense:
             let target = getQuickActionTarget()
             debugLog("📱 设置 quickActionTarget:", String(describing: target))
             quickActionTarget = target
+        case .dataManagement:
+            settingsDeepLink = .dataManagement
         }
     }
 
@@ -328,10 +343,27 @@ class AppState: ObservableObject {
     
     /// 更新动态 Quick Actions
     private func updateQuickActions() {
+        let items = buildShortcutItems()
+        UIApplication.shared.shortcutItems = items
+        let titles = items.map { $0.localizedTitle }.joined(separator: ", ")
+        debugLog("✅ Quick Actions 已更新:", titles)
+    }
+
+    private func buildShortcutItems() -> [UIApplicationShortcutItem] {
+        var items: [UIApplicationShortcutItem] = []
+
+        if let quickAdd = buildQuickAddShortcut() {
+            items.append(quickAdd)
+        }
+
+        items.append(buildBackupShortcut())
+        return items
+    }
+
+    private func buildQuickAddShortcut() -> UIApplicationShortcutItem? {
         guard let target = getQuickActionTarget() else {
             debugLog("⚠️ 未设置默认账本")
-            clearQuickActions()
-            return
+            return nil
         }
 
         var subtitle = ""
@@ -340,16 +372,14 @@ class AppState: ObservableObject {
         case .shared(let ledgerId):
             guard let manager = dataManager else {
                 debugLog("⚠️ DataManager 未初始化")
-                clearQuickActions()
-                return
+                return nil
             }
 
             guard let ledger = manager.allLedgers.first(where: { $0.remoteId == ledgerId }) else {
                 debugLog("⚠️ 找不到账本:", ledgerId.uuidString)
                 let available = manager.allLedgers.map { "\($0.name) (\($0.remoteId.uuidString))" }.joined(separator: ", ")
                 debugLog("📋 可用账本:", available)
-                clearQuickActions()
-                return
+                return nil
             }
 
             subtitle = ledger.name
@@ -357,27 +387,26 @@ class AppState: ObservableObject {
             subtitle = L.quickActionPersonalSubtitle.localized
         }
 
-        let quickAddAction = UIApplicationShortcutItem(
+        return UIApplicationShortcutItem(
             type: QuickActionType.quickAddExpense.rawValue,
             localizedTitle: L.quickActionAddExpense.localized,
             localizedSubtitle: subtitle,
             icon: UIApplicationShortcutIcon(systemImageName: "plus.circle.fill")
         )
-
-        UIApplication.shared.shortcutItems = [quickAddAction]
-        debugLog("✅ Quick Action 已更新:", subtitle)
     }
-    
-    /// 清除 Quick Actions
-    private func clearQuickActions() {
-        UIApplication.shared.shortcutItems = []
+
+    private func buildBackupShortcut() -> UIApplicationShortcutItem {
+        UIApplicationShortcutItem(
+            type: QuickActionType.dataManagement.rawValue,
+            localizedTitle: L.quickActionBackupReminder.localized,
+            localizedSubtitle: L.settingsDataSection.localized,
+            icon: UIApplicationShortcutIcon(systemImageName: "heart.fill")
+        )
     }
     
     /// 当数据加载后刷新 Quick Actions
     func refreshQuickActions() {
-        if getQuickActionTarget() != nil {
-            updateQuickActions()
-        }
+        updateQuickActions()
     }
 }
 
