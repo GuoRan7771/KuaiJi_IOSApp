@@ -1912,6 +1912,7 @@ struct PersonalRecordTemplateFormHost: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .dismissKeyboardOnTap()
+        .tint(AppColors.brandPrimary)
     }
 }
 
@@ -1938,6 +1939,8 @@ struct PersonalRecordTemplateFormView: View {
                 HStack {
                     TextField(L.personalFieldAmount.localized, text: $viewModel.amountText)
                         .keyboardType(.decimalPad)
+                        .font(.title3)
+                        .fontWeight(.semibold)
                         .onChange(of: viewModel.amountText) { oldValue, newValue in
                             let validated = NumberParsing.validateDecimalInput(newValue, maxDecimalPlaces: 2, locale: .current, oldValue: oldValue)
                             if validated != newValue { viewModel.amountText = validated }
@@ -1951,12 +1954,14 @@ struct PersonalRecordTemplateFormView: View {
                     } label: {
                         HStack(spacing: 4) {
                             Text(viewModel.currency.displayLabel)
+                                .foregroundStyle(AppColors.textPrimary)
                             Image(systemName: "chevron.down")
                                 .font(.caption)
+                                .foregroundStyle(AppColors.secondaryText)
                         }
                         .padding(.horizontal, 8)
                         .padding(.vertical, 6)
-                        .background(RoundedRectangle(cornerRadius: 8).fill(Color.secondary.opacity(0.15)))
+                        .background(RoundedRectangle(cornerRadius: 8).fill(AppColors.surfaceAlt))
                     }
                     .accessibilityLabel(Text(L.personalFieldCurrency.localized))
                 }
@@ -1974,11 +1979,14 @@ struct PersonalRecordTemplateFormView: View {
             }
             Section(footer: Text(L.personalTemplatesOptionalHint.localized)
                 .font(.footnote)
-                .foregroundStyle(.secondary)) { EmptyView() }
+                .foregroundStyle(AppColors.secondaryText)) { EmptyView() }
         }
+        .scrollContentBackground(.hidden)
+        .background(AppColors.background)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button(L.cancel.localized, action: onDone)
+                    .tint(AppColors.brandPrimary)
             }
             ToolbarItem(placement: .confirmationAction) {
                 if viewModel.isSaving {
@@ -1990,6 +1998,8 @@ struct PersonalRecordTemplateFormView: View {
                             if success { onDone() }
                         }
                     }
+                    .fontWeight(.semibold)
+                    .tint(AppColors.brandPrimary)
                 }
             }
         }

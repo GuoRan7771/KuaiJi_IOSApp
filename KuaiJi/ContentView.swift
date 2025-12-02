@@ -827,7 +827,8 @@ final class AppRootViewModel: ObservableObject {
         for (id, info) in ledgerInfos {
             let hasNewerUpdate: Bool = {
                 if let archivedVersion = archivedLedgerVersion[id] {
-                    return info.updatedAt > archivedVersion
+                    // 允许 0.1 秒的误差，避免因序列化精度丢失导致误判为有更新
+                    return info.updatedAt.timeIntervalSince1970 > archivedVersion.timeIntervalSince1970 + 0.1
                 }
                 return false
             }()
