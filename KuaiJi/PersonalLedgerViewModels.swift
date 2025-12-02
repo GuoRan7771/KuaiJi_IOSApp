@@ -83,6 +83,18 @@ struct PersonalRecordRowViewData: Identifiable, Hashable {
     }
 }
 
+struct PersonalRecordTemplateViewData: Identifiable, Hashable {
+    var id: UUID
+    var name: String
+    var accountId: UUID?
+    var accountName: String?
+    var amountMinorUnits: Int
+    var currency: CurrencyCode
+    var categoryKey: String
+    var categoryName: String
+    var note: String?
+}
+
 struct PersonalAccountRowViewData: Identifiable, Hashable {
     var id: UUID
     var name: String
@@ -190,6 +202,7 @@ final class PersonalLedgerRootViewModel: ObservableObject {
                 PersonalAccount.self,
                 PersonalTransaction.self,
                 AccountTransfer.self,
+                PersonalRecordTemplate.self,
                 PersonalPreferences.self
             ])
             let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
@@ -243,6 +256,14 @@ final class PersonalLedgerRootViewModel: ObservableObject {
 
     func makeCSVExportViewModel() -> PersonalCSVExportViewModel {
         PersonalCSVExportViewModel(store: store)
+    }
+
+    func makeTemplatesViewModel() -> PersonalRecordTemplatesViewModel {
+        PersonalRecordTemplatesViewModel(store: store)
+    }
+
+    func makeTemplateFormViewModel(templateId: UUID? = nil) -> PersonalRecordTemplateFormViewModel {
+        PersonalRecordTemplateFormViewModel(store: store, templateId: templateId)
     }
 }
 
@@ -710,6 +731,7 @@ final class PersonalRecordFormViewModel: ObservableObject {
     @Published var showFXField = false
     @Published var isSaving = false
     @Published var errorMessage: String?
+    @Published private(set) var templates: [PersonalRecordTemplateViewData] = []
 
     var accounts: [PersonalAccount] { store.activeAccounts }
     var currencyOptions: [CurrencyCode] { CurrencyCode.allCases }
@@ -750,6 +772,7 @@ final class PersonalRecordFormViewModel: ObservableObject {
     private let store: PersonalLedgerStore
     private let editingRecord: PersonalRecordRowViewData?
     private var userSetCustomCurrency = false
+    private var cancellables: Set<AnyCancellable> = []
 
     init(store: PersonalLedgerStore, editingRecord: PersonalRecordRowViewData? = nil) {
         self.store = store
@@ -777,6 +800,8 @@ final class PersonalRecordFormViewModel: ObservableObject {
         }
         userSetCustomCurrency = currentAccount()?.currency != amountCurrency
         updateFXState()
+        loadTemplates()
+        subscribeToStore()
     }
 
     var categoryOptions: [PersonalCategoryOption] {
@@ -848,6 +873,27 @@ final class PersonalRecordFormViewModel: ObservableObject {
         guard let parsed = NumberParsing.parseDecimal(trimmed), parsed > 0 else { return }
         let inverted = 1 / parsed
         fxRateText = NSDecimalNumber(decimal: inverted).stringValue
+    }
+
+    func applyTemplate(_ template: PersonalRecordTemplateViewData) {
+        kind = .expense
+        if let id = template.accountId, store.account(with: id) != nil {
+            accountId = id
+        } else {
+            accountId = nil
+        }
+        if template.amountMinorUnits > 0 {
+            amountCurrency = template.currency
+            userSetCustomCurrency = currentAccount()?.currency != template.currency
+            amountText = Self.decimalString(from: template.amountMinorUnits)
+        }
+        if !template.categoryKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            categoryKey = template.categoryKey
+        }
+        if let note = template.note {
+            self.note = note
+        }
+        updateFXState()
     }
 
     func submit() async -> Bool {
@@ -939,6 +985,202 @@ final class PersonalRecordFormViewModel: ObservableObject {
             }
         case .fee:
             categoryKey = "fees"
+        }
+    }
+
+    private static func decimalString(from minorUnits: Int) -> String {
+        let decimal = SettlementMath.decimal(fromMinorUnits: minorUnits, scale: 2)
+        return NSDecimalNumber(decimal: decimal).stringValue
+    }
+
+    private func loadTemplates() {
+        let categoryLookup = expenseCategories + incomeCategories + feeCategories
+        templates = store.recordTemplates.map { template in
+            let accountName: String?
+            if let id = template.accountId, let account = store.account(with: id) {
+                accountName = account.name
+            } else {
+                accountName = nil
+            }
+            let category = categoryLookup.first(where: { $0.key == template.categoryKey })
+            return PersonalRecordTemplateViewData(id: template.remoteId,
+                                                  name: template.name,
+                                                  accountId: template.accountId,
+                                                  accountName: accountName,
+                                                  amountMinorUnits: template.amountMinorUnits,
+                                                  currency: template.currency,
+                                                  categoryKey: template.categoryKey,
+                                                  categoryName: category?.localizedName ?? (template.categoryKey.isEmpty ? L.personalTemplatesNoCategory.localized : template.categoryKey),
+                                                  note: template.note)
+        }
+    }
+
+    private func subscribeToStore() {
+        store.$recordTemplates
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.loadTemplates() }
+            .store(in: &cancellables)
+        store.$activeAccounts
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.loadTemplates() }
+            .store(in: &cancellables)
+        store.$archivedAccounts
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.loadTemplates() }
+            .store(in: &cancellables)
+    }
+}
+
+@MainActor
+final class PersonalRecordTemplatesViewModel: ObservableObject {
+    @Published private(set) var templates: [PersonalRecordTemplateViewData] = []
+    @Published var lastError: String?
+
+    private let store: PersonalLedgerStore
+    private var cancellables: Set<AnyCancellable> = []
+
+    init(store: PersonalLedgerStore) {
+        self.store = store
+        Task { await refresh() }
+        store.$recordTemplates
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.rebuildTemplates() }
+            .store(in: &cancellables)
+        store.$activeAccounts
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.rebuildTemplates() }
+            .store(in: &cancellables)
+        store.$archivedAccounts
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.rebuildTemplates() }
+            .store(in: &cancellables)
+    }
+
+    func refresh() async {
+        do {
+            try store.refreshTemplates()
+            rebuildTemplates()
+        } catch {
+            lastError = error.localizedDescription
+        }
+    }
+
+    func deleteTemplate(id: UUID) async {
+        do {
+            try store.deleteTemplate(id: id)
+            await refresh()
+        } catch {
+            lastError = error.localizedDescription
+        }
+    }
+
+    func move(from source: IndexSet, to destination: Int) {
+        var newList = templates
+        newList.move(fromOffsets: source, toOffset: destination)
+        templates = newList
+        Task {
+            do {
+                try store.reorderTemplates(idsInDisplayOrder: newList.map { $0.id })
+            } catch {
+                lastError = error.localizedDescription
+            }
+        }
+    }
+
+    private func rebuildTemplates() {
+        let categoryLookup = expenseCategories + incomeCategories + feeCategories
+        templates = store.recordTemplates.map { template in
+            let accountName: String?
+            if let id = template.accountId, let account = store.account(with: id) {
+                accountName = account.name
+            } else {
+                accountName = nil
+            }
+            let category = categoryLookup.first(where: { $0.key == template.categoryKey })
+            return PersonalRecordTemplateViewData(id: template.remoteId,
+                                                  name: template.name,
+                                                  accountId: template.accountId,
+                                                  accountName: accountName,
+                                                  amountMinorUnits: template.amountMinorUnits,
+                                                  currency: template.currency,
+                                                  categoryKey: template.categoryKey,
+                                                  categoryName: category?.localizedName ?? (template.categoryKey.isEmpty ? L.personalTemplatesNoCategory.localized : template.categoryKey),
+                                                  note: template.note)
+        }
+    }
+}
+
+@MainActor
+final class PersonalRecordTemplateFormViewModel: ObservableObject {
+    @Published var name: String
+    @Published var accountId: UUID?
+    @Published var amountText: String
+    @Published var currency: CurrencyCode
+    @Published var categoryKey: String
+    @Published var note: String
+    @Published var isSaving = false
+    @Published var errorMessage: String?
+
+    var accounts: [PersonalAccount] { store.activeAccounts }
+    var currencyOptions: [CurrencyCode] { CurrencyCode.allCases }
+    var categoryOptions: [PersonalCategoryOption] { PersonalCategoryOption.defaultCategories(for: .expense) }
+    var isEditing: Bool { editingId != nil }
+
+    private let store: PersonalLedgerStore
+    private let editingId: UUID?
+
+    init(store: PersonalLedgerStore, templateId: UUID? = nil) {
+        self.store = store
+        self.editingId = templateId
+        if let templateId, let template = store.template(with: templateId) {
+            name = template.name
+            if let accountId = template.accountId, store.account(with: accountId) != nil {
+                self.accountId = accountId
+            } else {
+                self.accountId = nil
+            }
+            amountText = template.amountMinorUnits > 0 ? Self.decimalString(from: template.amountMinorUnits) : ""
+            currency = template.currency
+            categoryKey = template.categoryKey
+            note = template.note ?? ""
+            if !categoryKey.isEmpty, !categoryOptions.contains(where: { $0.key == categoryKey }) {
+                categoryKey = ""
+            }
+        } else {
+            name = ""
+            self.accountId = nil
+            amountText = ""
+            currency = store.safePrimaryDisplayCurrency()
+            categoryKey = ""
+            note = ""
+        }
+    }
+
+    func save() async -> Bool {
+        isSaving = true
+        defer { isSaving = false }
+        do {
+            let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            let cleanedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
+            var parsedAmount: Decimal = 0
+            if !amountText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                guard let amount = NumberParsing.parseDecimal(amountText), amount >= 0 else {
+                    throw PersonalLedgerError.amountMustBePositive
+                }
+                parsedAmount = amount
+            }
+            let input = PersonalRecordTemplateInput(id: editingId,
+                                                    name: trimmedName,
+                                                    accountId: accountId,
+                                                    amount: parsedAmount,
+                                                    currency: currency,
+                                                    categoryKey: categoryKey,
+                                                    note: cleanedNote.isEmpty ? nil : cleanedNote)
+            _ = try store.saveTemplate(input)
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
         }
     }
 

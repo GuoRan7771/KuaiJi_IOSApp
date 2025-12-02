@@ -274,6 +274,7 @@
 /* 错误 */
 "error.amount.positive" = "金额必须大于 0";
 "error.account.required" = "必须选择账户";
+"error.template.nameRequired" = "请填写模版名称";
 
 /* 默认值 */
 "default.unknown" = "未知";
@@ -514,6 +515,16 @@
 "personal.includeInNet" = "计入净资产";
 
 "personal.accountType.label" = "账户类型";
+"personal.templates.title" = "账目模版";
+"personal.templates.create" = "新建模版";
+"personal.templates.empty" = "还没有模版，创建一个常用支出模版吧";
+"personal.templates.quickFill" = "快速套用模版";
+"personal.templates.quickFillHint" = "点击模版自动填写金额等信息，仍需点击保存完成记账";
+"personal.templates.name" = "模版名称";
+"personal.templates.noAccount" = "未指定账户";
+"personal.templates.noCategory" = "未选择分类";
+"personal.templates.noAmount" = "金额未填";
+"personal.templates.optionalHint" = "账户、金额、分类、用途均可留空，留空时不会预填对应字段。";
 
 "personal.field.currency" = "币种";
 "personal.category.salary" = "工资";

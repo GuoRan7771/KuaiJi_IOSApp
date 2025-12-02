@@ -17,6 +17,7 @@ struct PersonalLedgerStoreTests {
             PersonalAccount.self,
             PersonalTransaction.self,
             AccountTransfer.self,
+            PersonalRecordTemplate.self,
             PersonalPreferences.self
         ])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
@@ -182,4 +183,43 @@ struct PersonalLedgerStoreTests {
         #expect(totals.expense == 7_300)
     }
 
+    @Test("Templates create, update and reorder correctly")
+    func templateCrud() throws {
+        let store = try makeStore()
+        let account = try store.createAccount(from: PersonalAccountDraft(name: "Wallet", type: .cash, initialBalance: 0))
+
+        _ = try store.saveTemplate(PersonalRecordTemplateInput(name: "Coffee",
+                                                               accountId: account.remoteId,
+                                                               amount: Decimal(string: "12.5")!,
+                                                               currency: .cny,
+                                                               categoryKey: "food",
+                                                               note: "Morning"))
+        _ = try store.saveTemplate(PersonalRecordTemplateInput(name: "Groceries",
+                                                               accountId: nil,
+                                                               amount: Decimal(string: "30")!,
+                                                               currency: .usd,
+                                                               categoryKey: "entertainment",
+                                                               note: nil))
+        try store.refreshTemplates()
+        #expect(store.recordTemplates.count == 2)
+        let originalFirst = try #require(store.recordTemplates.first)
+
+        let reversed = store.recordTemplates.map { $0.remoteId }.reversed()
+        try store.reorderTemplates(idsInDisplayOrder: Array(reversed))
+        try store.refreshTemplates()
+        #expect(store.recordTemplates.first?.name == "Groceries")
+
+        let updated = PersonalRecordTemplateInput(id: originalFirst.remoteId,
+                                                  name: "Coffee Run",
+                                                  accountId: account.remoteId,
+                                                  amount: Decimal(string: "20")!,
+                                                  currency: .cny,
+                                                  categoryKey: "food",
+                                                  note: "Afternoon")
+        _ = try store.saveTemplate(updated)
+        try store.refreshTemplates()
+        let edited = try #require(store.recordTemplates.first(where: { $0.remoteId == originalFirst.remoteId }))
+        #expect(edited.name == "Coffee Run")
+        #expect(edited.amountMinorUnits == 2_000)
+    }
 }

@@ -15,12 +15,14 @@ enum PersonalLedgerError: LocalizedError {
     case accountNotFound
     case transactionNotFound
     case transferNotFound
+    case templateNotFound
     case amountMustBePositive
     case categoryRequired
     case accountRequired
     case cannotDeleteNonEmptyAccount
     case duplicateAccountName
     case nameRequired
+    case templateNameRequired
     case sameTransferAccount
     case invalidExchangeRate
     case invalidFeeSide
@@ -31,12 +33,14 @@ enum PersonalLedgerError: LocalizedError {
         case .accountNotFound: return "Account not found".localized
         case .transactionNotFound: return "Transaction not found".localized
         case .transferNotFound: return "Transfer not found".localized
+        case .templateNotFound: return "Template not found".localized
         case .amountMustBePositive: return L.errorAmountMustBePositive.localized
         case .categoryRequired: return "Category is required".localized
         case .accountRequired: return L.errorAccountRequired.localized
         case .cannotDeleteNonEmptyAccount: return "Balance must be zero before deletion".localized
         case .duplicateAccountName: return "Account name already exists".localized
         case .nameRequired: return "Account name is required".localized
+        case .templateNameRequired: return L.errorTemplateNameRequired.localized
         case .sameTransferAccount: return "Source and target accounts must differ".localized
         case .invalidExchangeRate: return "Exchange rate must be greater than zero".localized
         case .invalidFeeSide: return "Fee side is required when fee exists".localized
@@ -48,6 +52,14 @@ enum PersonalLedgerError: LocalizedError {
 // MARK: - Export Snapshot Models
 
 struct PersonalLedgerSnapshot: Codable {
+    private enum CodingKeys: String, CodingKey {
+        case preferences
+        case accounts
+        case transactions
+        case transfers
+        case templates
+    }
+
     struct Preferences: Codable {
         var primaryDisplayCurrency: CurrencyCode
         var fxSource: PersonalFXSource
@@ -168,10 +180,69 @@ struct PersonalLedgerSnapshot: Codable {
         }
     }
 
+    struct Template: Codable {
+        var remoteId: UUID
+        var name: String
+        var accountId: UUID?
+        var amountMinorUnits: Int
+        var currency: CurrencyCode
+        var categoryKey: String
+        var note: String?
+        var createdAt: Date
+        var updatedAt: Date
+        var sortIndex: Int
+
+        init(from template: PersonalRecordTemplate) {
+            self.remoteId = template.remoteId
+            self.name = template.name
+            self.accountId = template.accountId
+            self.amountMinorUnits = template.amountMinorUnits
+            self.currency = template.currency
+            self.categoryKey = template.categoryKey
+            self.note = template.note
+            self.createdAt = template.createdAt
+            self.updatedAt = template.updatedAt
+            self.sortIndex = template.sortIndex
+        }
+    }
+
     var preferences: Preferences
     var accounts: [Account]
     var transactions: [Transaction]
     var transfers: [Transfer]
+    var templates: [Template] = []
+
+    init(preferences: Preferences,
+         accounts: [Account],
+         transactions: [Transaction],
+         transfers: [Transfer],
+         templates: [Template] = []) {
+        self.preferences = preferences
+        self.accounts = accounts
+        self.transactions = transactions
+        self.transfers = transfers
+        self.templates = templates
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        preferences = try container.decode(Preferences.self, forKey: .preferences)
+        accounts = try container.decode([Account].self, forKey: .accounts)
+        transactions = try container.decode([Transaction].self, forKey: .transactions)
+        transfers = try container.decode([Transfer].self, forKey: .transfers)
+        templates = try container.decodeIfPresent([Template].self, forKey: .templates) ?? []
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(preferences, forKey: .preferences)
+        try container.encode(accounts, forKey: .accounts)
+        try container.encode(transactions, forKey: .transactions)
+        try container.encode(transfers, forKey: .transfers)
+        if !templates.isEmpty {
+            try container.encode(templates, forKey: .templates)
+        }
+    }
 }
 
 struct PersonalAccountDraft {
@@ -238,6 +309,32 @@ struct PersonalTransactionInput {
         self.attachmentPath = attachmentPath
         self.displayCurrency = displayCurrency
         self.fxRate = fxRate
+    }
+}
+
+struct PersonalRecordTemplateInput {
+    var id: UUID?
+    var name: String
+    var accountId: UUID?
+    var amount: Decimal
+    var currency: CurrencyCode
+    var categoryKey: String
+    var note: String?
+
+    init(id: UUID? = nil,
+         name: String = "",
+         accountId: UUID? = nil,
+         amount: Decimal = 0,
+         currency: CurrencyCode = .cny,
+         categoryKey: String = "",
+         note: String? = nil) {
+        self.id = id
+        self.name = name
+        self.accountId = accountId
+        self.amount = amount
+        self.currency = currency
+        self.categoryKey = categoryKey
+        self.note = note
     }
 }
 
@@ -335,6 +432,7 @@ final class PersonalLedgerStore: ObservableObject {
     @Published private(set) var preferences: PersonalPreferences
     @Published private(set) var activeAccounts: [PersonalAccount] = []
     @Published private(set) var archivedAccounts: [PersonalAccount] = []
+    @Published private(set) var recordTemplates: [PersonalRecordTemplate] = []
 
     init(context: ModelContext, defaultCurrency: CurrencyCode = .cny, calendar: Calendar = .current) throws {
         self.context = context
@@ -342,6 +440,7 @@ final class PersonalLedgerStore: ObservableObject {
         self.recoveryDefaultCurrency = defaultCurrency
         self.preferences = try PersonalLedgerStore.ensurePreferences(in: context, defaultCurrency: defaultCurrency)
         try refreshAccounts()
+        try refreshTemplates()
     }
 
     // MARK: - Preferences
@@ -573,6 +672,90 @@ final class PersonalLedgerStore: ObservableObject {
             return cached
         }
         return try? findAccount(by: id)
+    }
+
+    // MARK: - Templates
+
+    func refreshTemplates() throws {
+        let descriptor = FetchDescriptor<PersonalRecordTemplate>(
+            sortBy: [
+                SortDescriptor(\.sortIndex, order: .forward),
+                SortDescriptor(\.createdAt, order: .forward)
+            ])
+        recordTemplates = try context.fetch(descriptor)
+    }
+
+    @discardableResult
+    func saveTemplate(_ input: PersonalRecordTemplateInput) throws -> PersonalRecordTemplate {
+        let trimmedName = input.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { throw PersonalLedgerError.templateNameRequired }
+        let trimmedCategory = input.categoryKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let accountId = input.accountId, try findAccount(by: accountId) == nil {
+            throw PersonalLedgerError.accountNotFound
+        }
+        let cleanedNote: String?
+        if let note = input.note?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty {
+            cleanedNote = note
+        } else {
+            cleanedNote = nil
+        }
+
+        let amountMinor = input.amount > 0 ? SettlementMath.minorUnits(from: input.amount, scale: 2) : 0
+        let template: PersonalRecordTemplate
+        if let id = input.id, let existing = try findTemplate(by: id) {
+            template = existing
+        } else {
+            template = PersonalRecordTemplate(name: trimmedName,
+                                              accountId: input.accountId,
+                                              amountMinorUnits: amountMinor,
+                                              currency: input.currency,
+                                              categoryKey: trimmedCategory,
+                                              note: input.note,
+                                              sortIndex: recordTemplates.count)
+            context.insert(template)
+        }
+
+        template.name = trimmedName
+        template.accountId = input.accountId
+        template.amountMinorUnits = amountMinor
+        template.currency = input.currency
+        template.categoryKey = trimmedCategory
+        template.note = cleanedNote
+        template.updatedAt = Date.now
+
+        try context.save()
+        try refreshTemplates()
+        return template
+    }
+
+    func deleteTemplate(id: UUID) throws {
+        guard let template = try findTemplate(by: id) else { throw PersonalLedgerError.templateNotFound }
+        context.delete(template)
+        try context.save()
+        try refreshTemplates()
+    }
+
+    func reorderTemplates(idsInDisplayOrder: [UUID]) throws {
+        let map = Dictionary(uniqueKeysWithValues: recordTemplates.map { ($0.remoteId, $0) })
+        for (idx, id) in idsInDisplayOrder.enumerated() {
+            if let template = map[id] {
+                template.sortIndex = idx
+                template.updatedAt = Date.now
+            }
+        }
+        try context.save()
+        try refreshTemplates()
+    }
+
+    func template(with id: UUID) -> PersonalRecordTemplate? {
+        return try? findTemplate(by: id)
+    }
+
+    private func findTemplate(by id: UUID) throws -> PersonalRecordTemplate? {
+        let predicate = #Predicate<PersonalRecordTemplate> { $0.remoteId == id }
+        var descriptor = FetchDescriptor<PersonalRecordTemplate>(predicate: predicate)
+        descriptor.fetchLimit = 1
+        return try context.fetch(descriptor).first
     }
 
     // MARK: - Transactions
@@ -1004,6 +1187,10 @@ final class PersonalLedgerStore: ObservableObject {
     }
 
     func clearAllPersonalData() throws {
+        let templates = try context.fetch(FetchDescriptor<PersonalRecordTemplate>())
+        for template in templates {
+            context.delete(template)
+        }
         let transactions = try context.fetch(FetchDescriptor<PersonalTransaction>())
         for transaction in transactions {
             context.delete(transaction)
@@ -1021,6 +1208,7 @@ final class PersonalLedgerStore: ObservableObject {
         preferences.fxRates = [:]
         try context.save()
         try refreshAccounts()
+        try refreshTemplates()
     }
 
     // MARK: - Export / Import Snapshot
@@ -1029,16 +1217,23 @@ final class PersonalLedgerStore: ObservableObject {
         let accountDescriptor = FetchDescriptor<PersonalAccount>()
         let transactionDescriptor = FetchDescriptor<PersonalTransaction>()
         let transferDescriptor = FetchDescriptor<AccountTransfer>()
+        let templateDescriptor = FetchDescriptor<PersonalRecordTemplate>(
+            sortBy: [
+                SortDescriptor(\.sortIndex, order: .forward),
+                SortDescriptor(\.createdAt, order: .forward)
+            ])
 
         let accounts = try context.fetch(accountDescriptor)
         let transactions = try context.fetch(transactionDescriptor)
         let transfers = try context.fetch(transferDescriptor)
+        let templates = try context.fetch(templateDescriptor)
 
         let snapshot = PersonalLedgerSnapshot(
             preferences: .init(from: preferences),
             accounts: accounts.map(PersonalLedgerSnapshot.Account.init(from:)),
             transactions: transactions.map(PersonalLedgerSnapshot.Transaction.init(from:)),
-            transfers: transfers.map(PersonalLedgerSnapshot.Transfer.init(from:))
+            transfers: transfers.map(PersonalLedgerSnapshot.Transfer.init(from:)),
+            templates: templates.map(PersonalLedgerSnapshot.Template.init(from:))
         )
 
         return snapshot
@@ -1074,6 +1269,22 @@ final class PersonalLedgerStore: ObservableObject {
                 creditLimitMinorUnits: account.creditLimitMinorUnits,
                 createdAt: account.createdAt,
                 updatedAt: account.updatedAt
+            )
+            context.insert(model)
+        }
+
+        for template in snapshot.templates {
+            let model = PersonalRecordTemplate(
+                remoteId: template.remoteId,
+                name: template.name,
+                accountId: template.accountId,
+                amountMinorUnits: template.amountMinorUnits,
+                currency: template.currency,
+                categoryKey: template.categoryKey,
+                note: template.note,
+                createdAt: template.createdAt,
+                updatedAt: template.updatedAt,
+                sortIndex: template.sortIndex
             )
             context.insert(model)
         }
@@ -1118,6 +1329,7 @@ final class PersonalLedgerStore: ObservableObject {
 
         try context.save()
         try refreshAccounts()
+        try refreshTemplates()
     }
 
     // MARK: - Analytics

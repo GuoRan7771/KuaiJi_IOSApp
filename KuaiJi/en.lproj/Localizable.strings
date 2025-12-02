@@ -296,6 +296,7 @@
 /* Errors */
 "error.amount.positive" = "Amount must be greater than zero";
 "error.account.required" = "Account selection is required";
+"error.template.nameRequired" = "Template name is required";
 
 /* Default Values */
 "default.unknown" = "Unknown";
@@ -536,6 +537,16 @@
 "personalFXSourceFixed" = "Fixed";
 
 "personal.accountType.label" = "Account Type";
+"personal.templates.title" = "Templates";
+"personal.templates.create" = "New Template";
+"personal.templates.empty" = "No templates yet. Create one for your frequent expenses.";
+"personal.templates.quickFill" = "Quick templates";
+"personal.templates.quickFillHint" = "Tap a template to prefill the form. Saving will still be required.";
+"personal.templates.name" = "Template name";
+"personal.templates.noAccount" = "No account";
+"personal.templates.noCategory" = "No category";
+"personal.templates.noAmount" = "No amount";
+"personal.templates.optionalHint" = "Account, amount, category, and purpose are optional. Leaving them blank will not prefill those fields.";
 
 "personal.field.currency" = "Currency";
 "personal.category.salary" = "Salary";

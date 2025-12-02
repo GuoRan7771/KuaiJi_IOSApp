@@ -70,6 +70,12 @@ Thanks to my girlfriend for all her silent support behind the scenes! Heyhey ðŸ˜
 ---
 
 ## Recent Updates  
+### V4.34 â€“ Templates & Onboarding
+- Added personal ledger templates: create/edit/delete/reorder, swipe actions match record rows, and quick-fill from the record form.
+- Templates now export/import with backups while remaining backward compatible with older exports.
+- Template fields (account/amount/category/purpose) are optional; UI hints avoid overwriting when left blank; record form links to templates when none exist.
+- Onboarding polished: currency row aligned with the title, picker right-aligned and tinted to match the theme.
+
 ### New Improvements V4.33(6)
 
  - Added support for more currencies  

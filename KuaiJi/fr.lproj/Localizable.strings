@@ -296,6 +296,7 @@
 /* Erreurs */
 "error.amount.positive" = "Le montant doit être supérieur à zéro";
 "error.account.required" = "La sélection du compte est requise";
+"error.template.nameRequired" = "Le nom du modèle est requis";
 
 /* Valeurs par Défaut */
 "default.unknown" = "Inconnu";
@@ -536,6 +537,16 @@
 "personal.includeInNet" = "Pris en compte";
 
 "personal.accountType.label" = "Type de compte";
+"personal.templates.title" = "Modèles";
+"personal.templates.create" = "Nouveau modèle";
+"personal.templates.empty" = "Aucun modèle pour l'instant. Créez-en un pour vos dépenses fréquentes.";
+"personal.templates.quickFill" = "Modèles rapides";
+"personal.templates.quickFillHint" = "Touchez un modèle pour préremplir, puis enregistrez pour comptabiliser.";
+"personal.templates.name" = "Nom du modèle";
+"personal.templates.noAccount" = "Aucun compte";
+"personal.templates.noCategory" = "Pas de catégorie";
+"personal.templates.noAmount" = "Montant non renseigné";
+"personal.templates.optionalHint" = "Compte, montant, catégorie et objet sont facultatifs. S'ils sont vides, rien ne sera prérempli.";
 
 "personal.field.currency" = "Devise";
 "personal.category.salary" = "Salaire";

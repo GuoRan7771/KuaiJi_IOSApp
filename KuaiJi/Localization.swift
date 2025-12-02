@@ -351,6 +351,16 @@ enum L {
     static let personalFXPlaceholder = "personal.fxPlaceholder"
     static let personalFeePlaceholder = "personal.feePlaceholder"
     static let personalAccountsManage = "personal.accounts.manage"
+    static let personalTemplatesTitle = "personal.templates.title"
+    static let personalTemplatesCreate = "personal.templates.create"
+    static let personalTemplatesEmpty = "personal.templates.empty"
+    static let personalTemplatesQuickFill = "personal.templates.quickFill"
+    static let personalTemplatesQuickFillHint = "personal.templates.quickFillHint"
+    static let personalTemplatesName = "personal.templates.name"
+    static let personalTemplatesNoAccount = "personal.templates.noAccount"
+    static let personalTemplatesNoCategory = "personal.templates.noCategory"
+    static let personalTemplatesNoAmount = "personal.templates.noAmount"
+    static let personalTemplatesOptionalHint = "personal.templates.optionalHint"
     static let personalUsageScenarios = "personal.usage.scenarios"
     static let personalUsagePhilosophy = "personal.usage.philosophy"
     static let personalUsageFlowsTitle = "personal.usage.flows.title"
@@ -505,6 +515,7 @@ enum L {
     // 错误提示
     static let errorAmountMustBePositive = "error.amount.positive"
     static let errorAccountRequired = "error.account.required"
+    static let errorTemplateNameRequired = "error.template.nameRequired"
     
     // 默认值
     static let defaultUnknown = "default.unknown"

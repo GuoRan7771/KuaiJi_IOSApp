@@ -54,6 +54,7 @@ struct KuaiJiApp: App {
             PersonalAccount.self,
             PersonalTransaction.self,
             AccountTransfer.self,
+            PersonalRecordTemplate.self,
             PersonalPreferences.self
         ])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)

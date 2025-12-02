@@ -92,26 +92,20 @@ struct OnboardingView: View {
                         
                         // 货币选择
                         VStack(alignment: .leading, spacing: 12) {
-                            Text(L.onboardingCurrencySection.localized)
-                                .font(.headline)
-                                .foregroundStyle(Color.appLedgerContentText)
-                            
-                            Picker(selection: $selectedCurrency) {
-                                ForEach(CurrencyCode.allCases) { currency in
-                                    Text(currency.displayLabel).tag(currency)
+                            HStack {
+                                Text(L.onboardingCurrencySection.localized)
+                                    .font(.headline)
+                                    .foregroundStyle(Color.appLedgerContentText)
+                                Spacer()
+                                Picker("", selection: $selectedCurrency) {
+                                    ForEach(CurrencyCode.allCases) { currency in
+                                        Text(currency.displayLabel).tag(currency)
+                                    }
                                 }
-                            } label: {
-                                HStack {
-                                    Text(L.onboardingCurrencyPicker.localized)
-                                        .font(.subheadline)
-                                        .foregroundStyle(Color.appLedgerContentText)
-                                    Spacer()
-                                    Text(selectedCurrency.displayLabel)
-                                        .font(.body)
-                                        .foregroundStyle(Color.appSelection)
-                                }
+                                .pickerStyle(.menu)
+                                .labelsHidden()
+                                .tint(Color.appTextPrimary)
                             }
-                            .pickerStyle(.menu)
                             .padding(.horizontal)
                             
                             Text(L.onboardingCurrencyFooter.localized)

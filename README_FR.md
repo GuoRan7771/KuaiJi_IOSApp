@@ -69,6 +69,12 @@ Merci à ma copine pour tout son soutien discret dans l’ombre ! Heyhey 😁
 ---
 
 ## Mises à jour récentes  
+### V4.34 – Modèles et accueil
+- Nouveaux modèles du compte personnel : création/édition/suppression/réorganisation par glisser, balayage cohérent avec les lignes d’enregistrement, et préremplissage depuis le formulaire.
+- Les modèles sont désormais inclus dans l’export/import tout en restant compatibles avec les sauvegardes d’anciennes versions (champ templates absent accepté).
+- Champs de modèle optionnels (compte/montant/catégorie/objet) avec indices pour éviter d’écraser des valeurs lorsque laissés vides; lien vers les modèles si aucun n’existe.
+- Accueil ajusté : ligne devise et titre sur la même ligne, menu aligné à droite et teinté selon le thème.
+
 ### Nouvelles améliorations V4.33(6)
 
  - Ajout du support de plus de devises.  

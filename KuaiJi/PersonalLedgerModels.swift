@@ -185,6 +185,42 @@ final class AccountTransfer {
 }
 
 @Model
+final class PersonalRecordTemplate {
+    @Attribute(.unique) var remoteId: UUID
+    var name: String
+    var accountId: UUID?
+    var amountMinorUnits: Int
+    var currency: CurrencyCode
+    var categoryKey: String
+    var note: String?
+    var createdAt: Date
+    var updatedAt: Date
+    var sortIndex: Int
+
+    init(remoteId: UUID = UUID(),
+         name: String,
+         accountId: UUID? = nil,
+         amountMinorUnits: Int,
+         currency: CurrencyCode,
+         categoryKey: String,
+         note: String? = nil,
+         createdAt: Date = .now,
+         updatedAt: Date = .now,
+         sortIndex: Int = 0) {
+        self.remoteId = remoteId
+        self.name = name
+        self.accountId = accountId
+        self.amountMinorUnits = amountMinorUnits
+        self.currency = currency
+        self.categoryKey = categoryKey
+        self.note = note
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.sortIndex = sortIndex
+    }
+}
+
+@Model
 final class PersonalPreferences {
     @Attribute(.unique) var remoteId: UUID
     var primaryDisplayCurrency: CurrencyCode

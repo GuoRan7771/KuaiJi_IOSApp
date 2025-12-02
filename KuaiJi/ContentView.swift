@@ -13,6 +13,10 @@ import SwiftData
 import Darwin
 import StoreKit
 
+extension Notification.Name {
+    static let openPersonalTemplates = Notification.Name("kuaji.openPersonalTemplates")
+}
+
 // MARK: - View Data Models
 
 struct LedgerSummaryViewData: Identifiable, Hashable {
@@ -1839,6 +1843,7 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
     @State private var navigateToUsageGuide = false
     @State private var navigateToPersonalAccounts = false
     @State private var navigateToPersonalCSVExport = false
+    @State private var navigateToTemplates = false
     @State private var showingImportPicker = false
     @State private var showingImportConfirmation = false
     @State private var pendingImportURL: URL?
@@ -2027,6 +2032,18 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                     .onChangeCompat(of: personalSettingsViewModel.countFeeInStats) {
                         Task { await personalSettingsViewModel.save() }
                     }
+                Button {
+                    navigateToTemplates = true
+                } label: {
+                    HStack {
+                        Text(L.personalTemplatesTitle.localized)
+                            .foregroundStyle(Color.appLedgerContentText)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(Color.appSecondaryText)
+                    }
+                }
                 Button {
                     navigateToPersonalAccounts = true
                 } label: {
@@ -2253,6 +2270,9 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
         .navigationDestination(isPresented: $navigateToPersonalCSVExport) {
             PersonalCSVExportView(root: personalLedgerRoot, viewModel: personalLedgerRoot.makeCSVExportViewModel())
         }
+        .navigationDestination(isPresented: $navigateToTemplates) {
+            PersonalRecordTemplatesView(root: personalLedgerRoot, viewModel: personalLedgerRoot.makeTemplatesViewModel())
+        }
         .scrollDismissesKeyboard(.interactively)
         .dismissKeyboardOnTap()
         .navigationTitle(L.settingsTitle.localized)
@@ -2283,6 +2303,9 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
             WelcomeGuideView {
                 showingGuide = false
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openPersonalTemplates)) { _ in
+            navigateToTemplates = true
         }
         .alert(L.settingsConfirmDelete.localized, isPresented: $showingClearDataAlert) {
             Button(L.cancel.localized, role: .cancel) { }
@@ -2985,6 +3008,9 @@ struct ContentView: View {
         .onChangeCompat(of: appState.showSharedLedgerTab) { ensureValidSelectedTab() }
         .onChangeCompat(of: appState.quickActionTarget) {
             handleGlobalQuickAction()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openPersonalTemplates)) { _ in
+            selectedTab = .settings
         }
         .onChangeCompat(of: selectedTab) {
             if selectedTab == .ledgers {
@@ -4457,6 +4483,7 @@ final class KeyboardDismissInstaller: NSObject, UIGestureRecognizerDelegate {
         PersonalAccount.self,
         PersonalTransaction.self,
         AccountTransfer.self,
+        PersonalRecordTemplate.self,
         PersonalPreferences.self
     ])
     let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
