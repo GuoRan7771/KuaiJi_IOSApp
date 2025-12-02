@@ -67,7 +67,36 @@ Thanks to my girlfriend for all her silent support behind the scenes! Heyhey �
 ---
 
 ## Recent Updates  
-### Added More Category Tags (2025.10.15)
+### New Improvements V4.33(6)
+
+ - Added support for more currencies  
+ - Added detailed usage instructions and the app’s design philosophy  
+ - Added more ways to contact the developer and refreshed animations  
+ - Improved overall UI visuals  
+
+### V4.3(1)
+
+ - “Clear debts” now syncs in the shared ledger (recommended for all users)  
+ - Optional tipping to support the developer — the app stays free and ad-free regardless  
+ - “Export personal ledger CSV” page now shows account balances and includes an “Add entry” button  
+ - UI polished for English and French
+
+### Bug fixes + new light/dark appearance toggle (2024.10.23, V4.2(1))
+
+ - Adapted the app for light/dark appearance switching  
+ - Bug fixes and visual polish  
+
+### Bug fixes, translated V4_1_3.ipa (2024.10.21)
+
+ - Switched Apple ID to export V4_1_3.ipa  
+
+### Bug fixes, but V4_1_2 ipa not exported due to signing (2024.10.21)
+
+ - Fixed French decimal-input issue  
+ - Personal ledger edit detail view refreshes instantly  
+ - Recent-records list grows from 3 to 5  
+
+### Added More Category Tags (2025.10.15, V4.1(3))
 
 ### Feature Freeze – Bug Fixes Only (2025-10-14)
 
@@ -95,4 +124,3 @@ Thanks to my girlfriend for all her silent support behind the scenes! Heyhey �
 ## License
 
 MIT License — use it freely, just don’t blame me if your data disappears.
-

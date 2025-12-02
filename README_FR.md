@@ -66,8 +66,36 @@ Merci à ma copine pour tout son soutien discret dans l’ombre ! Heyhey 😁
 ---
 
 ## Mises à jour récentes  
-### Ajout de nouvelles catégories (2025.10.15)
+### Nouvelles améliorations V4.33(6)
 
+ - Ajout du support de plus de devises.  
+ - Ajout d’un guide d’utilisation détaillé et d’une section sur la philosophie de design.  
+ - Plus de moyens pour contacter le développeur et de nouvelles animations plus soignées.  
+ - Amélioration générale du rendu visuel de l’UI.  
+
+### V4.3(1)
+
+ - « Régler les dettes » se synchronise aussi dans le compte partagé (mise à jour recommandée).  
+ - Pourboire/don au développeur, totalement optionnel — l’app reste gratuite et sans pub.  
+ - La page « Exporter le CSV du compte personnel » affiche désormais le solde des comptes et un bouton « Ajouter une entrée ».  
+ - UI améliorée en anglais et en français.
+
+### Corrections + nouveau basculement clair/sombre (23/10/2024, V4.2(1))
+
+ - Adaptation au mode clair/sombre.  
+ - Corrections de bugs et interface plus soignée.  
+
+### Corrections de bugs, export V4_1_3.ipa traduit (21/10/2024)
+
+ - Changement d’Apple ID pour exporter V4_1_3.ipa.  
+
+### Corrections, mais V4_1_2 ipa non exportée pour cause de signature (21/10/2024)
+
+ - Correction du problème de virgule décimale en français.  
+ - La page d’édition du compte personnel se rafraîchit instantanément.  
+ - Nombre d’entrées récentes porté de 3 à 5.  
+
+### Ajout de nouvelles catégories (15/10/2025, V4.1(3))
 
 ### Suspension des nouvelles fonctionnalités, corrections uniquement (14/10/2025)
 
