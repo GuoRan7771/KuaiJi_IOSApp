@@ -6,6 +6,9 @@
 </p>
 
 ---
+# 🚀 App Store
+> Now available on the App Store! Search “KuaiJi” in English/French, or “快记KuaiJi” in Chinese. Download: https://apps.apple.com/us/app/kuaiji/id6754407498
+
 # KuaiJi  
 
 ## Overview

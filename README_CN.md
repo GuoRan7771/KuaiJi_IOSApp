@@ -6,6 +6,9 @@
 </p>
 
 ---
+# 🚀 App Store
+> 已上架 App Store！法语/英语搜索 “KuaiJi”，中文搜索 “快记KuaiJi”。下载链接：https://apps.apple.com/us/app/kuaiji/id6754407498
+
 # KuaiJi   
 
 ## 简介
