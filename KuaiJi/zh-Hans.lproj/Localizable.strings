@@ -158,7 +158,7 @@
 "settings.supportMe" = "支持我";
 "settings.rateApp" = "给KuaiJi好评";
 "settings.version" = "版本";
-"settings.showSharedAndFriends" = "显示共享账本及朋友";
+"settings.showSharedLedger" = "显示共享账本";
 "settings.showPersonalLedger" = "显示个人账本";
 "settings.clearData" = "抹掉共享账本及朋友数据";
 "settings.clearDataWarning" = "此操作将永久删除所有共享账本及朋友数据，您的个人资料和设置将被保留。";

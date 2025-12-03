@@ -2164,7 +2164,7 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                         .foregroundStyle(Color.appLedgerContentText)
                 }
                 .tint(Color.appToggleOn)
-                Toggle(L.settingsShowSharedAndFriends.localized, isOn: $appState.showSharedLedgerTab)
+                Toggle(L.settingsShowSharedLedger.localized, isOn: $appState.showSharedLedgerTab)
                     .tint(Color.appToggleOn)
                     .foregroundStyle(Color.appLedgerContentText)
                 
@@ -3204,7 +3204,7 @@ struct ContentView: View {
     @EnvironmentObject var appState: AppState
     @AppStorage("theme") private var theme = "default"
     
-    private enum RootTab: Hashable { case personal, ledgers, friends, settings }
+    private enum RootTab: Hashable { case personal, ledgers, settings }
     @State private var selectedTab: RootTab = .personal
     @State private var path = NavigationPath()
     private let switchToLedgersTab: () -> Void
@@ -3230,13 +3230,10 @@ struct ContentView: View {
             if appState.showSharedLedgerTab {
                 LedgerNavigator(rootViewModel: viewModel,
                                 listViewModel: listViewModel,
+                                friendViewModel: friendViewModel,
                                 onRequireLedgerTab: { selectedTab = .ledgers })
                     .tabItem { Label(L.tabLedgers.localized, systemImage: "list.bullet") }
                     .tag(RootTab.ledgers)
-
-                FriendNavigator(viewModel: friendViewModel, rootViewModel: viewModel)
-                    .tabItem { Label(L.tabFriends.localized, systemImage: "person.2.fill") }
-                    .tag(RootTab.friends)
             }
 
             SettingsNavigator(viewModel: settingsViewModel, rootViewModel: viewModel, personalLedgerRoot: personalLedgerRoot)
@@ -3278,7 +3275,7 @@ struct ContentView: View {
             if !appState.showPersonalLedgerTab {
                 selectedTab = appState.showSharedLedgerTab ? .ledgers : .settings
             }
-        case .ledgers, .friends:
+        case .ledgers:
             if !appState.showSharedLedgerTab {
                 selectedTab = appState.showPersonalLedgerTab ? .personal : .settings
             }
@@ -3311,6 +3308,7 @@ struct ContentView: View {
 struct LedgerNavigator: View {
     @ObservedObject var rootViewModel: AppRootViewModel
     @ObservedObject var listViewModel: LedgerListScreenModel
+    @ObservedObject var friendViewModel: FriendListScreenModel
     @EnvironmentObject var appState: AppState
     @State private var showingCreateLedger = false
     @State private var showingShareLedger = false
@@ -3326,6 +3324,12 @@ struct LedgerNavigator: View {
                     ToolbarItem(placement: .navigationBarLeading) {
                         Button(action: { showingShareLedger = true }) {
                             Label(L.syncShareLedger.localized, systemImage: "antenna.radiowaves.left.and.right")
+                        }
+                        .tint(Color.appTextPrimary)
+                    }
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        NavigationLink(destination: FriendListHost(viewModel: friendViewModel, rootViewModel: rootViewModel)) {
+                            Label(L.tabFriends.localized, systemImage: "person.2")
                         }
                         .tint(Color.appTextPrimary)
                     }
@@ -3578,7 +3582,7 @@ private struct TipCard: View {
     }
 }
 
-struct FriendNavigator: View {
+struct FriendListHost: View {
     @ObservedObject var viewModel: FriendListScreenModel
     @ObservedObject var rootViewModel: AppRootViewModel
     @State private var showingAddFriend = false
@@ -3588,74 +3592,72 @@ struct FriendNavigator: View {
     @State private var duplicateMessage = ""
 
     var body: some View {
-        NavigationStack {
-            FriendListView(viewModel: viewModel)
-                .navigationTitle(L.friendsTitle.localized)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Menu {
-                            Button {
-                                showingAddFriend = true
-                            } label: {
-                                Label(L.friendMenuManualInput.localized, systemImage: "keyboard")
-                            }
-
-                            Button {
-                                showingMyQRCode = true
-                            } label: {
-                                Label(L.friendMenuMyQRCode.localized, systemImage: "qrcode")
-                            }
-
-                            Button {
-                                showingScanner = true
-                            } label: {
-                                Label(L.friendMenuScanQRCode.localized, systemImage: "qrcode.viewfinder")
-                            }
+        FriendListView(viewModel: viewModel)
+            .navigationTitle(L.friendsTitle.localized)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Menu {
+                        Button {
+                            showingAddFriend = true
                         } label: {
-                            Label(L.friendsAdd.localized, systemImage: "plus")
+                            Label(L.friendMenuManualInput.localized, systemImage: "keyboard")
                         }
-                        .tint(Color.appTextPrimary)
+
+                        Button {
+                            showingMyQRCode = true
+                        } label: {
+                            Label(L.friendMenuMyQRCode.localized, systemImage: "qrcode")
+                        }
+
+                        Button {
+                            showingScanner = true
+                        } label: {
+                            Label(L.friendMenuScanQRCode.localized, systemImage: "qrcode.viewfinder")
+                        }
+                    } label: {
+                        Label(L.friendsAdd.localized, systemImage: "plus")
                     }
+                    .tint(Color.appTextPrimary)
                 }
-                .sheet(isPresented: $showingAddFriend) {
-                    AddFriendSheet(viewModel: viewModel)
+            }
+            .sheet(isPresented: $showingAddFriend) {
+                AddFriendSheet(viewModel: viewModel)
+            }
+            .sheet(isPresented: $showingMyQRCode) {
+                if let currentUser = rootViewModel.dataManager?.currentUser {
+                    MyQRCodeView(userData: UserQRCodeData(
+                        userId: currentUser.userId,
+                        name: currentUser.name,
+                        emoji: currentUser.avatarEmoji ?? "👤",
+                        currency: currentUser.currency.rawValue
+                    ))
                 }
-                .sheet(isPresented: $showingMyQRCode) {
-                    if let currentUser = rootViewModel.dataManager?.currentUser {
-                        MyQRCodeView(userData: UserQRCodeData(
-                            userId: currentUser.userId,
-                            name: currentUser.name,
-                            emoji: currentUser.avatarEmoji ?? "👤",
-                            currency: currentUser.currency.rawValue
-                        ))
-                    }
-                }
-                .sheet(isPresented: $showingScanner) {
-                    QRCodeScannerView { userData in
-                        // 将扫描到的朋友信息添加到朋友列表
-                        // 如果朋友已存在，会自动更新其最新信息
-                        if let currencyCode = CurrencyCode(rawValue: userData.currency) {
-                            let success = viewModel.addFriendFromQRCode(
-                                userId: userData.userId,
-                                named: userData.name,
-                                emoji: userData.emoji,
-                                currency: currencyCode
-                            )
-                            
-                            if !success {
-                                duplicateMessage = L.qrcodeCannotAddSelf.localized
-                                showingDuplicateAlert = true
-                            }
+            }
+            .sheet(isPresented: $showingScanner) {
+                QRCodeScannerView { userData in
+                    // 将扫描到的朋友信息添加到朋友列表
+                    // 如果朋友已存在，会自动更新其最新信息
+                    if let currencyCode = CurrencyCode(rawValue: userData.currency) {
+                        let success = viewModel.addFriendFromQRCode(
+                            userId: userData.userId,
+                            named: userData.name,
+                            emoji: userData.emoji,
+                            currency: currencyCode
+                        )
+                        
+                        if !success {
+                            duplicateMessage = L.qrcodeCannotAddSelf.localized
+                            showingDuplicateAlert = true
                         }
                     }
                 }
-                .alert(L.qrcodeAlertTitle.localized, isPresented: $showingDuplicateAlert) {
-                    Button(L.ok.localized, role: .cancel) { }
-                } message: {
-                    Text(duplicateMessage)
-                }
-        }
-        .background(Color.appBackground)
+            }
+            .alert(L.qrcodeAlertTitle.localized, isPresented: $showingDuplicateAlert) {
+                Button(L.ok.localized, role: .cancel) { }
+            } message: {
+                Text(duplicateMessage)
+            }
+            .background(Color.appBackground)
     }
 }
 

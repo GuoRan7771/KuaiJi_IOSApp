@@ -70,15 +70,12 @@ Thanks to my girlfriend for all her silent support behind the scenes! Heyhey �
 ---
 
 ## Recent Updates  
-### V4.51(7) – Category Controls & Backup Compatibility
-- **System Categories:** Recolor and hide built-in categories; overrides are saved and respected across pickers/statistics.
-- **Category Management:** Settings entry renamed; expanded SF Symbols with localized EN/FR/ZH names for custom icons.
-- **Backups:** Custom categories and system overrides are now included in export/import while remaining backward compatible with older data.
-
-### V4.34(7) – Templates, Archiving & UX Improvements
-- **Personal Ledger Templates**: Create, sort, and manage transaction templates for one-tap entry; supports backup import/export.
-- **Shared Ledger Archiving**: Separate lists for "Recent" and "Archived"; swipe to archive/unarchive; auto-unarchives on new sync.
-- **UX Improvements**: New home screen quick action for Data Management; confirmation dialog for deleting ledgers; optimized onboarding UI; fixed archiving crashes.
+### V4.51(8) – UI Redesign & Feature Consolidation
+- **Interface & Navigation:** Moved Friends tab to Shared Ledger for better access; Redesigned Statistics page; Optimized first launch UI.
+- **Category Control:** Support changing colors/hiding system categories; More SF symbols for custom icons.
+- **Templates:** Added Personal Ledger Templates for quick entry; fully supported in backups.
+- **Archiving:** Shared Ledgers now support archiving (swipe to archive); separated "Recent" and "Archived" lists.
+- **Backup & Misc:** Enhanced backup to include category settings and templates; Added desktop quick actions; Improved delete confirmations.
 
 ### New Improvements V4.33(6)
 

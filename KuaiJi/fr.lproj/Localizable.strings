@@ -158,7 +158,7 @@
 "settings.supportMe" = "Soutenir";
 "settings.rateApp" = "Noter KuaiJi";
 "settings.version" = "Version";
-"settings.showSharedAndFriends" = "Afficher le ledger partagé et les amis";
+"settings.showSharedLedger" = "Afficher le ledger partagé";
 "settings.showPersonalLedger" = "Afficher le ledger personnel";
 "settings.clearData" = "Effacer les comptes partagés et amis";
 "settings.clearDataWarning" = "Cette action supprime définitivement tous les comptes partagés et données des amis. Votre profil et vos réglages personnels seront conservés.";

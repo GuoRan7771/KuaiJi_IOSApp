@@ -196,7 +196,7 @@ enum L {
     static let settingsConfirmDelete = "settings.confirmDelete"
     static let settingsDeleteMessage = "settings.deleteMessage"
     static let settingsInterfaceDisplay = "settings.interfaceDisplay"
-    static let settingsShowSharedAndFriends = "settings.showSharedAndFriends"
+    static let settingsShowSharedLedger = "settings.showSharedLedger"
     static let settingsShowPersonalLedger = "settings.showPersonalLedger"
     static let settingsSharedLanding = "settings.sharedLanding"
     static let settingsSharedLandingList = "settings.sharedLanding.list"

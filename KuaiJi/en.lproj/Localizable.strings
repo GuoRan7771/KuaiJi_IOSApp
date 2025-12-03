@@ -184,7 +184,7 @@
 "settings.supportMe" = "Support Me";
 "settings.rateApp" = "Rate KuaiJi";
 "settings.version" = "Version";
-"settings.showSharedAndFriends" = "Show shared ledger & friends";
+"settings.showSharedLedger" = "Show shared ledger";
 "settings.showPersonalLedger" = "Show personal ledger";
 "settings.clearData" = "Erase Shared Ledgers & Friends";
 "settings.clearDataWarning" = "This permanently removes all shared ledgers and friend data. Your personal profile and settings will stay intact.";
