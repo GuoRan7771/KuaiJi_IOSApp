@@ -394,6 +394,7 @@ enum L {
     static let personalCategoryMappingTitle = "personal.category.mapping.title"
     static let personalCategoryMappingRequired = "personal.category.mapping.required"
     static let personalCategoriesHide = "personal.categories.hide"
+    static let personalCategoriesHideHint = "personal.categories.hideHint"
     static let personalSymbolGroupCommon = "personal.symbolGroup.common"
     static let personalSymbolGroupLife = "personal.symbolGroup.life"
     static let personalSymbolGroupTravel = "personal.symbolGroup.travel"

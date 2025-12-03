@@ -614,6 +614,7 @@
 "personal.category.mapping.title" = "Définir la correspondance";
 "personal.category.mapping.required" = "Associez cette catégorie personnalisée à une catégorie système dans Réglages > Compte perso > Gestion des catégories avant de l’ajouter au ledger partagé.";
 "personal.categories.hide" = "Masquer dans le sélecteur";
+"personal.categories.hideHint" = "Masquer/Afficher dans le livre personnel";
 "personal.symbolGroup.common" = "Classiques";
 "personal.symbolGroup.life" = "Vie quotidienne";
 "personal.symbolGroup.travel" = "Déplacements";

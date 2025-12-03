@@ -614,6 +614,7 @@
 "personal.category.mapping.title" = "Set Category Mapping";
 "personal.category.mapping.required" = "Map this custom tag to a system category in Settings → Personal Ledger → Category Management before adding it to a shared ledger.";
 "personal.categories.hide" = "Hide from picker";
+"personal.categories.hideHint" = "Hide/Show in Personal Ledger";
 "personal.symbolGroup.common" = "Common";
 "personal.symbolGroup.life" = "Everyday";
 "personal.symbolGroup.travel" = "Travel";

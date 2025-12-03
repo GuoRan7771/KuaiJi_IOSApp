@@ -600,6 +600,7 @@
 "personal.category.mapping.title" = "设置分类映射";
 "personal.category.mapping.required" = "请先在设置 > 个人账本 > 分类管理中为该自定义标签选择系统分类映射，才能同步到共享账本。";
 "personal.categories.hide" = "在分类选择中隐藏";
+"personal.categories.hideHint" = "在个人账本中隐藏/显示";
 "personal.symbolGroup.common" = "常用";
 "personal.symbolGroup.life" = "生活";
 "personal.symbolGroup.travel" = "出行";

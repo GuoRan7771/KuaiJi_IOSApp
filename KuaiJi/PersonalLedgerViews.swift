@@ -2892,7 +2892,7 @@ struct PersonalCategorySettingsView: View {
     var body: some View {
         List {
             Section(header: Text(L.personalCategoriesSystem.localized)) {
-                systemCategoryGroup(title: L.personalTypeExpense.localized, items: viewModel.systemExpenseOptions)
+                systemCategoryGroup(title: L.personalTypeExpense.localized, items: viewModel.systemExpenseOptions, showHint: true)
                 systemCategoryGroup(title: L.personalTypeIncome.localized, items: viewModel.systemIncomeOptions)
                 systemCategoryGroup(title: L.personalTypeFee.localized, items: viewModel.systemFeeOptions)
             }
@@ -2933,6 +2933,13 @@ struct PersonalCategorySettingsView: View {
                             } label: {
                                 Label(L.delete.localized, systemImage: "trash")
                             }
+                            Button {
+                                editingDraft = viewModel.makeDraft(for: category.id)
+                                showingForm = true
+                            } label: {
+                                Label(L.edit.localized, systemImage: "pencil")
+                            }
+                            .tint(Color.appBrand)
                         }
                     }
                 }
@@ -2971,11 +2978,23 @@ struct PersonalCategorySettingsView: View {
         }
     }
 
-    private func systemCategoryGroup(title: String, items: [PersonalCategoryOption]) -> some View {
+    private func systemCategoryGroup(title: String, items: [PersonalCategoryOption], showHint: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
+            if showHint {
+                HStack {
+                    Text(title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(L.personalCategoriesHideHint.localized)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
             ForEach(items, id: \.key) { option in
                 HStack(spacing: 12) {
                     ColorPicker("",
