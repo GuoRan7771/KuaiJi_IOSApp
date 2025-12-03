@@ -2320,7 +2320,6 @@ struct PersonalStatsView: View {
             VStack(alignment: .leading, spacing: 24) {
                 headerSection
                 statsSummaryCard
-                insightsSection
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 24)
@@ -2420,40 +2419,6 @@ struct PersonalStatsView: View {
                         }
                     }
                     .padding(.top, 8)
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var insightsSection: some View {
-        if focus == .expense && !viewModel.insights.isEmpty {
-            statsContainer {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(L.personalStatsInsightsTitle.localized)
-                        .font(.headline)
-                    ForEach(viewModel.insights) { insight in
-                        let streakText = L.personalStatsInsightStreak.localized(insight.increasingStreak)
-                        let growthText = L.personalStatsInsightRecentGrowth.localized
-                        let detailText = L.personalStatsInsightDetail.localized(
-                            viewModel.categoryName(for: insight.categoryKey),
-                            streakText,
-                            growthText,
-                            formatPercent(insight.recentGrowthRate)
-                        )
-                        HStack(spacing: 12) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(Focus.expense.secondaryColor)
-                                .padding(8)
-                                .background(Focus.expense.secondaryColor.opacity(0.12), in: Circle())
-                            Text(detailText)
-                                .font(.callout)
-                                .multilineTextAlignment(.leading)
-                            Spacer()
-                        }
-                        .padding(12)
-                        .background(Color.appWarning.opacity(0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    }
                 }
             }
         }
@@ -2596,10 +2561,6 @@ struct PersonalStatsView: View {
             if focus == .expense, let growth = viewModel.expenseGrowthRate {
                 growthView(growth)
             }
-
-            if focus == .expense, let structure = viewModel.structure, structure.total > 0 {
-                structureView(structure)
-            }
         }
     }
 
@@ -2662,56 +2623,6 @@ struct PersonalStatsView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
         .background(tint.opacity(0.12), in: Capsule())
-    }
-
-    private func structureView(_ structure: PersonalSpendingStructure) -> some View {
-        let essentialShare = structure.essentialShare
-        let discretionaryShare = structure.discretionaryShare
-        return VStack(alignment: .leading, spacing: 8) {
-            Text(L.personalStatsStructureTitle.localized)
-                .font(.subheadline.weight(.semibold))
-            GeometryReader { proxy in
-                let width = proxy.size.width
-                let essentialWidth = width * CGFloat(max(min(essentialShare, 1), 0))
-                let discretionaryWidth = width - essentialWidth
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.appSurfaceAlt)
-                    if essentialWidth > 0 {
-                        Capsule()
-                            .fill(Focus.expense.accentColor)
-                            .frame(width: essentialWidth)
-                    }
-                    if discretionaryWidth > 0 {
-                        Capsule()
-                            .fill(Focus.expense.secondaryColor)
-                            .frame(width: discretionaryWidth)
-                            .offset(x: essentialWidth)
-                    }
-                }
-            }
-            .frame(height: 12)
-
-            HStack {
-                HStack(spacing: 6) {
-                    Image(systemName: "circle.fill")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundStyle(Focus.expense.accentColor)
-                    Text("\(L.personalStatsEssential.localized) · \(formatPercent(essentialShare))")
-                }
-                .foregroundStyle(.secondary)
-                Spacer()
-                HStack(spacing: 6) {
-                    Image(systemName: "circle.fill")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundStyle(Focus.expense.secondaryColor)
-                    Text("\(L.personalStatsDiscretionary.localized) · \(formatPercent(discretionaryShare))")
-                }
-                .foregroundStyle(.secondary)
-            }
-            .font(.caption)
-        }
-        .padding(14)
-        .background(Color.appSurfaceAlt, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private func categoryRow(for item: PersonalStatsCategoryShare) -> some View {

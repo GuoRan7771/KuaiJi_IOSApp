@@ -170,23 +170,6 @@ struct PersonalStatsCategoryShare: Identifiable, Hashable {
     var transactionCount: Int
 }
 
-// MARK: - Stats Enhancements (Structure, Growth, Insights)
-
-struct PersonalSpendingStructure {
-    let essentialMinorUnits: Int
-    let discretionaryMinorUnits: Int
-    var total: Int { essentialMinorUnits + discretionaryMinorUnits }
-    var essentialShare: Double { total > 0 ? Double(essentialMinorUnits) / Double(total) : 0 }
-    var discretionaryShare: Double { total > 0 ? Double(discretionaryMinorUnits) / Double(total) : 0 }
-}
-
-struct CategoryTrendInsight: Identifiable, Hashable {
-    let id: UUID = UUID()
-    let categoryKey: String
-    let increasingStreak: Int
-    let recentGrowthRate: Double
-}
-
 @MainActor
 final class PersonalLedgerRootViewModel: ObservableObject {
     let store: PersonalLedgerStore
@@ -1775,9 +1758,7 @@ final class PersonalStatsViewModel: ObservableObject {
     @Published private(set) var timeline: [PersonalStatsSeriesPoint] = []
     @Published private(set) var expenseBreakdown: [PersonalStatsCategoryShare] = []
     @Published private(set) var incomeBreakdown: [PersonalStatsCategoryShare] = []
-    @Published private(set) var structure: PersonalSpendingStructure?
     @Published private(set) var expenseGrowthRate: Double?
-    @Published private(set) var insights: [CategoryTrendInsight] = []
     @Published private(set) var availableCurrencies: [CurrencyCode] = []
     @Published var lastError: String?
 
@@ -1867,24 +1848,6 @@ final class PersonalStatsViewModel: ObservableObject {
             }
             .sorted { $0.amountMinorUnits > $1.amountMinorUnits }
 
-            // Compute spending structure (essential vs discretionary)
-            let essentialKeys: Set<String> = [
-                "food", "transport", "accommodation", "utilities",
-                // legacy compatibility keys
-                "housing", "health", "education"
-            ]
-            var essentialTotal = 0
-            var discretionaryTotal = 0
-            for item in expenseBreakdown {
-                if essentialKeys.contains(item.categoryKey) {
-                    essentialTotal += item.amountMinorUnits
-                } else {
-                    discretionaryTotal += item.amountMinorUnits
-                }
-            }
-            structure = PersonalSpendingStructure(essentialMinorUnits: essentialTotal,
-                                                  discretionaryMinorUnits: discretionaryTotal)
-
             // Compute expense growth rate (current vs previous period)
             func previousRange(from r: ClosedRange<Date>, period: Period) -> ClosedRange<Date> {
                 let cal = Calendar.current
@@ -1926,77 +1889,6 @@ final class PersonalStatsViewModel: ObservableObject {
                 }
             }
             expenseGrowthRate = prevExpense > 0 ? Double(currentExpense - prevExpense) / Double(prevExpense) : nil
-
-            // Build category trend insights over recent periods
-            func lastNRanges(_ n: Int, endingWith r: ClosedRange<Date>, period: Period) -> [ClosedRange<Date>] {
-                var result: [ClosedRange<Date>] = [r]
-                for _ in 1..<n {
-                    result.append(previousRange(from: result.last!, period: period))
-                }
-                return result.reversed()
-            }
-            let ranges = lastNRanges(6, endingWith: range, period: period)
-            // key -> series of shares across periods
-            var seriesPerCategory: [String: [Double]] = [:]
-            for r in ranges {
-                let filter = PersonalRecordFilter(dateRange: r,
-                                             kinds: includeFees ? [.income, .expense, .fee] : [.income, .expense],
-                                             accountIds: selectedAccountIds.isEmpty ? nil : selectedAccountIds,
-                                             categoryKeys: nil,
-                                             minimumAmountMinor: nil,
-                                             maximumAmountMinor: nil,
-                                             keyword: nil)
-                let allR = try store.records(filter: filter)
-                let txR = allR.filter { tx in
-                    guard let account = store.account(with: tx.accountId) else { return false }
-                    return account.currency == selectedCurrency
-                }
-                var map: [String: Int] = [:]
-                for t in txR {
-                    switch t.kind {
-                    case .income:
-                        continue
-                    case .expense:
-                        map[t.categoryKey, default: 0] += t.amountMinorUnits
-                    case .fee:
-                        if includeFees { map[t.categoryKey, default: 0] += t.amountMinorUnits }
-                    }
-                }
-                let total = map.values.reduce(0, +)
-                // padding zero for existing keys
-                for key in seriesPerCategory.keys {
-                    seriesPerCategory[key, default: []].append(0)
-                }
-                if total > 0 {
-                    for (key, val) in map {
-                        let share = Double(val) / Double(total)
-                        if var arr = seriesPerCategory[key] {
-                            arr.removeLast()
-                            arr.append(share)
-                            seriesPerCategory[key] = arr
-                        } else {
-                            let zeros = Array(repeating: 0.0, count: ranges.count - 1)
-                            seriesPerCategory[key] = zeros + [share]
-                        }
-                    }
-                }
-            }
-            var alerts: [CategoryTrendInsight] = []
-            for (key, series) in seriesPerCategory {
-                guard series.count >= 3 else { continue }
-                let last3 = Array(series.suffix(3))
-                // strict increasing with small epsilon
-                let eps = 0.0001
-                let inc = zip(last3, last3.dropFirst()).allSatisfy { ($1 - $0) > eps }
-                let streak = inc ? 3 : 0
-                if let last = series.last, let prev = series.dropLast().last, prev > 0 {
-                    let grow = (last - prev) / prev
-                    if streak >= 3 || grow >= 0.2 {
-                        alerts.append(CategoryTrendInsight(categoryKey: key, increasingStreak: streak, recentGrowthRate: grow))
-                    }
-                }
-            }
-            insights = alerts.sorted { ($0.increasingStreak, $0.recentGrowthRate) > ($1.increasingStreak, $1.recentGrowthRate) }
         } catch {
             lastError = error.localizedDescription
         }
