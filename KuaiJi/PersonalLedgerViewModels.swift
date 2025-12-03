@@ -54,6 +54,7 @@ struct PersonalRecordRowViewData: Identifiable, Hashable {
     var id: UUID
     var categoryKey: String
     var categoryName: String
+    var categoryColorHex: String?
     var systemImage: String
     var note: String
     var amountMinorUnits: Int
@@ -385,6 +386,7 @@ final class PersonalCSVExportViewModel: ObservableObject {
         return PersonalRecordRowViewData(id: transaction.remoteId,
                                          categoryKey: transaction.categoryKey,
                                          categoryName: category?.localizedName ?? store.categoryName(for: transaction.categoryKey),
+                                         categoryColorHex: store.categoryColor(for: transaction.categoryKey).toHexRGB(),
                                          systemImage: category?.systemImage ?? store.categoryIcon(for: transaction.categoryKey),
                                          note: transaction.note,
                                          amountMinorUnits: transaction.amountMinorUnits,
@@ -662,6 +664,7 @@ final class PersonalLedgerHomeViewModel: ObservableObject {
         return PersonalRecordRowViewData(id: transaction.remoteId,
                                          categoryKey: transaction.categoryKey,
                                          categoryName: category?.localizedName ?? store.categoryName(for: transaction.categoryKey),
+                                         categoryColorHex: store.categoryColor(for: transaction.categoryKey).toHexRGB(),
                                          systemImage: category?.systemImage ?? store.categoryIcon(for: transaction.categoryKey),
                                          note: transaction.note,
                                          amountMinorUnits: transaction.amountMinorUnits,
@@ -1717,6 +1720,7 @@ final class PersonalAllRecordsViewModel: ObservableObject {
         return PersonalRecordRowViewData(id: transaction.remoteId,
                                          categoryKey: transaction.categoryKey,
                                          categoryName: category?.localizedName ?? store.categoryName(for: transaction.categoryKey),
+                                         categoryColorHex: store.categoryColor(for: transaction.categoryKey).toHexRGB(),
                                          systemImage: category?.systemImage ?? store.categoryIcon(for: transaction.categoryKey),
                                          note: transaction.note,
                                          amountMinorUnits: transaction.amountMinorUnits,
@@ -2057,6 +2061,7 @@ final class PersonalStatsCategoryRecordsViewModel: ObservableObject {
         return PersonalRecordRowViewData(id: transaction.remoteId,
                                          categoryKey: transaction.categoryKey,
                                          categoryName: category?.localizedName ?? store.categoryName(for: transaction.categoryKey),
+                                         categoryColorHex: store.categoryColor(for: transaction.categoryKey).toHexRGB(),
                                          systemImage: category?.systemImage ?? store.categoryIcon(for: transaction.categoryKey),
                                          note: transaction.note,
                                          amountMinorUnits: transaction.amountMinorUnits,

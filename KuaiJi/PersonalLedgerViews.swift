@@ -513,7 +513,7 @@ struct PersonalRecordRow: View {
         HStack(spacing: 12) {
             Image(systemName: record.systemImage)
                 .font(.title3)
-                .foregroundStyle(Color.appBrand)
+                .foregroundStyle(record.categoryColorHex.flatMap { Color(hex: $0) } ?? Color.appBrand)
                 .frame(width: 32, height: 32)
             VStack(alignment: .leading, spacing: 4) {
                 Text(record.categoryName)
@@ -574,6 +574,7 @@ struct PersonalRecordDetailView: View {
                     let kindDisplay = PersonalRecordRowViewData(id: tx.remoteId,
                                                                 categoryKey: tx.categoryKey,
                                                                 categoryName: categoryName,
+                                                                categoryColorHex: root.store.categoryColor(for: tx.categoryKey).toHexRGB(),
                                                                 systemImage: root.store.categoryIcon(for: tx.categoryKey),
                                                                 note: tx.note,
                                                                 amountMinorUnits: tx.amountMinorUnits,
@@ -2846,7 +2847,7 @@ private struct PersonalStatsRecordRow: View {
         HStack(spacing: 12) {
             Image(systemName: record.systemImage)
                 .font(.title3)
-                .foregroundStyle(Color.appBrand)
+                .foregroundStyle(record.categoryColorHex.flatMap { Color(hex: $0) } ?? Color.appBrand)
                 .frame(width: 32, height: 32)
             VStack(alignment: .leading, spacing: 4) {
                 Text(record.categoryName)
