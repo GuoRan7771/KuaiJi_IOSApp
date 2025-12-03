@@ -2911,7 +2911,7 @@ struct PersonalCategorySettingsView: View {
                                 .frame(width: 26, height: 26)
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(category.name)
-                                    .font(.headline)
+                                    .font(.system(.headline, design: .rounded))
                                 Text(mappingDescription(for: category))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)

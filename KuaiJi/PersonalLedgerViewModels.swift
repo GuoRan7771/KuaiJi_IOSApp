@@ -2168,8 +2168,12 @@ struct PersonalCategoryRowViewData: Identifiable {
     var name: String
     var kind: PersonalTransactionKind
     var systemImage: String
-    var color: Color
+    var colorHex: String
     var mappedSystemCategory: ExpenseCategory?
+
+    var color: Color {
+        Color(hex: colorHex) ?? Color.appBrand
+    }
 }
 
 struct PersonalCategoryDraft: Identifiable {
@@ -2208,7 +2212,7 @@ final class PersonalCategorySettingsViewModel: ObservableObject {
                                         name: category.name,
                                         kind: category.kind,
                                         systemImage: category.systemImage,
-                                        color: Color(hex: category.colorHex) ?? Color.appBrand,
+                                        colorHex: category.colorHex,
                                         mappedSystemCategory: category.mappedSystemCategory)
         }
     }
