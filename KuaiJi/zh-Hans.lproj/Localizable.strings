@@ -447,6 +447,12 @@
 "personal.stats.growth.up" = "增加";
 "personal.stats.growth.down" = "减少";
 "personal.stats.categoryClickHint" = "点击分类可查看详情";
+"personal.stats.observation.title" = "观察";
+"personal.stats.observation.savings" = "储蓄金额";
+"personal.stats.observation.savingsRate" = "储蓄率";
+"personal.stats.observation.expenseRate" = "消费率";
+"personal.stats.observation.help.title" = "指标说明";
+"personal.stats.observation.help.message" = "储蓄金额 = 总收入 - 总支出\n储蓄率 = 储蓄金额 ÷ 总收入\n消费率 = 总支出 ÷ 总收入\n(理想情况下：消费率 + 储蓄率 ≈ 1)";
 "personal.stats.chart.share" = "占比";
 "personal.stats.chart.income" = "收入";
 "personal.stats.chart.expense" = "支出";
@@ -493,6 +499,13 @@
 "personal.usage.flow4.step2" = "在个人账本添加资产并记录日常支出。";
 "personal.usage.flow4.step3" = "遇到需要 AA 的支出，在个人记录里使用“同步到共享账本”。";
 "personal.usage.flow4.step4" = "选择目标共享账本，让这笔支出同时参与多人结算。";
+
+"personal.usage.flow5" = "只使用个人账本";
+"personal.usage.flow5.step1" = "在设置中关闭“共享账本”功能，专注个人记账。";
+"personal.usage.flow5.step2" = "使用“自定义分类”功能，创建专属的支出/收入类别（仅限个人账本）。";
+"personal.usage.flow5.step3" = "利用“账目模版”快速记录常发生的交易，如早餐、交通等。";
+"personal.usage.flow5.step4" = "通过统计分析页面，实时监控个人财务状况和增长趋势。";
+"personal.usage.flow5.step5" = "现在个人账本页面右上角添加资产和账户，之后开始记账。";
 "personal.usage.flow.summary" = "为不同线下 AA 场景准备的操作指引，快速切换查看细节。";
 "personal.usage.design.title" = "App 设计理念";
 "personal.usage.design1" = "围绕线下 AA，强调简单、可追溯，不依赖云端。";

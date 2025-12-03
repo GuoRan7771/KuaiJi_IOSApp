@@ -513,6 +513,13 @@
 "personal.usage.flow4.step2" = "Add assets and record daily spending in Personal.";
 "personal.usage.flow4.step3" = "When an expense needs AA, use “Sync to Shared Ledger” on that record.";
 "personal.usage.flow4.step4" = "Pick the target shared ledger so it participates in group settlement.";
+
+"personal.usage.flow5" = "Personal Ledger Only";
+"personal.usage.flow5.step1" = "Disable \"Shared Ledger\" in Settings to focus on personal tracking.";
+"personal.usage.flow5.step2" = "Use \"Custom Categories\" to create exclusive expense/income types (Personal Ledger only).";
+"personal.usage.flow5.step3" = "Use \"Templates\" to quickly record frequent transactions like breakfast or commute.";
+"personal.usage.flow5.step4" = "Monitor personal financial status and growth trends via the Statistics page.";
+"personal.usage.flow5.step5" = "Now add assets and accounts in the top right corner of the Personal Ledger page, then start bookkeeping.";
 "personal.usage.flow.summary" = "Switch between common AA workflows and see the exact steps.";
 "personal.usage.design.title" = "App design principles";
 "personal.usage.design1" = "Built for offline AA: simple, traceable, no cloud.";
@@ -934,3 +941,14 @@
 "personal.stats.growth.detail.full" = "%@ compared to %@ %@ %@ Growth Rate %@";
 
 "personal.stats.categoryClickHint" = "Tap a category to view details";
+
+"personal.stats.observation.title" = "Observation";
+"personal.stats.observation.savings" = "Savings";
+"personal.stats.observation.savingsRate" = "Savings Rate";
+"personal.stats.observation.expenseRate" = "Expense Rate";
+
+"personal.stats.observation.help.title" = "Metrics Guide";
+"personal.stats.observation.help.message" = "Savings = Total Income - Total Expense
+Savings Rate = Savings ÷ Total Income
+Expense Rate = Total Expense ÷ Total Income
+(Ideally: Expense Rate + Savings Rate ≈ 1)";

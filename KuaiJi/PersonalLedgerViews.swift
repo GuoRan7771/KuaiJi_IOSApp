@@ -2269,6 +2269,7 @@ struct PersonalTransferFormView: View {
 struct PersonalStatsView: View {
     @ObservedObject var viewModel: PersonalStatsViewModel
     @State private var focus: Focus = .expense
+    @State private var showingObservationHelp = false
 
     enum Focus: String, CaseIterable, Identifiable {
         case expense
@@ -2320,6 +2321,7 @@ struct PersonalStatsView: View {
             VStack(alignment: .leading, spacing: 24) {
                 headerSection
                 statsSummaryCard
+                observationCard
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 24)
@@ -2389,18 +2391,10 @@ struct PersonalStatsView: View {
                         )
                 }
 
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .top, spacing: 32) {
-                        donutView()
-                            .frame(maxWidth: 220)
-                        summaryDetails(isCompact: false)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    VStack(spacing: 24) {
-                        donutView()
-                            .frame(maxWidth: .infinity)
-                        summaryDetails(isCompact: true)
-                    }
+                VStack(spacing: 24) {
+                    donutView()
+                        .frame(maxWidth: .infinity)
+                    summaryDetails(isCompact: true)
                 }
                 .frame(minHeight: 280, alignment: .top)
 
@@ -2548,28 +2542,6 @@ struct PersonalStatsView: View {
 
     private func summaryDetails(isCompact: Bool) -> some View {
         VStack(alignment: .leading, spacing: isCompact ? 18 : 22) {
-            summaryTotalCard()
-
-            if isCompact {
-                VStack(spacing: 14) {
-                    summaryChip(title: L.personalStatsFocusExpense.localized,
-                                amount: totalExpense,
-                                color: Focus.expense.accentColor)
-                    summaryChip(title: L.personalStatsFocusIncome.localized,
-                                amount: totalIncome,
-                                color: Focus.income.accentColor)
-                }
-            } else {
-                HStack(spacing: 16) {
-                    summaryChip(title: L.personalStatsFocusExpense.localized,
-                                amount: totalExpense,
-                                color: Focus.expense.accentColor)
-                    summaryChip(title: L.personalStatsFocusIncome.localized,
-                                amount: totalIncome,
-                                color: Focus.income.accentColor)
-                }
-            }
-
             let currentPeriodLabel = periodLabel(for: viewModel.anchorDate, period: viewModel.period)
             let previousPeriodLabel = periodLabel(for: PersonalStatsViewModel.previousRange(for: viewModel.period,
                                                                                             anchorDate: viewModel.anchorDate).lowerBound,
@@ -2591,51 +2563,6 @@ struct PersonalStatsView: View {
                            downColor: Color.appDanger)
             }
         }
-    }
-
-    private func summaryTotalCard() -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(focus.localizedTitle)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-
-            Text(formattedAmount(totalForFocus, currency: viewModel.selectedCurrency))
-                .font(.system(size: 36, weight: .bold, design: .rounded))
-                .monospacedDigit()
-                .minimumScaleFactor(0.65)
-
-            Text(L.personalStatsRecordCount.localized(filteredBreakdown.reduce(0) { $0 + $1.transactionCount }))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.vertical, 18)
-        .padding(.horizontal, 20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color.appSurface)
-                .shadow(color: Color.appCardShadow, radius: 14, x: 0, y: 10)
-        )
-    }
-
-    private func summaryChip(title: String, amount: Int, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .textCase(.uppercase)
-                .foregroundStyle(color)
-            Text(formattedAmount(amount, currency: viewModel.selectedCurrency))
-                .font(.title3.weight(.semibold))
-                .monospacedDigit()
-                .foregroundStyle(Color.primary)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(color.opacity(0.12))
-        )
     }
 
     private func growthView(title: String,
@@ -2736,6 +2663,84 @@ struct PersonalStatsView: View {
         formatter.setLocalizedDateFormatFromTemplate("y")
         return formatter
     }()
+
+    private var observationCard: some View {
+        let savings = totalIncome - totalExpense
+        let savingsRate = totalIncome > 0 ? Double(savings) / Double(totalIncome) : 0
+        let expenseRate = totalIncome > 0 ? Double(totalExpense) / Double(totalIncome) : 0
+        
+        return statsContainer {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Label(L.personalStatsObservationTitle.localized, systemImage: "eye")
+                        .font(.headline)
+                        .foregroundStyle(Color.appTextPrimary)
+                    Spacer()
+                    Button {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            showingObservationHelp.toggle()
+                        }
+                    } label: {
+                        Image(systemName: showingObservationHelp ? "questionmark.circle.fill" : "questionmark.circle")
+                            .font(.subheadline)
+                            .foregroundStyle(showingObservationHelp ? Color.appTextPrimary : Color.secondary)
+                    }
+                    .overlay(alignment: .topTrailing) {
+                        if showingObservationHelp {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(L.personalStatsObservationHelpTitle.localized)
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(Color.appTextPrimary)
+                                
+                                Text(L.personalStatsObservationHelpMessage.localized)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .padding(12)
+                            .frame(width: 260, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.appSurface)
+                                    .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
+                            )
+                            .offset(x: 0, y: 30)
+                            .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .topTrailing)))
+                        }
+                    }
+                }
+                .zIndex(1)
+                
+                Divider()
+                
+                HStack(spacing: 16) {
+                    observationItem(title: L.personalStatsObservationSavings.localized,
+                                    value: formattedAmount(savings, currency: viewModel.selectedCurrency),
+                                    color: Color.appSuccess)
+                    
+                    observationItem(title: L.personalStatsObservationSavingsRate.localized,
+                                    value: formatPercent(savingsRate),
+                                    color: Color.appSelection)
+                    
+                    observationItem(title: L.personalStatsObservationExpenseRate.localized,
+                                    value: formatPercent(expenseRate),
+                                    color: Color.appDanger)
+                }
+            }
+        }
+    }
+    
+    private func observationItem(title: String, value: String, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.callout.weight(.semibold))
+                .foregroundStyle(color)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
 }
 
 private extension PersonalStatsView.Focus {
