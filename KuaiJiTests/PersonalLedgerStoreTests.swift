@@ -14,6 +14,7 @@ import Testing
 struct PersonalLedgerStoreTests {
     private func makeStore() throws -> PersonalLedgerStore {
         let schema = Schema([
+            PersonalCategoryDefinition.self,
             PersonalAccount.self,
             PersonalTransaction.self,
             AccountTransfer.self,

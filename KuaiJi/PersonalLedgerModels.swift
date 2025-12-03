@@ -53,6 +53,42 @@ enum PersonalFXSource: String, Codable, CaseIterable, Identifiable, Sendable {
 // MARK: - SwiftData Models
 
 @Model
+final class PersonalCategoryDefinition {
+    @Attribute(.unique) var remoteId: UUID
+    @Attribute(.unique) var key: String
+    var name: String
+    var kind: PersonalTransactionKind
+    var systemImage: String
+    var colorHex: String
+    var mappedSystemCategory: ExpenseCategory?
+    var sortIndex: Int
+    var createdAt: Date
+    var updatedAt: Date
+
+    init(remoteId: UUID = UUID(),
+         key: String = UUID().uuidString,
+         name: String,
+         kind: PersonalTransactionKind,
+         systemImage: String,
+         colorHex: String,
+         mappedSystemCategory: ExpenseCategory? = nil,
+         sortIndex: Int = 0,
+         createdAt: Date = .now,
+         updatedAt: Date = .now) {
+        self.remoteId = remoteId
+        self.key = key
+        self.name = name
+        self.kind = kind
+        self.systemImage = systemImage
+        self.colorHex = colorHex
+        self.mappedSystemCategory = mappedSystemCategory
+        self.sortIndex = sortIndex
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+@Model
 final class PersonalAccount {
     @Attribute(.unique) var remoteId: UUID
     var name: String
@@ -234,6 +270,8 @@ final class PersonalPreferences {
     var defaultFeeCategoryKey: String?
     var defaultConversionFee: Decimal?
     var lastBackupAt: Date?
+    var systemCategoryColors: [String: String]?
+    var hiddenSystemCategoryKeys: [String]?
 
     init(remoteId: UUID = UUID(),
          primaryDisplayCurrency: CurrencyCode = .cny,
@@ -246,7 +284,9 @@ final class PersonalPreferences {
          lastUsedCategoryKey: String? = nil,
          defaultFeeCategoryKey: String? = "fees",
          defaultConversionFee: Decimal? = nil,
-         lastBackupAt: Date? = nil) {
+         lastBackupAt: Date? = nil,
+         systemCategoryColors: [String: String]? = nil,
+         hiddenSystemCategoryKeys: [String]? = nil) {
         self.remoteId = remoteId
         self.primaryDisplayCurrency = primaryDisplayCurrency
         self.fxSource = fxSource
@@ -259,5 +299,7 @@ final class PersonalPreferences {
         self.defaultFeeCategoryKey = defaultFeeCategoryKey
         self.defaultConversionFee = defaultConversionFee
         self.lastBackupAt = lastBackupAt
+        self.systemCategoryColors = systemCategoryColors
+        self.hiddenSystemCategoryKeys = hiddenSystemCategoryKeys
     }
 }

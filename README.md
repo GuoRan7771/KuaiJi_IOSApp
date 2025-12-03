@@ -70,6 +70,11 @@ Thanks to my girlfriend for all her silent support behind the scenes! Heyhey �
 ---
 
 ## Recent Updates  
+### V4.51(7) – Category Controls & Backup Compatibility
+- **System Categories:** Recolor and hide built-in categories; overrides are saved and respected across pickers/statistics.
+- **Category Management:** Settings entry renamed; expanded SF Symbols with localized EN/FR/ZH names for custom icons.
+- **Backups:** Custom categories and system overrides are now included in export/import while remaining backward compatible with older data.
+
 ### V4.34(7) – Templates, Archiving & UX Improvements
 - **Personal Ledger Templates**: Create, sort, and manage transaction templates for one-tap entry; supports backup import/export.
 - **Shared Ledger Archiving**: Separate lists for "Recent" and "Archived"; swipe to archive/unarchive; auto-unarchives on new sync.

@@ -8,6 +8,7 @@
 import Foundation
 import Combine
 import SwiftData
+import SwiftUI
 
 // MARK: - Errors & Inputs
 
@@ -58,6 +59,7 @@ struct PersonalLedgerSnapshot: Codable {
         case transactions
         case transfers
         case templates
+        case categories
     }
 
     struct Preferences: Codable {
@@ -72,6 +74,8 @@ struct PersonalLedgerSnapshot: Codable {
         var defaultFeeCategoryKey: String?
         var defaultConversionFee: Decimal?
         var lastBackupAt: Date?
+        var systemCategoryColors: [String: String]
+        var hiddenSystemCategoryKeys: [String]
 
         init(from preferences: PersonalPreferences) {
             self.primaryDisplayCurrency = preferences.primaryDisplayCurrency
@@ -85,6 +89,72 @@ struct PersonalLedgerSnapshot: Codable {
             self.defaultFeeCategoryKey = preferences.defaultFeeCategoryKey
             self.defaultConversionFee = preferences.defaultConversionFee
             self.lastBackupAt = preferences.lastBackupAt
+            self.systemCategoryColors = preferences.systemCategoryColors ?? [:]
+            self.hiddenSystemCategoryKeys = preferences.hiddenSystemCategoryKeys ?? []
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case primaryDisplayCurrency, fxSource, defaultFXRate, fxRates, defaultFXPrecision, countFeeInStats, lastUsedAccountId, lastUsedCategoryKey, defaultFeeCategoryKey, defaultConversionFee, lastBackupAt, systemCategoryColors, hiddenSystemCategoryKeys
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            primaryDisplayCurrency = try container.decode(CurrencyCode.self, forKey: .primaryDisplayCurrency)
+            fxSource = try container.decode(PersonalFXSource.self, forKey: .fxSource)
+            defaultFXRate = try container.decodeIfPresent(Decimal.self, forKey: .defaultFXRate)
+            fxRates = try container.decodeIfPresent([CurrencyCode: Decimal].self, forKey: .fxRates) ?? [:]
+            defaultFXPrecision = try container.decode(Int.self, forKey: .defaultFXPrecision)
+            countFeeInStats = try container.decode(Bool.self, forKey: .countFeeInStats)
+            lastUsedAccountId = try container.decodeIfPresent(UUID.self, forKey: .lastUsedAccountId)
+            lastUsedCategoryKey = try container.decodeIfPresent(String.self, forKey: .lastUsedCategoryKey)
+            defaultFeeCategoryKey = try container.decodeIfPresent(String.self, forKey: .defaultFeeCategoryKey)
+            defaultConversionFee = try container.decodeIfPresent(Decimal.self, forKey: .defaultConversionFee)
+            lastBackupAt = try container.decodeIfPresent(Date.self, forKey: .lastBackupAt)
+            systemCategoryColors = try container.decodeIfPresent([String: String].self, forKey: .systemCategoryColors) ?? [:]
+            hiddenSystemCategoryKeys = try container.decodeIfPresent([String].self, forKey: .hiddenSystemCategoryKeys) ?? []
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(primaryDisplayCurrency, forKey: .primaryDisplayCurrency)
+            try container.encode(fxSource, forKey: .fxSource)
+            try container.encodeIfPresent(defaultFXRate, forKey: .defaultFXRate)
+            try container.encode(fxRates, forKey: .fxRates)
+            try container.encode(defaultFXPrecision, forKey: .defaultFXPrecision)
+            try container.encode(countFeeInStats, forKey: .countFeeInStats)
+            try container.encodeIfPresent(lastUsedAccountId, forKey: .lastUsedAccountId)
+            try container.encodeIfPresent(lastUsedCategoryKey, forKey: .lastUsedCategoryKey)
+            try container.encodeIfPresent(defaultFeeCategoryKey, forKey: .defaultFeeCategoryKey)
+            try container.encodeIfPresent(defaultConversionFee, forKey: .defaultConversionFee)
+            try container.encodeIfPresent(lastBackupAt, forKey: .lastBackupAt)
+            try container.encode(systemCategoryColors, forKey: .systemCategoryColors)
+            try container.encode(hiddenSystemCategoryKeys, forKey: .hiddenSystemCategoryKeys)
+        }
+    }
+
+    struct Category: Codable {
+        var remoteId: UUID
+        var key: String
+        var name: String
+        var kind: PersonalTransactionKind
+        var systemImage: String
+        var colorHex: String
+        var mappedSystemCategory: ExpenseCategory?
+        var sortIndex: Int
+        var createdAt: Date
+        var updatedAt: Date
+
+        init(from category: PersonalCategoryDefinition) {
+            self.remoteId = category.remoteId
+            self.key = category.key
+            self.name = category.name
+            self.kind = category.kind
+            self.systemImage = category.systemImage
+            self.colorHex = category.colorHex
+            self.mappedSystemCategory = category.mappedSystemCategory
+            self.sortIndex = category.sortIndex
+            self.createdAt = category.createdAt
+            self.updatedAt = category.updatedAt
         }
     }
 
@@ -211,17 +281,20 @@ struct PersonalLedgerSnapshot: Codable {
     var transactions: [Transaction]
     var transfers: [Transfer]
     var templates: [Template] = []
+        var categories: [Category] = []
 
     init(preferences: Preferences,
          accounts: [Account],
          transactions: [Transaction],
          transfers: [Transfer],
-         templates: [Template] = []) {
+         templates: [Template] = [],
+         categories: [Category] = []) {
         self.preferences = preferences
         self.accounts = accounts
         self.transactions = transactions
         self.transfers = transfers
         self.templates = templates
+        self.categories = categories
     }
 
     init(from decoder: Decoder) throws {
@@ -231,6 +304,7 @@ struct PersonalLedgerSnapshot: Codable {
         transactions = try container.decode([Transaction].self, forKey: .transactions)
         transfers = try container.decode([Transfer].self, forKey: .transfers)
         templates = try container.decodeIfPresent([Template].self, forKey: .templates) ?? []
+        categories = try container.decodeIfPresent([Category].self, forKey: .categories) ?? []
     }
 
     func encode(to encoder: Encoder) throws {
@@ -241,6 +315,9 @@ struct PersonalLedgerSnapshot: Codable {
         try container.encode(transfers, forKey: .transfers)
         if !templates.isEmpty {
             try container.encode(templates, forKey: .templates)
+        }
+        if !categories.isEmpty {
+            try container.encode(categories, forKey: .categories)
         }
     }
 }
@@ -338,6 +415,16 @@ struct PersonalRecordTemplateInput {
     }
 }
 
+struct PersonalCategoryInput {
+    var id: UUID?
+    var name: String
+    var kind: PersonalTransactionKind
+    var systemImage: String
+    var color: Color
+    var mappedSystemCategory: ExpenseCategory?
+    var sortIndex: Int?
+}
+
 struct PersonalTransferInput {
     var id: UUID?
     var fromAccountId: UUID?
@@ -433,12 +520,14 @@ final class PersonalLedgerStore: ObservableObject {
     @Published private(set) var activeAccounts: [PersonalAccount] = []
     @Published private(set) var archivedAccounts: [PersonalAccount] = []
     @Published private(set) var recordTemplates: [PersonalRecordTemplate] = []
+    @Published private(set) var customCategories: [PersonalCategoryDefinition] = []
 
     init(context: ModelContext, defaultCurrency: CurrencyCode = .cny, calendar: Calendar = .current) throws {
         self.context = context
         self.calendar = calendar
         self.recoveryDefaultCurrency = defaultCurrency
         self.preferences = try PersonalLedgerStore.ensurePreferences(in: context, defaultCurrency: defaultCurrency)
+        try refreshCustomCategories()
         try refreshAccounts()
         try refreshTemplates()
     }
@@ -517,6 +606,16 @@ final class PersonalLedgerStore: ObservableObject {
         return preferences.defaultConversionFee
     }
 
+    func systemCategoryColorHex(for key: String) -> String? {
+        ensurePreferencesConsistency()
+        return preferences.systemCategoryColors?[key]
+    }
+
+    func systemCategoryHidden(_ key: String) -> Bool {
+        ensurePreferencesConsistency()
+        return preferences.hiddenSystemCategoryKeys?.contains(key) ?? false
+    }
+
     func safeLastUsedAccountId() -> UUID? {
         ensurePreferencesConsistency()
         return preferences.lastUsedAccountId
@@ -535,6 +634,187 @@ final class PersonalLedgerStore: ObservableObject {
     func safeFXRate(for currency: CurrencyCode) -> Decimal? {
         ensurePreferencesConsistency()
         return preferences.fxRates[currency]
+    }
+
+    // MARK: - Categories
+
+    func refreshCustomCategories() throws {
+        let descriptor = FetchDescriptor<PersonalCategoryDefinition>(
+            sortBy: [
+                SortDescriptor(\.sortIndex, order: .forward),
+                SortDescriptor(\.createdAt, order: .forward)
+            ])
+        customCategories = try context.fetch(descriptor)
+    }
+
+    @discardableResult
+    func saveCategory(_ input: PersonalCategoryInput) throws -> PersonalCategoryDefinition {
+        let trimmedName = input.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { throw PersonalLedgerError.nameRequired }
+        let trimmedSymbol = input.systemImage.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedSymbol.isEmpty else { throw PersonalLedgerError.categoryRequired }
+        let resolvedHex = input.color.toHexRGB() ?? Color.appBrand.toHexRGB() ?? "FF7F50"
+
+        let category: PersonalCategoryDefinition
+        if let id = input.id, let existing = try findCategory(by: id) {
+            category = existing
+        } else {
+            let sortIndex = input.sortIndex ?? customCategories.filter { $0.kind == input.kind }.count
+            category = PersonalCategoryDefinition(key: UUID().uuidString,
+                                                  name: trimmedName,
+                                                  kind: input.kind,
+                                                  systemImage: trimmedSymbol,
+                                                  colorHex: resolvedHex,
+                                                  mappedSystemCategory: input.mappedSystemCategory,
+                                                  sortIndex: sortIndex)
+            context.insert(category)
+        }
+
+        category.name = trimmedName
+        category.kind = input.kind
+        category.systemImage = trimmedSymbol
+        category.colorHex = resolvedHex
+        category.mappedSystemCategory = input.mappedSystemCategory
+        if let sortIndex = input.sortIndex {
+            category.sortIndex = sortIndex
+        }
+        category.updatedAt = Date.now
+
+        try context.save()
+        try refreshCustomCategories()
+        objectWillChange.send()
+        return category
+    }
+
+    func deleteCategory(id: UUID) throws {
+        guard let category = try findCategory(by: id) else { return }
+        context.delete(category)
+        try context.save()
+        try refreshCustomCategories()
+        objectWillChange.send()
+    }
+
+    func categoryOptions(for kind: PersonalTransactionKind) -> [PersonalCategoryOption] {
+        categoryOptions(for: kind, includeHiddenKey: nil)
+    }
+
+    func categoryOptions(for kind: PersonalTransactionKind, includeHiddenKey: String?) -> [PersonalCategoryOption] {
+        let base: [PersonalCategoryOption]
+        switch kind {
+        case .expense: base = systemExpenseCategories
+        case .income: base = systemIncomeCategories
+        case .fee: base = feeCategories
+        }
+        let visibleSystem = base.compactMap { option -> PersonalCategoryOption? in
+            if systemCategoryHidden(option.key) && option.key != includeHiddenKey {
+                return nil
+            }
+            return applySystemOverrides(to: option)
+        }
+        let custom = customCategories
+            .filter { $0.kind == kind }
+            .sorted { lhs, rhs in
+                if lhs.sortIndex == rhs.sortIndex { return lhs.createdAt < rhs.createdAt }
+                return lhs.sortIndex < rhs.sortIndex
+            }
+            .map(makeOption(from:))
+        return visibleSystem + custom
+    }
+
+    func categoryOption(for key: String) -> PersonalCategoryOption? {
+        if let custom = customCategories.first(where: { $0.key == key }) {
+            return makeOption(from: custom)
+        }
+        if let system = systemOption(for: key) {
+            return system
+        }
+        return nil
+    }
+
+    func categoryName(for key: String) -> String {
+        categoryOption(for: key)?.localizedName ?? key
+    }
+
+    func categoryColor(for key: String) -> Color {
+        if let option = categoryOption(for: key) {
+            return option.color
+        }
+        return hashedCategoryColor(for: key)
+    }
+
+    func categoryIcon(for key: String) -> String {
+        if let option = categoryOption(for: key) {
+            return option.systemImage
+        }
+        if let legacy = legacyExpenseIconMap[key] {
+            return legacy
+        }
+        return "tag"
+    }
+
+    private func makeOption(from category: PersonalCategoryDefinition) -> PersonalCategoryOption {
+        let group: PersonalCategoryOption.Group
+        switch category.kind {
+        case .expense: group = .expense
+        case .income: group = .income
+        case .fee: group = .neutral
+        }
+        let color = Color(hex: category.colorHex) ?? Color.appBrand
+        return PersonalCategoryOption(customKey: category.key,
+                                      name: category.name,
+                                      systemImage: category.systemImage,
+                                      group: group,
+                                      color: color,
+                                      mappedSystemCategory: category.mappedSystemCategory)
+    }
+
+    private func systemOption(for key: String) -> PersonalCategoryOption? {
+        if let base = (systemExpenseCategories + systemIncomeCategories + feeCategories).first(where: { $0.key == key }) {
+            return applySystemOverrides(to: base)
+        }
+        return nil
+    }
+
+    private func applySystemOverrides(to option: PersonalCategoryOption) -> PersonalCategoryOption {
+        let overrideColor = systemCategoryColorHex(for: option.key).flatMap(Color.init(hex:)) ?? option.color
+        return PersonalCategoryOption(key: option.key,
+                                      nameKey: option.nameKey ?? option.key,
+                                      systemImage: option.systemImage,
+                                      group: option.group,
+                                      color: overrideColor,
+                                      mappedSystemCategory: option.mappedSystemCategory,
+                                      isCustom: false)
+    }
+
+    private func findCategory(by id: UUID) throws -> PersonalCategoryDefinition? {
+        let predicate = #Predicate<PersonalCategoryDefinition> { $0.remoteId == id }
+        var descriptor = FetchDescriptor<PersonalCategoryDefinition>(predicate: predicate)
+        descriptor.fetchLimit = 1
+        return try context.fetch(descriptor).first
+    }
+
+    func setSystemCategoryColor(_ color: Color, for key: String) throws {
+        guard !key.isEmpty else { return }
+        try updatePreferences { prefs in
+            var map = prefs.systemCategoryColors ?? [:]
+            map[key] = color.toHexRGB() ?? "FF7F50"
+            prefs.systemCategoryColors = map
+        }
+        objectWillChange.send()
+    }
+
+    func setSystemCategoryHidden(_ hidden: Bool, for key: String) throws {
+        guard !key.isEmpty else { return }
+        try updatePreferences { prefs in
+            var set = Set(prefs.hiddenSystemCategoryKeys ?? [])
+            if hidden {
+                set.insert(key)
+            } else {
+                set.remove(key)
+            }
+            prefs.hiddenSystemCategoryKeys = Array(set)
+        }
+        objectWillChange.send()
     }
 
     // MARK: - Accounts
@@ -1191,6 +1471,10 @@ final class PersonalLedgerStore: ObservableObject {
         for template in templates {
             context.delete(template)
         }
+        let categories = try context.fetch(FetchDescriptor<PersonalCategoryDefinition>())
+        for category in categories {
+            context.delete(category)
+        }
         let transactions = try context.fetch(FetchDescriptor<PersonalTransaction>())
         for transaction in transactions {
             context.delete(transaction)
@@ -1206,7 +1490,10 @@ final class PersonalLedgerStore: ObservableObject {
         preferences.lastUsedAccountId = nil
         preferences.lastUsedCategoryKey = nil
         preferences.fxRates = [:]
+        preferences.systemCategoryColors = [:]
+        preferences.hiddenSystemCategoryKeys = []
         try context.save()
+        try refreshCustomCategories()
         try refreshAccounts()
         try refreshTemplates()
     }
@@ -1217,6 +1504,11 @@ final class PersonalLedgerStore: ObservableObject {
         let accountDescriptor = FetchDescriptor<PersonalAccount>()
         let transactionDescriptor = FetchDescriptor<PersonalTransaction>()
         let transferDescriptor = FetchDescriptor<AccountTransfer>()
+        let categoryDescriptor = FetchDescriptor<PersonalCategoryDefinition>(
+            sortBy: [
+                SortDescriptor(\.sortIndex, order: .forward),
+                SortDescriptor(\.createdAt, order: .forward)
+            ])
         let templateDescriptor = FetchDescriptor<PersonalRecordTemplate>(
             sortBy: [
                 SortDescriptor(\.sortIndex, order: .forward),
@@ -1227,13 +1519,15 @@ final class PersonalLedgerStore: ObservableObject {
         let transactions = try context.fetch(transactionDescriptor)
         let transfers = try context.fetch(transferDescriptor)
         let templates = try context.fetch(templateDescriptor)
+        let categories = try context.fetch(categoryDescriptor)
 
         let snapshot = PersonalLedgerSnapshot(
             preferences: .init(from: preferences),
             accounts: accounts.map(PersonalLedgerSnapshot.Account.init(from:)),
             transactions: transactions.map(PersonalLedgerSnapshot.Transaction.init(from:)),
             transfers: transfers.map(PersonalLedgerSnapshot.Transfer.init(from:)),
-            templates: templates.map(PersonalLedgerSnapshot.Template.init(from:))
+            templates: templates.map(PersonalLedgerSnapshot.Template.init(from:)),
+            categories: categories.map(PersonalLedgerSnapshot.Category.init(from:))
         )
 
         return snapshot
@@ -1254,6 +1548,8 @@ final class PersonalLedgerStore: ObservableObject {
             prefs.defaultFeeCategoryKey = snapshot.preferences.defaultFeeCategoryKey
             prefs.defaultConversionFee = snapshot.preferences.defaultConversionFee
             prefs.lastBackupAt = snapshot.preferences.lastBackupAt
+            prefs.systemCategoryColors = snapshot.preferences.systemCategoryColors
+            prefs.hiddenSystemCategoryKeys = snapshot.preferences.hiddenSystemCategoryKeys
         }
 
         for account in snapshot.accounts {
@@ -1285,6 +1581,22 @@ final class PersonalLedgerStore: ObservableObject {
                 createdAt: template.createdAt,
                 updatedAt: template.updatedAt,
                 sortIndex: template.sortIndex
+            )
+            context.insert(model)
+        }
+
+        for category in snapshot.categories {
+            let model = PersonalCategoryDefinition(
+                remoteId: category.remoteId,
+                key: category.key,
+                name: category.name,
+                kind: category.kind,
+                systemImage: category.systemImage,
+                colorHex: category.colorHex,
+                mappedSystemCategory: category.mappedSystemCategory,
+                sortIndex: category.sortIndex,
+                createdAt: category.createdAt,
+                updatedAt: category.updatedAt
             )
             context.insert(model)
         }
@@ -1329,6 +1641,7 @@ final class PersonalLedgerStore: ObservableObject {
 
         try context.save()
         try refreshAccounts()
+        try refreshCustomCategories()
         try refreshTemplates()
     }
 

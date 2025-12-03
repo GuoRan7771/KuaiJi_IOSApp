@@ -2046,6 +2046,7 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
     @State private var navigateToPersonalAccounts = false
     @State private var navigateToPersonalCSVExport = false
     @State private var navigateToTemplates = false
+    @State private var navigateToPersonalCategories = false
     @State private var showingImportPicker = false
     @State private var showingImportConfirmation = false
     @State private var pendingImportURL: URL?
@@ -2240,6 +2241,18 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                         Task { await personalSettingsViewModel.save() }
                     }
                 Button {
+                    navigateToPersonalAccounts = true
+                } label: {
+                    HStack {
+                        Text(L.personalAccountsManage.localized)
+                            .foregroundStyle(Color.appLedgerContentText)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(Color.appSecondaryText)
+                    }
+                }
+                Button {
                     navigateToTemplates = true
                 } label: {
                     HStack {
@@ -2252,10 +2265,10 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                     }
                 }
                 Button {
-                    navigateToPersonalAccounts = true
+                    navigateToPersonalCategories = true
                 } label: {
                     HStack {
-                        Text(L.personalAccountsManage.localized)
+                        Text(L.personalCategoriesManage.localized)
                             .foregroundStyle(Color.appLedgerContentText)
                         Spacer()
                         Image(systemName: "chevron.right")
@@ -2480,6 +2493,9 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
         }
         .navigationDestination(isPresented: $navigateToTemplates) {
             PersonalRecordTemplatesView(root: personalLedgerRoot, viewModel: personalLedgerRoot.makeTemplatesViewModel())
+        }
+        .navigationDestination(isPresented: $navigateToPersonalCategories) {
+            PersonalCategorySettingsView(viewModel: personalLedgerRoot.makeCategorySettingsViewModel())
         }
         .scrollDismissesKeyboard(.interactively)
         .dismissKeyboardOnTap()
@@ -4788,6 +4804,7 @@ final class KeyboardDismissInstaller: NSObject, UIGestureRecognizerDelegate {
         BalanceSnapshot.self,
         TransferPlan.self,
         AuditLog.self,
+        PersonalCategoryDefinition.self,
         PersonalAccount.self,
         PersonalTransaction.self,
         AccountTransfer.self,
@@ -4801,6 +4818,12 @@ final class KeyboardDismissInstaller: NSObject, UIGestureRecognizerDelegate {
         return ContentView(viewModel: AppRootViewModel(), personalLedgerRoot: personalRoot)
             .modelContainer(container)
     } catch {
+        let fallbackConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        if let container = try? ModelContainer(for: schema, configurations: [fallbackConfig]) {
+            let personalRoot = PersonalLedgerRootViewModel(modelContext: container.mainContext, defaultCurrency: .cny)
+            return ContentView(viewModel: AppRootViewModel(), personalLedgerRoot: personalRoot)
+                .modelContainer(container)
+        }
         return Text("Preview init failed: \(error.localizedDescription)")
     }
 }

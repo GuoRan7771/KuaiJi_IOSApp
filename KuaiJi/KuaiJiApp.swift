@@ -52,6 +52,7 @@ struct KuaiJiApp: App {
             BalanceSnapshot.self,
             TransferPlan.self,
             AuditLog.self,
+            PersonalCategoryDefinition.self,
             PersonalAccount.self,
             PersonalTransaction.self,
             AccountTransfer.self,
@@ -62,16 +63,13 @@ struct KuaiJiApp: App {
         do {
             return try ModelContainer(for: schema, configurations: [configuration])
         } catch {
-            #if DEBUG
-            preconditionFailure("Could not create ModelContainer: \(error)")
-            #else
+            debugLog("SwiftData container init failed: \(error)")
             // Fallback to in-memory container to keep app usable
             let fallbackConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
             if let container = try? ModelContainer(for: schema, configurations: [fallbackConfig]) {
                 return container
             }
             fatalError("Could not create either persistent or in-memory ModelContainer: \(error)")
-            #endif
         }
     }()
 

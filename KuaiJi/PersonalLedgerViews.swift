@@ -568,13 +568,13 @@ struct PersonalRecordDetailView: View {
         List {
             Section(header: Text(L.personalDetailSection.localized)) {
                 if let tx = latest, let account = root.store.account(with: tx.accountId) {
-                    let categoryName = localizedCategoryName(tx.categoryKey)
+                    let categoryName = localizedCategoryName(tx.categoryKey, store: root.store)
                     DetailRow(title: L.personalDetailCategory.localized, value: categoryName)
                     DetailRow(title: L.personalDetailAccount.localized, value: root.store.account(with: tx.accountId)?.name ?? record.accountName)
                     let kindDisplay = PersonalRecordRowViewData(id: tx.remoteId,
                                                                 categoryKey: tx.categoryKey,
                                                                 categoryName: categoryName,
-                                                                systemImage: iconForCategory(key: tx.categoryKey),
+                                                                systemImage: root.store.categoryIcon(for: tx.categoryKey),
                                                                 note: tx.note,
                                                                 amountMinorUnits: tx.amountMinorUnits,
                                                                 currency: account.currency,
@@ -610,7 +610,7 @@ struct PersonalRecordDetailView: View {
                 }
             }
         }
-        .navigationTitle(latest != nil ? localizedCategoryName(latest!.categoryKey) : record.categoryName)
+        .navigationTitle(latest != nil ? localizedCategoryName(latest!.categoryKey, store: root.store) : record.categoryName)
         .toolbar {
             ToolbarItemGroup(placement: .navigationBarTrailing) {
                 Button(L.edit.localized) { onEdit(record) }
@@ -1121,6 +1121,7 @@ struct PersonalRecordFormView: View {
     @State private var sharedLedgerOptions: [SharedLedgerOption] = []
     @State private var selectedSharedLedgerId: UUID?
     @State private var pendingSharedDraft: SharedExpenseDraft?
+    @State private var showCategoryMappingAlert = false
 
     var body: some View {
         Form {
@@ -1279,6 +1280,11 @@ struct PersonalRecordFormView: View {
         .alert(viewModel.errorMessage ?? "", isPresented: Binding(get: { viewModel.errorMessage != nil }, set: { _ in viewModel.errorMessage = nil })) {
             Button(L.ok.localized, action: {})
         }
+        .alert(L.personalCategoryMappingTitle.localized, isPresented: $showCategoryMappingAlert) {
+            Button(L.ok.localized, role: .cancel) { }
+        } message: {
+            Text(L.personalCategoryMappingRequired.localized)
+        }
         .sheet(item: $pendingSharedDraft) { draft in
             SaveToSharedSheet(draft: draft,
                               ledgers: sharedLedgerOptions,
@@ -1310,7 +1316,14 @@ struct PersonalRecordFormView: View {
             return
         }
 
-        let category = ExpenseCategory(rawValue: viewModel.categoryKey) ?? .other
+        if viewModel.isCustomCategoryMissingSharedMapping() {
+            showCategoryMappingAlert = true
+            return
+        }
+        guard let category = viewModel.sharedCategoryForSharedLedger() else {
+            viewModel.errorMessage = L.personalSaveAndShareUnavailable.localized
+            return
+        }
         let draft = SharedExpenseDraft(amount: amount,
                                        currency: viewModel.amountCurrency,
                                        occurredAt: viewModel.occurredAt,
@@ -2128,7 +2141,7 @@ private struct PersonalTemplateLabel: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 Label(template.categoryName.isEmpty ? L.personalTemplatesNoCategory.localized : template.categoryName,
-                      systemImage: iconForCategory(key: template.categoryKey))
+                      systemImage: template.systemImage)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             }
@@ -2423,7 +2436,7 @@ struct PersonalStatsView: View {
                         let streakText = L.personalStatsInsightStreak.localized(insight.increasingStreak)
                         let growthText = L.personalStatsInsightRecentGrowth.localized
                         let detailText = L.personalStatsInsightDetail.localized(
-                            localizedCategoryName(insight.categoryKey),
+                            viewModel.categoryName(for: insight.categoryKey),
                             streakText,
                             growthText,
                             formatPercent(insight.recentGrowthRate)
@@ -2539,7 +2552,7 @@ struct PersonalStatsView: View {
                     SectorMark(angle: .value("Amount", Double(item.amountMinorUnits)),
                                innerRadius: .ratio(0.62),
                                angularInset: 1)
-                        .foregroundStyle(categoryColor(for: item.categoryKey))
+                        .foregroundStyle(viewModel.categoryColor(for: item.categoryKey))
                 }
                 .chartLegend(.hidden)
                 .frame(width: 200, height: 200)
@@ -2702,19 +2715,19 @@ struct PersonalStatsView: View {
     }
 
     private func categoryRow(for item: PersonalStatsCategoryShare) -> some View {
-        let color = categoryColor(for: item.categoryKey)
+        let color = viewModel.categoryColor(for: item.categoryKey)
         let share = totalForFocus > 0 ? Double(item.amountMinorUnits) / Double(totalForFocus) : 0
         return HStack(spacing: 16) {
             ZStack {
                 Circle()
                     .fill(color.opacity(0.15))
                     .frame(width: 46, height: 46)
-                Image(systemName: iconForCategory(key: item.categoryKey))
+                Image(systemName: viewModel.categoryIcon(for: item.categoryKey))
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(color)
             }
             VStack(alignment: .leading, spacing: 4) {
-                Text(localizedCategoryName(item.categoryKey))
+                Text(viewModel.categoryName(for: item.categoryKey))
                     .font(.headline)
                 Text(L.personalStatsRecordCount.localized(item.transactionCount))
                     .font(.caption)
@@ -2736,27 +2749,6 @@ struct PersonalStatsView: View {
         AmountFormatter.string(minorUnits: amount, currency: currency, locale: Locale.current)
     }
 
-    private func categoryColor(for key: String) -> Color {
-        let hash = key.unicodeScalars.reduce(into: UInt64(0)) { partial, scalar in
-            partial = partial &* 31 &+ UInt64(scalar.value)
-        }
-        let index = Int(hash % UInt64(Self.categoryPalette.count))
-        return Self.categoryPalette[index]
-    }
-
-    private static let categoryPalette: [Color] = [
-        Color(red: 0.46, green: 0.33, blue: 0.93),
-        Color(red: 0.99, green: 0.53, blue: 0.31),
-        Color(red: 0.16, green: 0.68, blue: 0.93),
-        Color(red: 0.19, green: 0.74, blue: 0.52),
-        Color(red: 0.98, green: 0.46, blue: 0.71),
-        Color(red: 0.96, green: 0.77, blue: 0.36),
-        Color(red: 0.38, green: 0.69, blue: 0.98),
-        Color(red: 0.57, green: 0.39, blue: 0.93),
-        Color(red: 0.98, green: 0.65, blue: 0.33),
-        Color(red: 0.24, green: 0.60, blue: 0.99)
-    ]
-
     private static let monthHeaderFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = .autoupdatingCurrent
@@ -2777,6 +2769,274 @@ struct PersonalStatsView: View {
         formatter.setLocalizedDateFormatFromTemplate("y")
         return formatter
     }()
+}
+
+struct PersonalCategorySettingsView: View {
+    @StateObject private var viewModel: PersonalCategorySettingsViewModel
+    @State private var showingForm = false
+    @State private var editingDraft = PersonalCategoryDraft()
+    @State private var pendingDeleteId: UUID?
+
+    init(viewModel: PersonalCategorySettingsViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel)
+    }
+
+    var body: some View {
+        List {
+            Section(header: Text(L.personalCategoriesSystem.localized)) {
+                systemCategoryGroup(title: L.personalTypeExpense.localized, items: viewModel.systemExpenseOptions)
+                systemCategoryGroup(title: L.personalTypeIncome.localized, items: viewModel.systemIncomeOptions)
+                systemCategoryGroup(title: L.personalTypeFee.localized, items: viewModel.systemFeeOptions)
+            }
+
+            Section(header: Text(L.personalCategoriesCustom.localized),
+                    footer: Text(L.personalCategoriesMappingHint.localized)
+                .appSecondaryTextStyle()) {
+                if viewModel.customCategories.isEmpty {
+                    Text(L.personalCategoriesEmpty.localized)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(viewModel.customCategories) { category in
+                        HStack(spacing: 12) {
+                            Circle()
+                                .fill(category.color)
+                                .frame(width: 26, height: 26)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(category.name)
+                                    .font(.headline)
+                                Text(mappingDescription(for: category))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: category.systemImage)
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 6)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            editingDraft = viewModel.makeDraft(for: category.id)
+                            showingForm = true
+                        }
+                        .swipeActions {
+                            Button(role: .destructive) {
+                                pendingDeleteId = category.id
+                            } label: {
+                                Label(L.delete.localized, systemImage: "trash")
+                            }
+                        }
+                    }
+                }
+
+                Button {
+                    editingDraft = viewModel.makeDraft()
+                    showingForm = true
+                } label: {
+                    Label(L.personalCategoriesAdd.localized, systemImage: "plus")
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(Color.appBackground)
+        .navigationTitle(L.personalCategoriesManage.localized)
+        .sheet(isPresented: $showingForm) {
+            PersonalCategoryFormView(draft: editingDraft,
+                                     expenseOptions: viewModel.systemExpenseOptions) { draft in
+                viewModel.save(draft: draft)
+            }
+        }
+        .alert(viewModel.lastError ?? "", isPresented: Binding(get: { viewModel.lastError != nil }, set: { _ in viewModel.lastError = nil })) {
+            Button(L.ok.localized, action: {})
+        }
+        .alert(L.delete.localized, isPresented: Binding(get: { pendingDeleteId != nil }, set: { _ in pendingDeleteId = nil })) {
+            Button(L.cancel.localized, role: .cancel) { pendingDeleteId = nil }
+            Button(L.delete.localized, role: .destructive) {
+                if let id = pendingDeleteId {
+                    viewModel.delete(id: id)
+                }
+                pendingDeleteId = nil
+            }
+        } message: {
+            Text(L.personalDeleteConfirm.localized)
+        }
+    }
+
+    private func systemCategoryGroup(title: String, items: [PersonalCategoryOption]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+            ForEach(items, id: \.key) { option in
+                HStack(spacing: 12) {
+                    ColorPicker("",
+                                selection: Binding(get: {
+                        viewModel.systemColor(for: option.key, fallback: option.color)
+                    }, set: { newColor in
+                        viewModel.updateSystemCategoryColor(newColor, key: option.key)
+                    }),
+                                supportsOpacity: false)
+                    .labelsHidden()
+                    .frame(width: 40)
+
+                    Label(option.localizedName, systemImage: option.systemImage)
+                        .foregroundStyle(Color.appLedgerContentText)
+                    
+                    Spacer()
+                    
+                    Button {
+                        let isHidden = viewModel.isHiddenSystemCategory(option.key)
+                        viewModel.updateSystemCategoryHidden(!isHidden, key: option.key)
+                    } label: {
+                        Image(systemName: viewModel.isHiddenSystemCategory(option.key) ? "eye.slash" : "eye")
+                            .font(.system(size: 18))
+                            .foregroundStyle(viewModel.isHiddenSystemCategory(option.key) ? Color.secondary : Color.blue)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.vertical, 4)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func mappingDescription(for category: PersonalCategoryRowViewData) -> String {
+        switch category.kind {
+        case .expense:
+            if let mapped = category.mappedSystemCategory {
+                return L.personalCategoriesMappingValue.localized(mapped.localizedName)
+            } else {
+                return L.personalCategoriesMappingNone.localized
+            }
+        case .income:
+            return L.personalTypeIncome.localized
+        case .fee:
+            return L.personalTypeFee.localized
+        }
+    }
+}
+
+struct PersonalCategoryFormView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    @State var draft: PersonalCategoryDraft
+    let expenseOptions: [PersonalCategoryOption]
+    let onSave: (PersonalCategoryDraft) -> Bool
+
+    private var symbolGroups: [(String, [String])] {
+        [
+            (L.personalSymbolGroupCommon.localized, ["tag", "bookmark.fill", "bell.fill", "calendar", "tray.fill", "heart.fill", "leaf.fill", "star.fill", "flag.fill", "location.fill", "archivebox.fill", "lightbulb.fill", "hourglass", "lock.fill", "key.fill", "gearshape.fill", "magnifyingglass", "clock.fill", "alarm.fill", "timer"]),
+            (L.personalSymbolGroupLife.localized, ["fork.knife", "cup.and.saucer.fill", "house.fill", "cart.fill", "drop.fill", "water.waves", "figure.walk", "bed.double.fill", "tshirt.fill", "pills.fill", "cross.case.fill", "pawprint.fill", "gift.fill", "basket.fill", "oven.fill", "washer.fill", "comb.fill", "scissors", "eyeglasses", "facemask.fill", "lamp.table.fill", "chair.lounge.fill"]),
+            (L.personalSymbolGroupTravel.localized, ["car.fill", "tram.fill", "bicycle", "airplane", "fuelpump.fill", "suitcase.fill", "map.fill", "bus.fill", "ferry.fill", "ticket.fill", "globe", "sailboat.fill", "train.side.front.car", "cablecar.fill", "scooter", "parkingsign.circle.fill", "signpost.right.and.left.fill"]),
+            (L.personalSymbolGroupFinance.localized, ["banknote", "creditcard", "dollarsign.circle.fill", "chart.line.uptrend.xyaxis", "bitcoinsign.circle.fill", "wallet.pass", "giftcard.fill", "chart.pie.fill", "signature", "yensign.circle.fill", "eurosign.circle.fill", "sterlingsign.circle.fill", "chineseyuanrenminbisign.circle.fill", "banknote.fill", "scroll.fill", "chart.bar.fill"]),
+            (L.personalSymbolGroupFun.localized, ["gamecontroller.fill", "music.note.list", "film.fill", "ticket.fill", "sparkles", "paintpalette.fill", "party.popper", "sportscourt.fill", "tv.fill", "tent.fill", "camera.fill", "theatermasks.fill", "dice.fill", "puzzlepiece.fill", "guitars.fill", "pianokeys", "headphones", "book.fill", "magazine.fill"]),
+            (L.personalSymbolGroupWork.localized, ["briefcase.fill", "laptopcomputer", "doc.text.fill", "person.2.fill", "paperclip", "hammer.fill", "building.2.fill", "printer.fill", "folder.fill", "phone.fill", "envelope.fill", "desktopcomputer", "keyboard.fill", "mouse.fill", "server.rack", "network", "wrench.and.screwdriver.fill", "ruler.fill"])
+        ]
+    }
+
+    private var symbolIsValid: Bool {
+        let trimmed = draft.systemImage.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !trimmed.isEmpty && UIImage(systemName: trimmed) != nil
+    }
+
+    private var canSave: Bool {
+        !draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && symbolIsValid
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField(L.personalCategoriesName.localized, text: $draft.name, prompt: Text(L.personalCategoriesNamePlaceholder.localized))
+                    Picker(L.personalCategoriesType.localized, selection: $draft.kind) {
+                        Text(L.personalTypeExpense.localized).tag(PersonalTransactionKind.expense)
+                        Text(L.personalTypeIncome.localized).tag(PersonalTransactionKind.income)
+                    }
+                    .pickerStyle(.segmented)
+                }
+                .listRowBackground(Color.appSurface)
+
+                Section(header: Text(L.personalCategoriesIcon.localized)) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(symbolGroups, id: \.0) { title, symbols in
+                            Text(title)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 12) {
+                                    ForEach(symbols, id: \.self) { symbol in
+                                        Button {
+                                            draft.systemImage = symbol
+                                        } label: {
+                                            Image(systemName: symbol)
+                                                .font(.title3)
+                                                .frame(width: 44, height: 44)
+                                                .background(draft.systemImage == symbol ? Color.appSelection : Color.appSurfaceAlt, in: Circle())
+                                                .foregroundStyle(draft.systemImage == symbol ? .white : .primary)
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                                .padding(.horizontal, 2)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 8)
+                }
+                .listRowBackground(Color.appSurface)
+
+                Section {
+                    ColorPicker(L.personalCategoriesColor.localized, selection: $draft.color, supportsOpacity: false)
+                }
+                .listRowBackground(Color.appSurface)
+
+                if draft.kind == .expense {
+                    Section(header: Text(L.personalCategoriesMapping.localized),
+                            footer: Text(L.personalCategoriesMappingHint.localized)
+                        .appSecondaryTextStyle()) {
+                        Picker(L.personalCategoriesMapping.localized, selection: Binding(get: {
+                            draft.mappedSystemCategory
+                        }, set: { draft.mappedSystemCategory = $0 })) {
+                            Text(L.personalCategoriesMappingNone.localized).tag(ExpenseCategory?.none)
+                            ForEach(expenseOptions, id: \.key) { option in
+                                if let category = ExpenseCategory(rawValue: option.key) {
+                                    Text(option.localizedName).tag(Optional(category))
+                                }
+                            }
+                        }
+                        .pickerStyle(.menu)
+                    }
+                    .listRowBackground(Color.appSurface)
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background(Color.appBackground)
+            .navigationTitle(draft.id == nil ? L.personalCategoriesAdd.localized : L.edit.localized)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L.cancel.localized) { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(L.save.localized) {
+                        var adjusted = draft
+                        if draft.kind != .expense {
+                            adjusted.mappedSystemCategory = nil
+                        }
+                        if onSave(adjusted) {
+                            dismiss()
+                        }
+                    }
+                    .disabled(!canSave)
+                }
+            }
+            .onChange(of: draft.kind) { _, newValue in
+                if newValue != .expense {
+                    draft.mappedSystemCategory = nil
+                }
+            }
+        }
+    }
 }
 
 
@@ -2815,11 +3075,9 @@ private func formatPercent(_ v: Double) -> String {
     return f.string(from: NSNumber(value: v)) ?? String(format: "%.1f%%", v * 100)
 }
 
-private func localizedCategoryName(_ key: String) -> String {
-    if let match = (expenseCategories + incomeCategories + feeCategories).first(where: { $0.key == key }) {
-        return match.localizedName
-    }
-    return key
+@MainActor
+private func localizedCategoryName(_ key: String, store: PersonalLedgerStore) -> String {
+    store.categoryName(for: key)
 }
 
 struct DashedSeparator: View {

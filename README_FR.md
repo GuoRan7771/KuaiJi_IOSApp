@@ -69,6 +69,11 @@ Merci à ma copine pour tout son soutien discret dans l’ombre ! Heyhey 😁
 ---
 
 ## Mises à jour récentes  
+### V4.51(7) – Contrôle des catégories & compatibilité sauvegardes
+- **Catégories système** : recoloration et masquage possibles ; les choix sont appliqués partout (sélecteurs, statistiques) et conservés.
+- **Gestion des catégories** : entrée renommée ; plus d’icônes SF Symbols avec noms localisés EN/FR/ZH pour les icônes personnalisées.
+- **Sauvegardes** : les catégories personnalisées et les overrides système (couleur/masquage) sont exportés/importés tout en restant compatibles avec les anciennes données.
+
 ### V4.34(7) – Modèles, Archivage et Améliorations UX
 - **Modèles de Grand Livre Personnel** : Créez, triez et gérez des modèles de transaction pour une saisie en un clic ; prise en charge de l'import/export de sauvegarde.
 - **Archivage de Grand Livre Partagé** : Listes séparées pour "Récents" et "Archivés" ; glissez pour archiver/désarchiver ; désarchivage automatique lors d'une nouvelle synchronisation.
