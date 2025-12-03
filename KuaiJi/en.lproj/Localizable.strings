@@ -463,6 +463,10 @@
 "personal.stats.quarter" = "Quarter";
 "personal.stats.year" = "Year";
 "personal.stats.expenseGrowth" = "Expense Growth";
+"personal.stats.incomeGrowth" = "Income Growth";
+"personal.stats.growth.detail" = "Current period vs previous: %@ %@";
+"personal.stats.growth.up" = "increase of";
+"personal.stats.growth.down" = "decrease of";
 "personal.stats.chart.share" = "Share";
 "personal.stats.chart.income" = "Income";
 "personal.stats.chart.expense" = "Expense";
@@ -844,6 +848,10 @@
 "personal.stats.quarter" = "Quarter";
 "personal.stats.year" = "Year";
 "personal.stats.expenseGrowth" = "Expense Growth";
+"personal.stats.incomeGrowth" = "Income Growth";
+"personal.stats.growth.detail" = "Current period vs previous: %@ %@";
+"personal.stats.growth.up" = "increase of";
+"personal.stats.growth.down" = "decrease of";
 "personal.stats.chart.share" = "Share";
 "personal.stats.chart.income" = "Income";
 "personal.stats.chart.expense" = "Expense";
@@ -922,3 +930,7 @@
 "personal.saveAndShare.openFullSplit" = "Configure more split options in Shared…";
 
 "personal.category.fees" = "Fees";
+
+"personal.stats.growth.detail.full" = "%@ compared to %@ %@ %@ Growth Rate %@";
+
+"personal.stats.categoryClickHint" = "Tap a category to view details";

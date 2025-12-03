@@ -2413,12 +2413,24 @@ struct PersonalStatsView: View {
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.vertical, 24)
                 } else {
-                    VStack(spacing: 12) {
+                    LazyVStack(spacing: 12) {
                         ForEach(filteredBreakdown) { item in
-                            categoryRow(for: item)
+                            NavigationLink {
+                                PersonalStatsCategoryRecordsView(viewModel: viewModel.makeCategoryRecordsViewModel(for: item.categoryKey,
+                                                                                                                  focus: focus.categoryFocus))
+                            } label: {
+                                categoryRow(for: item)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(.top, 8)
+                    
+                    Text(L.personalStatsCategoryClickHint.localized)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 16)
                 }
             }
         }
@@ -2558,8 +2570,25 @@ struct PersonalStatsView: View {
                 }
             }
 
-            if focus == .expense, let growth = viewModel.expenseGrowthRate {
-                growthView(growth)
+            let currentPeriodLabel = periodLabel(for: viewModel.anchorDate, period: viewModel.period)
+            let previousPeriodLabel = periodLabel(for: PersonalStatsViewModel.previousRange(for: viewModel.period,
+                                                                                            anchorDate: viewModel.anchorDate).lowerBound,
+                                                  period: viewModel.period)
+
+            if focus == .expense, let growth = viewModel.expenseGrowth {
+                growthView(title: L.personalStatsExpenseGrowth.localized,
+                           metrics: growth,
+                           currentPeriodLabel: currentPeriodLabel,
+                           previousPeriodLabel: previousPeriodLabel,
+                           upColor: Color.appDanger,
+                           downColor: Color.appSuccess)
+            } else if focus == .income, let growth = viewModel.incomeGrowth {
+                growthView(title: L.personalStatsIncomeGrowth.localized,
+                           metrics: growth,
+                           currentPeriodLabel: currentPeriodLabel,
+                           previousPeriodLabel: previousPeriodLabel,
+                           upColor: Color.appSuccess,
+                           downColor: Color.appDanger)
             }
         }
     }
@@ -2609,20 +2638,36 @@ struct PersonalStatsView: View {
         )
     }
 
-    private func growthView(_ value: Double) -> some View {
-        let up = value >= 0
-        let arrow = up ? "arrow.up.right" : "arrow.down.right"
-        let tint = up ? Color.appDanger : Color.appSuccess
-        return HStack(spacing: 8) {
-            Image(systemName: arrow)
-                .font(.caption.weight(.bold))
-            Text("\(L.personalStatsExpenseGrowth.localized): \(formatPercent(value))")
+    private func growthView(title: String,
+                            metrics: PersonalStatsGrowthMetrics,
+                            currentPeriodLabel: String,
+                            previousPeriodLabel: String,
+                            upColor: Color,
+                            downColor: Color) -> some View {
+        let isIncrease = metrics.delta >= 0
+        let arrow = isIncrease ? "arrow.up.right" : "arrow.down.right"
+        let tint = isIncrease ? upColor : downColor
+        let direction = isIncrease ? L.personalStatsGrowthUp.localized : L.personalStatsGrowthDown.localized
+        let amountText = formattedAmount(abs(metrics.delta), currency: viewModel.selectedCurrency)
+        let rateText = formatPercent(metrics.rate)
+        let detail = L.personalStatsGrowthDetailFull.localized(currentPeriodLabel, previousPeriodLabel, direction, amountText, rateText)
+        
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Image(systemName: arrow)
+                    .font(.caption.weight(.bold))
+                Text(title)
+                    .font(.caption.weight(.medium))
+            }
+            Text(detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .font(.caption.weight(.medium))
         .foregroundStyle(tint)
         .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(tint.opacity(0.12), in: Capsule())
+        .padding(.vertical, 10)
+        .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private func categoryRow(for item: PersonalStatsCategoryShare) -> some View {
@@ -2660,6 +2705,17 @@ struct PersonalStatsView: View {
         AmountFormatter.string(minorUnits: amount, currency: currency, locale: Locale.current)
     }
 
+    private func periodLabel(for anchorDate: Date, period: PersonalStatsViewModel.Period) -> String {
+        switch period {
+        case .month:
+            return Self.monthHeaderFormatter.string(from: anchorDate)
+        case .quarter:
+            return Self.quarterHeaderFormatter.string(from: anchorDate)
+        case .year:
+            return Self.yearHeaderFormatter.string(from: anchorDate)
+        }
+    }
+
     private static let monthHeaderFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = .autoupdatingCurrent
@@ -2680,6 +2736,141 @@ struct PersonalStatsView: View {
         formatter.setLocalizedDateFormatFromTemplate("y")
         return formatter
     }()
+}
+
+private extension PersonalStatsView.Focus {
+    var categoryFocus: PersonalStatsCategoryFocus {
+        switch self {
+        case .expense: return .expense
+        case .income: return .income
+        }
+    }
+}
+
+struct PersonalStatsCategoryRecordsView: View {
+    @StateObject private var viewModel: PersonalStatsCategoryRecordsViewModel
+
+    init(viewModel: PersonalStatsCategoryRecordsViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel)
+    }
+
+    var body: some View {
+        List {
+            Section(header: headerView) {
+                if viewModel.records.isEmpty {
+                    Text(L.personalStatsEmpty.localized)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.vertical, 12)
+                } else {
+                    ForEach(viewModel.records) { record in
+                        PersonalStatsRecordRow(record: record)
+                            .listRowInsets(EdgeInsets(top: 10, leading: 0, bottom: 10, trailing: 0))
+                            .listRowBackground(Color.appBackground)
+                    }
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(Color.appBackground)
+        .navigationTitle(viewModel.categoryName)
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await viewModel.refresh() }
+        .alert(viewModel.lastError ?? "", isPresented: Binding(get: { viewModel.lastError != nil }, set: { _ in viewModel.lastError = nil })) {
+            Button(L.ok.localized, action: {})
+        }
+    }
+
+    private var headerView: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(periodLabel)
+                .font(.headline)
+            HStack(spacing: 8) {
+                Text(viewModel.selectedCurrency.displayLabel)
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(Color.appSurfaceAlt))
+                Text(L.personalStatsRecordCount.localized(viewModel.records.count))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var periodLabel: String {
+        switch viewModel.period {
+        case .month:
+            return Self.monthFormatter.string(from: viewModel.anchorDate)
+        case .quarter:
+            return Self.quarterFormatter.string(from: viewModel.anchorDate)
+        case .year:
+            return Self.yearFormatter.string(from: viewModel.anchorDate)
+        }
+    }
+
+    private static let monthFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = .autoupdatingCurrent
+        formatter.setLocalizedDateFormatFromTemplate("yMMMM")
+        return formatter
+    }()
+
+    private static let quarterFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = .autoupdatingCurrent
+        formatter.dateFormat = "QQQ y"
+        return formatter
+    }()
+
+    private static let yearFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = .autoupdatingCurrent
+        formatter.setLocalizedDateFormatFromTemplate("y")
+        return formatter
+    }()
+}
+
+private struct PersonalStatsRecordRow: View {
+    var record: PersonalRecordRowViewData
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: record.systemImage)
+                .font(.title3)
+                .foregroundStyle(Color.appBrand)
+                .frame(width: 32, height: 32)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(record.categoryName)
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                if !record.note.isEmpty {
+                    Text(record.note)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                Text(record.accountName)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(amountString)
+                    .foregroundStyle(record.amountIsPositive ? Color.appSuccess : Color.appDanger)
+                Text(record.occurredAt.formatted(date: .abbreviated, time: .shortened))
+                    .font(.system(size: 12, weight: .regular, design: .rounded))
+                    .foregroundStyle(Color.appSecondaryText)
+            }
+        }
+    }
+
+    private var amountString: String {
+        AmountFormatter.string(minorUnits: record.amountMinorUnits,
+                              currency: record.currency,
+                              locale: Locale.current)
+    }
 }
 
 struct PersonalCategorySettingsView: View {

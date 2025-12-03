@@ -463,6 +463,10 @@
 "personal.stats.quarter" = "Trimestre";
 "personal.stats.year" = "Année";
 "personal.stats.expenseGrowth" = "Croissance des dépenses";
+"personal.stats.incomeGrowth" = "Croissance des revenus";
+"personal.stats.growth.detail" = "Période courante vs précédente : %@ %@";
+"personal.stats.growth.up" = "hausse de";
+"personal.stats.growth.down" = "baisse de";
 "personal.stats.chart.share" = "Part";
 "personal.stats.chart.income" = "Revenus";
 "personal.stats.chart.expense" = "Dépenses";
@@ -919,6 +923,10 @@
 "personal.stats.quarter" = "Trimestre";
 "personal.stats.year" = "Année";
 "personal.stats.expenseGrowth" = "Croissance des dépenses";
+"personal.stats.incomeGrowth" = "Croissance des revenus";
+"personal.stats.growth.detail" = "Période courante vs précédente : %@ %@";
+"personal.stats.growth.up" = "hausse de";
+"personal.stats.growth.down" = "baisse de";
 "personal.stats.chart.share" = "Part";
 "personal.stats.chart.income" = "Revenus";
 "personal.stats.chart.expense" = "Dépenses";
@@ -997,3 +1005,7 @@
 "personal.saveAndShare.openFullSplit" = "Configurer plus d'options de partage…";
 
 "personal.category.fees" = "Frais";
+
+"personal.stats.growth.detail.full" = "%@ par rapport à %@ %@ %@ Taux de croissance %@";
+
+"personal.stats.categoryClickHint" = "Appuyez sur une catégorie pour voir les détails";

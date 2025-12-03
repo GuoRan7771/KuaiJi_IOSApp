@@ -170,6 +170,18 @@ struct PersonalStatsCategoryShare: Identifiable, Hashable {
     var transactionCount: Int
 }
 
+struct PersonalStatsGrowthMetrics {
+    let current: Int
+    let previous: Int
+    let delta: Int
+    let rate: Double
+}
+
+enum PersonalStatsCategoryFocus {
+    case expense
+    case income
+}
+
 @MainActor
 final class PersonalLedgerRootViewModel: ObservableObject {
     let store: PersonalLedgerStore
@@ -1758,7 +1770,11 @@ final class PersonalStatsViewModel: ObservableObject {
     @Published private(set) var timeline: [PersonalStatsSeriesPoint] = []
     @Published private(set) var expenseBreakdown: [PersonalStatsCategoryShare] = []
     @Published private(set) var incomeBreakdown: [PersonalStatsCategoryShare] = []
+    @Published private(set) var expenseGrowth: PersonalStatsGrowthMetrics?
+    @Published private(set) var incomeGrowth: PersonalStatsGrowthMetrics?
+    // Deprecated: kept for compatibility
     @Published private(set) var expenseGrowthRate: Double?
+    @Published private(set) var incomeGrowthRate: Double?
     @Published private(set) var availableCurrencies: [CurrencyCode] = []
     @Published var lastError: String?
 
@@ -1770,9 +1786,21 @@ final class PersonalStatsViewModel: ObservableObject {
         Task { await refresh() }
     }
 
+    func makeCategoryRecordsViewModel(for categoryKey: String, focus: PersonalStatsCategoryFocus) -> PersonalStatsCategoryRecordsViewModel {
+        PersonalStatsCategoryRecordsViewModel(store: store,
+                                              categoryKey: categoryKey,
+                                              categoryName: categoryName(for: categoryKey),
+                                              focus: focus,
+                                              period: period,
+                                              anchorDate: anchorDate,
+                                              includeFees: includeFees,
+                                              selectedAccountIds: selectedAccountIds,
+                                              selectedCurrency: selectedCurrency)
+    }
+
     func refresh() async {
         do {
-            let range = dateRange()
+            let range = Self.dateRange(for: period, anchorDate: anchorDate)
             // refresh available currencies from active accounts
             let currencies = Array(Set(store.activeAccounts.map { $0.currency })).sorted { $0.rawValue < $1.rawValue }
             availableCurrencies = currencies.isEmpty ? [store.safePrimaryDisplayCurrency()] : currencies
@@ -1849,24 +1877,7 @@ final class PersonalStatsViewModel: ObservableObject {
             .sorted { $0.amountMinorUnits > $1.amountMinorUnits }
 
             // Compute expense growth rate (current vs previous period)
-            func previousRange(from r: ClosedRange<Date>, period: Period) -> ClosedRange<Date> {
-                let cal = Calendar.current
-                switch period {
-                case .month:
-                    let start = cal.date(byAdding: .month, value: -1, to: r.lowerBound) ?? r.lowerBound
-                    let end = cal.date(byAdding: .month, value: -1, to: r.upperBound) ?? r.upperBound
-                    return start...end
-                case .quarter:
-                    let start = cal.date(byAdding: .month, value: -3, to: r.lowerBound) ?? r.lowerBound
-                    let end = cal.date(byAdding: .month, value: -3, to: r.upperBound) ?? r.upperBound
-                    return start...end
-                case .year:
-                    let start = cal.date(byAdding: .year, value: -1, to: r.lowerBound) ?? r.lowerBound
-                    let end = cal.date(byAdding: .year, value: -1, to: r.upperBound) ?? r.upperBound
-                    return start...end
-                }
-            }
-            let prevRange = previousRange(from: range, period: period)
+            let prevRange = Self.previousRange(for: period, anchorDate: anchorDate)
             // compute previous expense sum for selected currency
             filter = PersonalRecordFilter(dateRange: prevRange,
                                           kinds: includeFees ? [.income, .expense, .fee] : [.income, .expense],
@@ -1888,13 +1899,25 @@ final class PersonalStatsViewModel: ObservableObject {
                 case .fee: return includeFees ? partial + t.amountMinorUnits : partial
                 }
             }
-            expenseGrowthRate = prevExpense > 0 ? Double(currentExpense - prevExpense) / Double(prevExpense) : nil
+            let currentIncome = timeline.reduce(0) { $0 + $1.incomeMinorUnits }
+            let prevIncome = prevTxns.reduce(0) { partial, t in
+                switch t.kind {
+                case .income: return partial + t.amountMinorUnits
+                case .expense: return partial
+                case .fee: return partial
+                }
+            }
+
+            expenseGrowth = Self.growthMetrics(current: currentExpense, previous: prevExpense)
+            incomeGrowth = Self.growthMetrics(current: currentIncome, previous: prevIncome)
+            expenseGrowthRate = expenseGrowth?.rate
+            incomeGrowthRate = incomeGrowth?.rate
         } catch {
             lastError = error.localizedDescription
         }
     }
 
-    private func dateRange() -> ClosedRange<Date> {
+    static func dateRange(for period: Period, anchorDate: Date) -> ClosedRange<Date> {
         let calendar = Calendar.current
         switch period {
         case .month:
@@ -1916,6 +1939,32 @@ final class PersonalStatsViewModel: ObservableObject {
         }
     }
 
+    static func previousRange(for period: Period, anchorDate: Date) -> ClosedRange<Date> {
+        let current = dateRange(for: period, anchorDate: anchorDate)
+        let cal = Calendar.current
+        switch period {
+        case .month:
+            let start = cal.date(byAdding: .month, value: -1, to: current.lowerBound) ?? current.lowerBound
+            let end = cal.date(byAdding: .month, value: -1, to: current.upperBound) ?? current.upperBound
+            return start...end
+        case .quarter:
+            let start = cal.date(byAdding: .month, value: -3, to: current.lowerBound) ?? current.lowerBound
+            let end = cal.date(byAdding: .month, value: -3, to: current.upperBound) ?? current.upperBound
+            return start...end
+        case .year:
+            let start = cal.date(byAdding: .year, value: -1, to: current.lowerBound) ?? current.lowerBound
+            let end = cal.date(byAdding: .year, value: -1, to: current.upperBound) ?? current.upperBound
+            return start...end
+        }
+    }
+
+    private static func growthMetrics(current: Int, previous: Int) -> PersonalStatsGrowthMetrics? {
+        guard previous != 0 else { return nil }
+        let delta = current - previous
+        let rate = Double(delta) / Double(previous)
+        return PersonalStatsGrowthMetrics(current: current, previous: previous, delta: delta, rate: rate)
+    }
+
     func categoryName(for key: String) -> String {
         store.categoryName(for: key)
     }
@@ -1926,6 +1975,98 @@ final class PersonalStatsViewModel: ObservableObject {
 
     func categoryIcon(for key: String) -> String {
         store.categoryIcon(for: key)
+    }
+}
+
+@MainActor
+final class PersonalStatsCategoryRecordsViewModel: ObservableObject {
+    @Published private(set) var records: [PersonalRecordRowViewData] = []
+    @Published var lastError: String?
+
+    let categoryKey: String
+    let categoryName: String
+    let period: PersonalStatsViewModel.Period
+    let anchorDate: Date
+    let focus: PersonalStatsCategoryFocus
+    let includeFees: Bool
+    let selectedAccountIds: Set<UUID>
+    let selectedCurrency: CurrencyCode
+
+    private let store: PersonalLedgerStore
+
+    init(store: PersonalLedgerStore,
+         categoryKey: String,
+         categoryName: String,
+         focus: PersonalStatsCategoryFocus,
+         period: PersonalStatsViewModel.Period,
+         anchorDate: Date,
+         includeFees: Bool,
+         selectedAccountIds: Set<UUID>,
+         selectedCurrency: CurrencyCode) {
+        self.store = store
+        self.categoryKey = categoryKey
+        self.categoryName = categoryName
+        self.focus = focus
+        self.period = period
+        self.anchorDate = anchorDate
+        self.includeFees = includeFees
+        self.selectedAccountIds = selectedAccountIds
+        self.selectedCurrency = selectedCurrency
+    }
+
+    func refresh() async {
+        do {
+            let range = PersonalStatsViewModel.dateRange(for: period, anchorDate: anchorDate)
+            var kinds: Set<PersonalTransactionKind> = []
+            switch focus {
+            case .expense:
+                kinds.insert(.expense)
+                if includeFees { kinds.insert(.fee) }
+            case .income:
+                kinds.insert(.income)
+            }
+            let filter = PersonalRecordFilter(dateRange: range,
+                                              kinds: kinds,
+                                              accountIds: selectedAccountIds.isEmpty ? nil : selectedAccountIds,
+                                              categoryKeys: Set([categoryKey]),
+                                              minimumAmountMinor: nil,
+                                              maximumAmountMinor: nil,
+                                              keyword: nil)
+            let txns = try store.records(filter: filter)
+            let filtered = txns.filter { tx in
+                guard let account = store.account(with: tx.accountId) else { return false }
+                return account.currency == selectedCurrency
+            }
+            records = filtered
+                .compactMap { mapTransaction($0) }
+                .sorted { lhs, rhs in
+                    if lhs.occurredAt == rhs.occurredAt { return lhs.createdAt > rhs.createdAt }
+                    return lhs.occurredAt > rhs.occurredAt
+                }
+        } catch {
+            lastError = error.localizedDescription
+            records = []
+        }
+    }
+
+    private func mapTransaction(_ transaction: PersonalTransaction) -> PersonalRecordRowViewData? {
+        guard let account = store.account(with: transaction.accountId) else {
+            return nil
+        }
+        let category = store.categoryOption(for: transaction.categoryKey)
+        return PersonalRecordRowViewData(id: transaction.remoteId,
+                                         categoryKey: transaction.categoryKey,
+                                         categoryName: category?.localizedName ?? store.categoryName(for: transaction.categoryKey),
+                                         systemImage: category?.systemImage ?? store.categoryIcon(for: transaction.categoryKey),
+                                         note: transaction.note,
+                                         amountMinorUnits: transaction.amountMinorUnits,
+                                         currency: account.currency,
+                                         occurredAt: transaction.occurredAt,
+                                         createdAt: transaction.createdAt,
+                                         accountName: account.name,
+                                         accountId: account.remoteId,
+                                         entryNature: .transaction(transaction.kind),
+                                         transferDescription: nil)
     }
 }
 

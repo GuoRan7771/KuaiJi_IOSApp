@@ -441,6 +441,12 @@
 "personal.stats.quarter" = "季";
 "personal.stats.year" = "年";
 "personal.stats.expenseGrowth" = "支出增长率";
+"personal.stats.incomeGrowth" = "收入增长率";
+"personal.stats.growth.detail" = "当前周期比上一周期%@ %@";
+"personal.stats.growth.detail.full" = "%@ 比 %@ %@ %@ 增长率 %@";
+"personal.stats.growth.up" = "增加";
+"personal.stats.growth.down" = "减少";
+"personal.stats.categoryClickHint" = "点击分类可查看详情";
 "personal.stats.chart.share" = "占比";
 "personal.stats.chart.income" = "收入";
 "personal.stats.chart.expense" = "支出";
