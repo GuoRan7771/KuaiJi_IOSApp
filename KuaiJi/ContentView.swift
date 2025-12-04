@@ -737,6 +737,20 @@ final class AppRootViewModel: ObservableObject {
         return records(from: info)
     }
 
+    fileprivate func resolvedTitle(for expense: ExpenseInput) -> String {
+        let fallback = expense.title.isEmpty ? L.defaultUntitledExpense.localized : expense.title
+        guard expense.isSettlement else { return fallback }
+
+        let payerName = memberLookup[expense.payerId]?.name ?? L.defaultUnknownMember.localized
+        let participantNames = expense.participants.map { participant in
+            memberLookup[participant.userId]?.name ?? L.defaultUnknownMember.localized
+        }
+
+        guard let firstReceiver = participantNames.first else { return fallback }
+        let receiverDisplay = participantNames.count == 1 ? firstReceiver : participantNames.joined(separator: ", ")
+        return String(format: L.defaultClearBalanceTransfer.localized, payerName, receiverDisplay)
+    }
+
     func allLedgerRecords() -> [LedgerRecordViewData] {
         ledgerInfos.values.flatMap { records(from: $0) }.sorted { $0.date > $1.date }
     }
@@ -747,7 +761,7 @@ final class AppRootViewModel: ObservableObject {
             let totalMinor = expense.amountMinorUnits + expense.metadata.tipMinorUnits + expense.metadata.taxMinorUnits
             let amountDisplay = AmountFormatter.string(minorUnits: totalMinor, currency: info.currency, locale: locale)
             let payerName = memberLookup[expense.payerId]?.name ?? L.defaultUnknownMember.localized
-            let title = expense.title.isEmpty ? L.defaultUntitledExpense.localized : expense.title
+            let title = resolvedTitle(for: expense)
             let beneficiaryName: String? = {
                 guard expense.splitStrategy == .helpPay else { return nil }
                 guard let beneficiaryId = expense.participants.first?.userId else { return nil }
@@ -2637,7 +2651,8 @@ struct SettingsView<Model: SettingsViewModelProtocol>: View {
                     .replacingOccurrences(of: ",", with: " ")
                     .replacingOccurrences(of: "\n", with: " ")
             }.joined(separator: ";")
-            let sanitizedTitle = (expense.title.isEmpty ? L.defaultUntitledExpense.localized : expense.title)
+            let displayTitle = rootViewModel.resolvedTitle(for: expense)
+            let sanitizedTitle = displayTitle
                 .replacingOccurrences(of: ",", with: " ")
                 .replacingOccurrences(of: "\n", with: " ")
             let sanitizedCategory = categoryName
