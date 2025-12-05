@@ -46,6 +46,8 @@ enum L {
     static let close = "close"
     static let add = "add"
     static let all = "all"
+    static let expand = "expand"
+    static let collapse = "collapse"
     
     // Tab Bar
     static let tabLedgers = "tab.ledgers"
@@ -331,7 +333,6 @@ enum L {
     static let personalStatsYear = "personal.stats.year"
     static let personalStatsExpenseGrowth = "personal.stats.expenseGrowth"
     static let personalStatsIncomeGrowth = "personal.stats.incomeGrowth"
-    static let personalStatsGrowthDetail = "personal.stats.growth.detail"
     static let personalStatsGrowthDetailFull = "personal.stats.growth.detail.full"
     static let personalStatsGrowthUp = "personal.stats.growth.up"
     static let personalStatsGrowthDown = "personal.stats.growth.down"

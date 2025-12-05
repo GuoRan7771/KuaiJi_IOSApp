@@ -3679,6 +3679,7 @@ struct FriendListHost: View {
 struct LedgerListView<Model: LedgerListViewModelProtocol>: View {
     @ObservedObject var viewModel: Model
     @State private var pendingDeletion: LedgerSummaryViewData?
+    @AppStorage("isArchivedLedgersExpanded") private var isArchivedLedgersExpanded = false
 
     var body: some View {
         List {
@@ -3711,31 +3712,48 @@ struct LedgerListView<Model: LedgerListViewModelProtocol>: View {
                 }
             }
             if !viewModel.archivedLedgers.isEmpty {
-                Section(L.ledgersArchived.localized) {
-                    ForEach(viewModel.archivedLedgers) { ledger in
-                        NavigationLink(value: ledger) {
-                            LedgerSummaryRow(ledger: ledger, isArchived: true)
-                        }
-                        .accessibilityLabel("\(ledger.name), \(L.ledgersMemberCount.localized(ledger.memberCount)), \(L.ledgersOutstanding.localized(ledger.outstandingDisplay)), \(L.ledgersArchived.localized)")
-                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                            Button {
-                                viewModel.unarchiveLedger(id: ledger.id)
-                            } label: {
-                                Label(L.ledgersUnarchiveAction.localized, systemImage: "arrow.uturn.left")
+                Section {
+                    if isArchivedLedgersExpanded {
+                        ForEach(viewModel.archivedLedgers) { ledger in
+                            NavigationLink(value: ledger) {
+                                LedgerSummaryRow(ledger: ledger, isArchived: true)
                             }
-                            .tint(.green)
+                            .accessibilityLabel("\(ledger.name), \(L.ledgersMemberCount.localized(ledger.memberCount)), \(L.ledgersOutstanding.localized(ledger.outstandingDisplay)), \(L.ledgersArchived.localized)")
+                            .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                Button {
+                                    viewModel.unarchiveLedger(id: ledger.id)
+                                } label: {
+                                    Label(L.ledgersUnarchiveAction.localized, systemImage: "arrow.uturn.left")
+                                }
+                                .tint(.green)
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    pendingDeletion = ledger
+                                } label: {
+                                    Label(L.delete.localized, systemImage: "trash")
+                                }
+                            }
                         }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                pendingDeletion = ledger
-                            } label: {
-                                Label(L.delete.localized, systemImage: "trash")
+                        .onDelete { indexSet in
+                            if let first = indexSet.first, viewModel.archivedLedgers.indices.contains(first) {
+                                pendingDeletion = viewModel.archivedLedgers[first]
                             }
                         }
                     }
-                    .onDelete { indexSet in
-                        if let first = indexSet.first, viewModel.archivedLedgers.indices.contains(first) {
-                            pendingDeletion = viewModel.archivedLedgers[first]
+                } header: {
+                    HStack {
+                        Text(L.ledgersArchived.localized)
+                        Spacer()
+                        Button {
+                            withAnimation {
+                                isArchivedLedgersExpanded.toggle()
+                            }
+                        } label: {
+                            Text(isArchivedLedgersExpanded ? L.collapse.localized : L.expand.localized)
+                                .font(.subheadline)
+                                .foregroundStyle(Color.accentColor)
+                                .textCase(nil)
                         }
                     }
                 }

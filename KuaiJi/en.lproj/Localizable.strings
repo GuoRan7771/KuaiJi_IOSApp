@@ -8,6 +8,8 @@
 "close" = "Close";
 "add" = "Add";
 "all" = "All";
+"expand" = "Expand";
+"collapse" = "Collapse";
 
 /* Tab Bar */
 "tab.ledgers" = "Shared";
@@ -464,7 +466,6 @@
 "personal.stats.year" = "Year";
 "personal.stats.expenseGrowth" = "Expense Growth";
 "personal.stats.incomeGrowth" = "Income Growth";
-"personal.stats.growth.detail" = "Current period vs previous: %@ %@";
 "personal.stats.growth.up" = "increase of";
 "personal.stats.growth.down" = "decrease of";
 "personal.stats.chart.share" = "Share";
@@ -857,7 +858,6 @@
 "personal.stats.year" = "Year";
 "personal.stats.expenseGrowth" = "Expense Growth";
 "personal.stats.incomeGrowth" = "Income Growth";
-"personal.stats.growth.detail" = "Current period vs previous: %@ %@";
 "personal.stats.growth.up" = "increase of";
 "personal.stats.growth.down" = "decrease of";
 "personal.stats.chart.share" = "Share";
@@ -939,7 +939,7 @@
 
 "personal.category.fees" = "Fees";
 
-"personal.stats.growth.detail.full" = "%@ compared to %@ %@ %@ Growth Rate %@";
+"personal.stats.growth.detail.full" = "%@ compared to %@ %@ %@";
 
 "personal.stats.categoryClickHint" = "Tap a category to view details";
 
@@ -952,4 +952,7 @@
 "personal.stats.observation.help.message" = "Savings = Total Income - Total Expense
 Savings Rate = Savings ÷ Total Income
 Expense Rate = Total Expense ÷ Total Income
-(Ideally: Expense Rate + Savings Rate ≈ 1)";
+(Ideally: Expense Rate + Savings Rate ≈ 1)
+
+Growth Rate = (Current Period - Previous Period) ÷ |Previous Period|
+Used to compare income/expense changes between the current and previous periods.";

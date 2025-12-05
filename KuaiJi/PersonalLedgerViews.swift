@@ -2392,12 +2392,11 @@ struct PersonalStatsView: View {
                         )
                 }
 
-                VStack(spacing: 24) {
+                VStack(spacing: 0) {
                     donutView()
                         .frame(maxWidth: .infinity)
-                    summaryDetails(isCompact: true)
                 }
-                .frame(minHeight: 280, alignment: .top)
+                .padding(.vertical, 12)
 
                 Divider()
 
@@ -2541,31 +2540,6 @@ struct PersonalStatsView: View {
         }
     }
 
-    private func summaryDetails(isCompact: Bool) -> some View {
-        VStack(alignment: .leading, spacing: isCompact ? 18 : 22) {
-            let currentPeriodLabel = periodLabel(for: viewModel.anchorDate, period: viewModel.period)
-            let previousPeriodLabel = periodLabel(for: PersonalStatsViewModel.previousRange(for: viewModel.period,
-                                                                                            anchorDate: viewModel.anchorDate).lowerBound,
-                                                  period: viewModel.period)
-
-            if focus == .expense, let growth = viewModel.expenseGrowth {
-                growthView(title: L.personalStatsExpenseGrowth.localized,
-                           metrics: growth,
-                           currentPeriodLabel: currentPeriodLabel,
-                           previousPeriodLabel: previousPeriodLabel,
-                           upColor: Color.appDanger,
-                           downColor: Color.appSuccess)
-            } else if focus == .income, let growth = viewModel.incomeGrowth {
-                growthView(title: L.personalStatsIncomeGrowth.localized,
-                           metrics: growth,
-                           currentPeriodLabel: currentPeriodLabel,
-                           previousPeriodLabel: previousPeriodLabel,
-                           upColor: Color.appSuccess,
-                           downColor: Color.appDanger)
-            }
-        }
-    }
-
     private func growthView(title: String,
                             metrics: PersonalStatsGrowthMetrics,
                             currentPeriodLabel: String,
@@ -2578,24 +2552,30 @@ struct PersonalStatsView: View {
         let direction = isIncrease ? L.personalStatsGrowthUp.localized : L.personalStatsGrowthDown.localized
         let amountText = formattedAmount(abs(metrics.delta), currency: viewModel.selectedCurrency)
         let rateText = formatPercent(metrics.rate)
-        let detail = L.personalStatsGrowthDetailFull.localized(currentPeriodLabel, previousPeriodLabel, direction, amountText, rateText)
+        let detail = L.personalStatsGrowthDetailFull.localized(currentPeriodLabel, previousPeriodLabel, direction, amountText)
         
         return VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
-                Image(systemName: arrow)
-                    .font(.caption.weight(.bold))
                 Text(title)
-                    .font(.caption.weight(.medium))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                
+                HStack(spacing: 2) {
+                    Text(rateText)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(tint)
+                    Image(systemName: arrow)
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(tint)
+                }
             }
+            
             Text(detail)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.appTextPrimary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .foregroundStyle(tint)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func categoryRow(for item: PersonalStatsCategoryShare) -> some View {
@@ -2670,6 +2650,11 @@ struct PersonalStatsView: View {
         let savingsRate = totalIncome > 0 ? Double(savings) / Double(totalIncome) : 0
         let expenseRate = totalIncome > 0 ? Double(totalExpense) / Double(totalIncome) : 0
         
+        let currentPeriodLabel = periodLabel(for: viewModel.anchorDate, period: viewModel.period)
+        let previousPeriodLabel = periodLabel(for: PersonalStatsViewModel.previousRange(for: viewModel.period,
+                                                                                        anchorDate: viewModel.anchorDate).lowerBound,
+                                              period: viewModel.period)
+        
         return statsContainer {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
@@ -2726,6 +2711,26 @@ struct PersonalStatsView: View {
                     observationItem(title: L.personalStatsObservationExpenseRate.localized,
                                     value: formatPercent(expenseRate),
                                     color: Color.appDanger)
+                }
+                
+                if let expenseGrowth = viewModel.expenseGrowth {
+                    Divider()
+                    growthView(title: L.personalStatsExpenseGrowth.localized,
+                               metrics: expenseGrowth,
+                               currentPeriodLabel: currentPeriodLabel,
+                               previousPeriodLabel: previousPeriodLabel,
+                               upColor: Color.appDanger,
+                               downColor: Color.appSuccess)
+                }
+                
+                if let incomeGrowth = viewModel.incomeGrowth {
+                    Divider()
+                    growthView(title: L.personalStatsIncomeGrowth.localized,
+                               metrics: incomeGrowth,
+                               currentPeriodLabel: currentPeriodLabel,
+                               previousPeriodLabel: previousPeriodLabel,
+                               upColor: Color.appSuccess,
+                               downColor: Color.appDanger)
                 }
             }
         }
@@ -2879,11 +2884,18 @@ private struct PersonalStatsRecordRow: View {
     }
 }
 
+struct ColorEditingTarget: Identifiable {
+    var id: String { key }
+    let key: String
+    let originalColor: Color
+}
+
 struct PersonalCategorySettingsView: View {
     @StateObject private var viewModel: PersonalCategorySettingsViewModel
     @State private var showingForm = false
     @State private var editingDraft = PersonalCategoryDraft()
     @State private var pendingDeleteId: UUID?
+    @State private var colorEditingTarget: ColorEditingTarget?
 
     init(viewModel: PersonalCategorySettingsViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -2892,9 +2904,9 @@ struct PersonalCategorySettingsView: View {
     var body: some View {
         List {
             Section(header: Text(L.personalCategoriesSystem.localized)) {
-                systemCategoryGroup(title: L.personalTypeExpense.localized, items: viewModel.systemExpenseOptions, showHint: true)
-                systemCategoryGroup(title: L.personalTypeIncome.localized, items: viewModel.systemIncomeOptions)
-                systemCategoryGroup(title: L.personalTypeFee.localized, items: viewModel.systemFeeOptions)
+                systemCategorySectionContent(title: L.personalTypeExpense.localized, items: viewModel.systemExpenseOptions, showHint: true)
+                systemCategorySectionContent(title: L.personalTypeIncome.localized, items: viewModel.systemIncomeOptions)
+                systemCategorySectionContent(title: L.personalTypeFee.localized, items: viewModel.systemFeeOptions)
             }
 
             Section(header: Text(L.personalCategoriesCustom.localized),
@@ -2909,6 +2921,11 @@ struct PersonalCategorySettingsView: View {
                             Circle()
                                 .fill(category.color)
                                 .frame(width: 26, height: 26)
+                            
+                            Image(systemName: category.systemImage)
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundStyle(category.color)
+
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(category.name)
                                     .font(.system(.headline, design: .rounded))
@@ -2917,9 +2934,6 @@ struct PersonalCategorySettingsView: View {
                                     .foregroundStyle(.secondary)
                             }
                             Spacer()
-                            Image(systemName: category.systemImage)
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundStyle(.secondary)
                         }
                         .padding(.vertical, 6)
                         .contentShape(Rectangle())
@@ -2962,6 +2976,9 @@ struct PersonalCategorySettingsView: View {
                 viewModel.save(draft: draft)
             }
         }
+        .sheet(item: $colorEditingTarget) { target in
+            SystemCategoryColorEditor(target: target, viewModel: viewModel)
+        }
         .alert(viewModel.lastError ?? "", isPresented: Binding(get: { viewModel.lastError != nil }, set: { _ in viewModel.lastError = nil })) {
             Button(L.ok.localized, action: {})
         }
@@ -2978,54 +2995,61 @@ struct PersonalCategorySettingsView: View {
         }
     }
 
-    private func systemCategoryGroup(title: String, items: [PersonalCategoryOption], showHint: Bool = false) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if showHint {
-                HStack {
-                    Text(title)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(L.personalCategoriesHideHint.localized)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            } else {
+    @ViewBuilder
+    private func systemCategorySectionContent(title: String, items: [PersonalCategoryOption], showHint: Bool = false) -> some View {
+        if showHint {
+            HStack {
                 Text(title)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
+                Spacer()
+                Text(L.personalCategoriesHideHint.localized)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
-            ForEach(items, id: \.key) { option in
-                HStack(spacing: 12) {
-                    ColorPicker("",
-                                selection: Binding(get: {
-                        viewModel.systemColor(for: option.key, fallback: option.color)
-                    }, set: { newColor in
-                        viewModel.updateSystemCategoryColor(newColor, key: option.key)
-                    }),
-                                supportsOpacity: false)
-                    .labelsHidden()
-                    .frame(width: 40)
+        } else {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
+        
+        ForEach(items, id: \.key) { option in
+            HStack(spacing: 12) {
+                Circle()
+                    .fill(viewModel.systemColor(for: option.key, fallback: option.color))
+                    .frame(width: 26, height: 26)
 
-                    Label(option.localizedName, systemImage: option.systemImage)
+                HStack(spacing: 6) {
+                    Image(systemName: option.systemImage)
+                        .foregroundStyle(viewModel.systemColor(for: option.key, fallback: option.color))
+                    Text(option.localizedName)
                         .foregroundStyle(Color.appLedgerContentText)
-                    
-                    Spacer()
-                    
-                    Button {
-                        let isHidden = viewModel.isHiddenSystemCategory(option.key)
-                        viewModel.updateSystemCategoryHidden(!isHidden, key: option.key)
-                    } label: {
-                        Image(systemName: viewModel.isHiddenSystemCategory(option.key) ? "eye.slash" : "eye")
-                            .font(.system(size: 18))
-                            .foregroundStyle(viewModel.isHiddenSystemCategory(option.key) ? Color.secondary : Color.blue)
-                    }
-                    .buttonStyle(.plain)
                 }
-                .padding(.vertical, 4)
+                
+                Spacer()
+                
+                Toggle("", isOn: Binding(get: {
+                    !viewModel.isHiddenSystemCategory(option.key)
+                }, set: { isVisible in
+                    viewModel.updateSystemCategoryHidden(!isVisible, key: option.key)
+                }))
+                .labelsHidden()
+                .tint(Color.appToggleOn)
+            }
+            .padding(.vertical, 4)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                colorEditingTarget = ColorEditingTarget(key: option.key, originalColor: option.color)
+            }
+            .swipeActions(edge: .trailing) {
+                Button {
+                    colorEditingTarget = ColorEditingTarget(key: option.key, originalColor: option.color)
+                } label: {
+                    Label(L.edit.localized, systemImage: "pencil")
+                }
+                .tint(Color.appBrand)
             }
         }
-        .padding(.vertical, 4)
     }
 
     private func mappingDescription(for category: PersonalCategoryRowViewData) -> String {
@@ -3053,12 +3077,30 @@ struct PersonalCategoryFormView: View {
 
     private var symbolGroups: [(String, [String])] {
         [
-            (L.personalSymbolGroupCommon.localized, ["tag", "bookmark.fill", "bell.fill", "calendar", "tray.fill", "heart.fill", "leaf.fill", "star.fill", "flag.fill", "location.fill", "archivebox.fill", "lightbulb.fill", "hourglass", "lock.fill", "key.fill", "gearshape.fill", "magnifyingglass", "clock.fill", "alarm.fill", "timer"]),
-            (L.personalSymbolGroupLife.localized, ["fork.knife", "cup.and.saucer.fill", "house.fill", "cart.fill", "drop.fill", "water.waves", "figure.walk", "bed.double.fill", "tshirt.fill", "pills.fill", "cross.case.fill", "pawprint.fill", "gift.fill", "basket.fill", "oven.fill", "washer.fill", "comb.fill", "scissors", "eyeglasses", "facemask.fill", "lamp.table.fill", "chair.lounge.fill"]),
-            (L.personalSymbolGroupTravel.localized, ["car.fill", "tram.fill", "bicycle", "airplane", "fuelpump.fill", "suitcase.fill", "map.fill", "bus.fill", "ferry.fill", "ticket.fill", "globe", "sailboat.fill", "train.side.front.car", "cablecar.fill", "scooter", "parkingsign.circle.fill", "signpost.right.and.left.fill"]),
-            (L.personalSymbolGroupFinance.localized, ["banknote", "creditcard", "dollarsign.circle.fill", "chart.line.uptrend.xyaxis", "bitcoinsign.circle.fill", "wallet.pass", "giftcard.fill", "chart.pie.fill", "signature", "yensign.circle.fill", "eurosign.circle.fill", "sterlingsign.circle.fill", "chineseyuanrenminbisign.circle.fill", "banknote.fill", "scroll.fill", "chart.bar.fill"]),
-            (L.personalSymbolGroupFun.localized, ["gamecontroller.fill", "music.note.list", "film.fill", "ticket.fill", "sparkles", "paintpalette.fill", "party.popper", "sportscourt.fill", "tv.fill", "tent.fill", "camera.fill", "theatermasks.fill", "dice.fill", "puzzlepiece.fill", "guitars.fill", "pianokeys", "headphones", "book.fill", "magazine.fill"]),
-            (L.personalSymbolGroupWork.localized, ["briefcase.fill", "laptopcomputer", "doc.text.fill", "person.2.fill", "paperclip", "hammer.fill", "building.2.fill", "printer.fill", "folder.fill", "phone.fill", "envelope.fill", "desktopcomputer", "keyboard.fill", "mouse.fill", "server.rack", "network", "wrench.and.screwdriver.fill", "ruler.fill"])
+            (L.personalSymbolGroupCommon.localized, [
+                "tag", "bookmark.fill", "bell.fill", "calendar", "tray.fill", "heart.fill", "leaf.fill", "star.fill", "flag.fill", "location.fill", "archivebox.fill", "lightbulb.fill", "hourglass", "lock.fill", "key.fill", "gearshape.fill", "magnifyingglass", "clock.fill", "alarm.fill", "timer",
+                "star.circle.fill", "checkmark.seal.fill", "exclamationmark.triangle.fill", "info.circle.fill", "questionmark.circle.fill", "plus.circle.fill", "minus.circle.fill", "xmark.circle.fill", "bolt.fill", "cloud.fill"
+            ]),
+            (L.personalSymbolGroupLife.localized, [
+                "fork.knife", "cup.and.saucer.fill", "house.fill", "cart.fill", "drop.fill", "water.waves", "figure.walk", "bed.double.fill", "tshirt.fill", "pills.fill", "cross.case.fill", "pawprint.fill", "gift.fill", "basket.fill", "oven.fill", "washer.fill", "comb.fill", "scissors", "eyeglasses", "facemask.fill", "lamp.table.fill", "chair.lounge.fill",
+                "house.lodge.fill", "building.columns.fill", "lightbulb.circle.fill", "fanblades.fill", "sofa.fill", "fireplace.fill", "toilet.fill", "shower.fill", "bathtub.fill", "bed.double.circle.fill", "refrigerator.fill", "cabinet.fill"
+            ]),
+            (L.personalSymbolGroupTravel.localized, [
+                "car.fill", "tram.fill", "bicycle", "airplane", "fuelpump.fill", "suitcase.fill", "map.fill", "bus.fill", "ferry.fill", "ticket.fill", "globe", "sailboat.fill", "train.side.front.car", "cablecar.fill", "scooter", "parkingsign.circle.fill", "signpost.right.and.left.fill",
+                "car.side.fill", "bus.doubledecker.fill", "tram.fill.tunnel", "bicycle.circle.fill", "figure.walk.circle.fill", "figure.run", "figure.hiking", "mountain.2.fill", "beach.umbrella.fill", "binoculars.fill", "airplane.circle.fill", "car.ferry.fill"
+            ]),
+            (L.personalSymbolGroupFinance.localized, [
+                "banknote", "creditcard", "dollarsign.circle.fill", "chart.line.uptrend.xyaxis", "bitcoinsign.circle.fill", "wallet.pass", "giftcard.fill", "chart.pie.fill", "signature", "yensign.circle.fill", "eurosign.circle.fill", "sterlingsign.circle.fill", "chineseyuanrenminbisign.circle.fill", "banknote.fill", "scroll.fill", "chart.bar.fill",
+                "creditcard.circle.fill", "chart.bar.xaxis", "chart.line.downtrend.xyaxis", "arrow.up.arrow.down.circle.fill", "arrow.triangle.2.circlepath.circle.fill", "bag.fill.badge.plus", "cart.fill.badge.plus", "basket.fill", "percent", "sum"
+            ]),
+            (L.personalSymbolGroupFun.localized, [
+                "gamecontroller.fill", "music.note.list", "film.fill", "ticket.fill", "sparkles", "paintpalette.fill", "party.popper", "sportscourt.fill", "tv.fill", "tent.fill", "camera.fill", "theatermasks.fill", "dice.fill", "puzzlepiece.fill", "guitars.fill", "pianokeys", "headphones", "book.fill", "magazine.fill",
+                "gamecontroller.circle.fill", "headphones.circle.fill", "mic.fill", "video.fill", "photo.fill", "paintbrush.pointed.fill", "paintbrush.fill", "pencil.tip.crop.circle.fill", "camera.macro", "popcorn.fill", "balloon.fill", "fireworks"
+            ]),
+            (L.personalSymbolGroupWork.localized, [
+                "briefcase.fill", "laptopcomputer", "doc.text.fill", "person.2.fill", "paperclip", "hammer.fill", "building.2.fill", "printer.fill", "folder.fill", "phone.fill", "envelope.fill", "desktopcomputer", "keyboard.fill", "mouse.fill", "server.rack", "network", "wrench.and.screwdriver.fill", "ruler.fill",
+                "briefcase.circle.fill", "person.crop.circle.fill.badge.plus", "person.3.fill", "phone.circle.fill", "envelope.circle.fill", "tray.full.fill", "archivebox.circle.fill", "doc.fill", "doc.text.image.fill", "printer.fill.and.paper.fill", "scanner.fill", "faxmachine"
+            ])
         ]
     }
 
@@ -3452,5 +3494,40 @@ private struct PersonalCSVExportContent: View {
                 .accessibilityLabel(Text(L.personalExportCSV.localized))
             }
         }
+    }
+}
+
+struct SystemCategoryColorEditor: View {
+    let target: ColorEditingTarget
+    @ObservedObject var viewModel: PersonalCategorySettingsViewModel
+    @Environment(\.dismiss) var dismiss
+    @State private var selectedColor: Color
+    
+    init(target: ColorEditingTarget, viewModel: PersonalCategorySettingsViewModel) {
+        self.target = target
+        self.viewModel = viewModel
+        _selectedColor = State(initialValue: viewModel.systemColor(for: target.key, fallback: target.originalColor))
+    }
+    
+    var body: some View {
+        NavigationStack {
+            Form {
+                ColorPicker(L.personalCategoriesColor.localized, selection: $selectedColor, supportsOpacity: false)
+            }
+            .navigationTitle(L.edit.localized)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L.cancel.localized) { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(L.save.localized) {
+                        viewModel.updateSystemCategoryColor(selectedColor, key: target.key)
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .presentationDetents([.height(200)])
     }
 }

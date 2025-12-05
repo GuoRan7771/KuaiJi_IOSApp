@@ -8,6 +8,8 @@
 "close" = "Fermer";
 "add" = "Ajouter";
 "all" = "Tout";
+"expand" = "Développer";
+"collapse" = "Réduire";
 
 /* Barre d'onglets */
 "tab.ledgers" = "Partagés";
@@ -464,7 +466,6 @@
 "personal.stats.year" = "Année";
 "personal.stats.expenseGrowth" = "Croissance des dépenses";
 "personal.stats.incomeGrowth" = "Croissance des revenus";
-"personal.stats.growth.detail" = "Période courante vs précédente : %@ %@";
 "personal.stats.growth.up" = "hausse de";
 "personal.stats.growth.down" = "baisse de";
 "personal.stats.chart.share" = "Part";
@@ -932,7 +933,6 @@
 "personal.stats.year" = "Année";
 "personal.stats.expenseGrowth" = "Croissance des dépenses";
 "personal.stats.incomeGrowth" = "Croissance des revenus";
-"personal.stats.growth.detail" = "Période courante vs précédente : %@ %@";
 "personal.stats.growth.up" = "hausse de";
 "personal.stats.growth.down" = "baisse de";
 "personal.stats.chart.share" = "Part";
@@ -1014,7 +1014,7 @@
 
 "personal.category.fees" = "Frais";
 
-"personal.stats.growth.detail.full" = "%@ par rapport à %@ %@ %@ Taux de croissance %@";
+"personal.stats.growth.detail.full" = "%@ par rapport à %@ %@ %@";
 
 "personal.stats.categoryClickHint" = "Appuyez sur une catégorie pour voir les détails";
 
@@ -1027,4 +1027,7 @@
 "personal.stats.observation.help.message" = "Épargne = Revenus totaux - Dépenses totales
 Taux d'épargne = Épargne ÷ Revenus totaux
 Taux de dépenses = Dépenses totales ÷ Revenus totaux
-(Idéalement : Taux de dépenses + Taux d'épargne ≈ 1)";
+(Idéalement : Taux de dépenses + Taux d'épargne ≈ 1)
+
+Taux de croissance = (Période actuelle - Période précédente) ÷ |Période précédente|
+Utilisé pour comparer les changements de revenus/dépenses entre la période actuelle et la précédente.";
