@@ -437,6 +437,7 @@
 "personal.field.fee" = "手续费（%@）";
 "personal.field.creditLimit" = "信用卡额度";
 "personal.stats.title" = "统计分析";
+"ledger.stats.title" = "%@统计分析";
 "personal.stats.period" = "周期";
 "personal.stats.includeFee" = "统计中包含手续费";
 "personal.stats.month" = "月";

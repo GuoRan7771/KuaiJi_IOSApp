@@ -326,6 +326,7 @@ enum L {
     static let personalTransferFeeTo = "personal.transfer.feeTo"
     static let personalFieldFee = "personal.field.fee"
     static let personalStatsTitle = "personal.stats.title"
+    static let ledgerStatsTitle = "ledger.stats.title"
     static let personalStatsPeriod = "personal.stats.period"
     static let personalStatsIncludeFee = "personal.stats.includeFee"
     static let personalStatsMonth = "personal.stats.month"

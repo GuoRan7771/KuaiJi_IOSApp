@@ -1018,6 +1018,8 @@
 
 "personal.stats.categoryClickHint" = "Appuyez sur une catégorie pour voir les détails";
 
+"ledger.stats.title" = "Statistiques de %@";
+
 "personal.stats.observation.title" = "Observation";
 "personal.stats.observation.savings" = "Épargne";
 "personal.stats.observation.savingsRate" = "Taux d'épargne";

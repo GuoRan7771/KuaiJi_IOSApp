@@ -457,8 +457,9 @@
 "personal.transfer.feeFrom" = "From account";
 "personal.transfer.feeTo" = "To account";
 "personal.field.fee" = "Fee (%@)";
-"personal.field.creditLimit" = "Credit limit";
+"personal.field.creditLimit" = "Credit Limit";
 "personal.stats.title" = "Statistics";
+"ledger.stats.title" = "%@ Statistics";
 "personal.stats.period" = "Period";
 "personal.stats.includeFee" = "Include fees";
 "personal.stats.month" = "Month";
