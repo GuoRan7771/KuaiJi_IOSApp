@@ -518,11 +518,11 @@
 "personal.usage.flow5" = "Personal Ledger Only";
 "personal.usage.flow5.step1" = "Disable \"Shared Ledger\" in Settings to focus on personal tracking.";
 "personal.usage.flow5.step2" = "Use \"Custom Categories\" to create exclusive expense/income types (Personal Ledger only).";
-"personal.usage.flow5.step3" = "Use \"Templates\" to quickly record frequent transactions like breakfast or commute.";
-"personal.usage.flow5.step4" = "Monitor personal financial status and growth trends via the Statistics page.";
-"personal.usage.flow5.step5" = "Now add assets and accounts in the top right corner of the Personal Ledger page, then start bookkeeping.";
-"personal.usage.flow.summary" = "Switch between common AA workflows and see the exact steps.";
-"personal.usage.design.title" = "App design principles";
+"personal.usage.flow5.step3" = "Use 'Expense Templates' to quickly record frequent transactions like breakfast or transport.";
+"personal.usage.flow5.step4" = "Monitor your financial status and trends in real-time via the Stats Analysis page.";
+"personal.usage.flow5.step5" = "First, add assets and accounts in the top right corner of the Personal Ledger page, then start bookkeeping.";
+"personal.usage.flow.summary" = "Operational guides for different offline AA scenarios, switch quickly to view details.";
+"personal.usage.design.title" = "App Design Philosophy";
 "personal.usage.design1" = "Built for offline AA: simple, traceable, no cloud.";
 "personal.usage.design2" = "Shared and personal ledgers stay independent and toggleable.";
 "personal.usage.design3" = "Fully offline, local storage, with backup and restore.";

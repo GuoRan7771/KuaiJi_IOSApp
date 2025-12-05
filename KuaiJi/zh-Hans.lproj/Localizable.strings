@@ -506,7 +506,7 @@
 "personal.usage.flow5.step2" = "使用“自定义分类”功能，创建专属的支出/收入类别（仅限个人账本）。";
 "personal.usage.flow5.step3" = "利用“账目模版”快速记录常发生的交易，如早餐、交通等。";
 "personal.usage.flow5.step4" = "通过统计分析页面，实时监控个人财务状况和增长趋势。";
-"personal.usage.flow5.step5" = "现在个人账本页面右上角添加资产和账户，之后开始记账。";
+"personal.usage.flow5.step5" = "先在个人账本页面右上角添加资产和账户，之后开始记账。";
 "personal.usage.flow.summary" = "为不同线下 AA 场景准备的操作指引，快速切换查看细节。";
 "personal.usage.design.title" = "App 设计理念";
 "personal.usage.design1" = "围绕线下 AA，强调简单、可追溯，不依赖云端。";

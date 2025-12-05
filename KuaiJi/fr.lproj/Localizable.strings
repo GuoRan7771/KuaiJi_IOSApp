@@ -520,7 +520,7 @@
 "personal.usage.flow5.step2" = "Utilisez « Catégories personnalisées » pour créer des types de dépenses/revenus exclusifs (Ledger personnel uniquement).";
 "personal.usage.flow5.step3" = "Utilisez les « Modèles » pour enregistrer rapidement les transactions fréquentes comme le petit-déjeuner ou le transport.";
 "personal.usage.flow5.step4" = "Surveillez votre situation financière personnelle et les tendances de croissance via la page Statistiques.";
-"personal.usage.flow5.step5" = "Ajoutez maintenant des actifs et des comptes dans le coin supérieur droit de la page du Ledger personnel, puis commencez à tenir vos comptes.";
+"personal.usage.flow5.step5" = "Ajoutez d'abord des actifs et des comptes dans le coin supérieur droit de la page du Ledger personnel, puis commencez à tenir vos comptes.";
 "personal.usage.flow.summary" = "Basculez entre les guides AA et suivez les étapes.";
 "personal.usage.design.title" = "Principes de conception";
 "personal.usage.design1" = "Pensé pour l'AA hors ligne : simple, traçable, sans cloud.";
