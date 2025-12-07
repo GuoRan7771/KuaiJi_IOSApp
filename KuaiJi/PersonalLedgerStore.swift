@@ -686,6 +686,34 @@ final class PersonalLedgerStore: ObservableObject {
         return category
     }
 
+    func transactionCount(forCategoryKey key: String) throws -> Int {
+        let predicate = #Predicate<PersonalTransaction> { $0.categoryKey == key }
+        let descriptor = FetchDescriptor<PersonalTransaction>(predicate: predicate)
+        return try context.fetchCount(descriptor)
+    }
+
+    func reassignTransactions(from oldKey: String, to newKey: String) throws {
+        let predicate = #Predicate<PersonalTransaction> { $0.categoryKey == oldKey }
+        let descriptor = FetchDescriptor<PersonalTransaction>(predicate: predicate)
+        let transactions = try context.fetch(descriptor)
+        for transaction in transactions {
+            transaction.categoryKey = newKey
+            transaction.updatedAt = Date.now
+        }
+        try context.save()
+        objectWillChange.send()
+    }
+
+    func transactionCount(forCategoryId id: UUID) throws -> Int {
+        guard let category = try findCategory(by: id) else { return 0 }
+        return try transactionCount(forCategoryKey: category.key)
+    }
+
+    func reassignTransactions(fromCategoryId id: UUID, toCategoryKey newKey: String) throws {
+        guard let category = try findCategory(by: id) else { return }
+        try reassignTransactions(from: category.key, to: newKey)
+    }
+
     func deleteCategory(id: UUID) throws {
         guard let category = try findCategory(by: id) else { return }
         context.delete(category)

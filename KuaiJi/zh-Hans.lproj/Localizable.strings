@@ -684,3 +684,7 @@
 "rate.storeMissing.message" = "请在 Info.plist 中配置 APP_STORE_ID 后再试。";
 
 "personal.category.fees" = "手续费";
+
+"personal.category.delete.hasTransactions" = "该分类下包含账目，请选择处理方式";
+"personal.category.delete.moveToOther" = "移动到系统分类：其他";
+"personal.category.delete.selectNew" = "选择其他分类";

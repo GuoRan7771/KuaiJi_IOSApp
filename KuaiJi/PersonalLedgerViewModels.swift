@@ -2165,6 +2165,7 @@ final class PersonalLedgerSettingsViewModel: ObservableObject {
 
 struct PersonalCategoryRowViewData: Identifiable {
     var id: UUID
+    var key: String
     var name: String
     var kind: PersonalTransactionKind
     var systemImage: String
@@ -2209,6 +2210,7 @@ final class PersonalCategorySettingsViewModel: ObservableObject {
     func rebuild() {
         customCategories = store.customCategories.map { category in
             PersonalCategoryRowViewData(id: category.remoteId,
+                                        key: category.key,
                                         name: category.name,
                                         kind: category.kind,
                                         systemImage: category.systemImage,
@@ -2273,8 +2275,19 @@ final class PersonalCategorySettingsViewModel: ObservableObject {
         }
     }
 
-    func delete(id: UUID) {
+    func transactionCount(for id: UUID) -> Int {
+        return (try? store.transactionCount(forCategoryId: id)) ?? 0
+    }
+
+    func categoryOptions(for kind: PersonalTransactionKind) -> [PersonalCategoryOption] {
+        store.categoryOptions(for: kind)
+    }
+
+    func delete(id: UUID, reassignTo newKey: String? = nil) {
         do {
+            if let newKey = newKey {
+                try store.reassignTransactions(fromCategoryId: id, toCategoryKey: newKey)
+            }
             try store.deleteCategory(id: id)
             rebuild()
         } catch {

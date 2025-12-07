@@ -957,3 +957,7 @@ Expense Rate = Total Expense ÷ Total Income
 
 Growth Rate = (Current Period - Previous Period) ÷ |Previous Period|
 Used to compare income/expense changes between the current and previous periods.";
+
+"personal.category.delete.hasTransactions" = "This category contains transactions. How would you like to handle them?";
+"personal.category.delete.moveToOther" = "Move to System Category: Other";
+"personal.category.delete.selectNew" = "Select Another Category";

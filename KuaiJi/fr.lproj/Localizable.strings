@@ -1033,3 +1033,7 @@ Taux de dépenses = Dépenses totales ÷ Revenus totaux
 
 Taux de croissance = (Période actuelle - Période précédente) ÷ |Période précédente|
 Utilisé pour comparer les changements de revenus/dépenses entre la période actuelle et la précédente.";
+
+"personal.category.delete.hasTransactions" = "Cette catégorie contient des écritures, veuillez choisir une action";
+"personal.category.delete.moveToOther" = "Déplacer vers la catégorie système : Autre";
+"personal.category.delete.selectNew" = "Choisir une autre catégorie";
