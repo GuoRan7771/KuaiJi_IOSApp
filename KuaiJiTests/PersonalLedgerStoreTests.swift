@@ -10,6 +10,7 @@ import SwiftData
 import Testing
 @testable import KuaiJi
 
+@MainActor
 @Suite("Personal Ledger Store")
 struct PersonalLedgerStoreTests {
     private func makeStore() throws -> PersonalLedgerStore {
