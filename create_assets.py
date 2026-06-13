@@ -1,7 +1,8 @@
 import os
 import json
 
-assets_path = "/Users/guo/Documents/iOS/KuaiJi/KuaiJi_IOSApp/KuaiJi/Assets.xcassets"
+repo_root = os.path.dirname(os.path.abspath(__file__))
+assets_path = os.path.join(repo_root, "KuaiJi", "Resources", "Assets", "Assets.xcassets")
 
 colors = {
     "BrandPrimary": {

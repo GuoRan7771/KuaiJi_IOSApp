@@ -45,6 +45,14 @@
 - `KuaiJi/Shared/UI/`: Small app-wide SwiftUI/UIKit helpers such as keyboard dismissal and `onChange` compatibility.
 - `KuaiJi/Shared/UI/Styling/`: Theme colors, styles, and color conversion helpers.
 
+## Resources And Configuration
+
+- `KuaiJi/Resources/Assets/`: Base asset catalog and app icon source.
+- `KuaiJi/Resources/Themes/`: Theme-specific asset catalogs such as Alps, Christmas, Forest, Lavender, Morandi, and Peach.
+- `KuaiJi/Resources/Localization/`: Localized `InfoPlist.strings` and `Localizable.strings` by `.lproj`.
+- `KuaiJi/Resources/StoreKit/`: StoreKit configuration files for App Store and local testing.
+- `KuaiJi/SupportingFiles/`: Build configuration files such as `Info.plist` and entitlements.
+
 ## Refactor Rules
 
 - Keep business logic, persistence keys, localization keys, colors, modifiers, and gesture ordering unchanged.

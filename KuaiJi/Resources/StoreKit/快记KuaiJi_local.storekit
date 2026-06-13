@@ -107,11 +107,17 @@
     ],
     "_timeRate" : 0
   },
+  "subscriptionBundleGroups" : [
+
+  ],
   "subscriptionGroups" : [
 
   ],
+  "subscriptionSuiteGroups" : [
+
+  ],
   "version" : {
-    "major" : 4,
-    "minor" : 0
+    "major" : 6,
+    "minor" : 3
   }
 }

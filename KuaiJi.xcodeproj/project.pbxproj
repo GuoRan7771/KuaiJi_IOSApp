@@ -38,7 +38,7 @@
 		BCBADCF02E8DA1B6000A4612 /* Exceptions for "KuaiJi" folder in "KuaiJi" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Info.plist,
+				SupportingFiles/Info.plist,
 			);
 			target = BCBADCCC2E8DA1B5000A4612 /* KuaiJi */;
 		};
@@ -305,13 +305,13 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
-				CODE_SIGN_ENTITLEMENTS = KuaiJi/KuaiJi.entitlements;
+				CODE_SIGN_ENTITLEMENTS = KuaiJi/SupportingFiles/KuaiJi.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 21;
 				DEVELOPMENT_TEAM = FDZN885HN3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = KuaiJi/Info.plist;
+				INFOPLIST_FILE = KuaiJi/SupportingFiles/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "需要使用相机扫描二维码以添加朋友";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "需要访问本地网络以发现附近设备并同步账本数据";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -325,7 +325,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 4.6;
+				MARKETING_VERSION = 4.70;
 				PRODUCT_BUNDLE_IDENTIFIER = com.guo.kuaijiapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -341,13 +341,13 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
-				CODE_SIGN_ENTITLEMENTS = KuaiJi/KuaiJi.entitlements;
+				CODE_SIGN_ENTITLEMENTS = KuaiJi/SupportingFiles/KuaiJi.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 21;
 				DEVELOPMENT_TEAM = FDZN885HN3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = KuaiJi/Info.plist;
+				INFOPLIST_FILE = KuaiJi/SupportingFiles/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "需要使用相机扫描二维码以添加朋友";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "需要访问本地网络以发现附近设备并同步账本数据";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -361,7 +361,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 4.6;
+				MARKETING_VERSION = 4.70;
 				PRODUCT_BUNDLE_IDENTIFIER = com.guo.kuaijiapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
